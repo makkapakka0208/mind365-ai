@@ -1,0 +1,134 @@
+﻿@import "tailwindcss";
+
+:root {
+  --color-primary: #6366f1;
+  --color-secondary: #06b6d4;
+  --color-text: #e2e8f0;
+  --color-bg-a: #0f172a;
+  --color-bg-b: #312e81;
+  --color-bg-c: #1e293b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-a) 0%,
+    var(--color-bg-b) 48%,
+    var(--color-bg-c) 100%
+  );
+  background-size: 200% 200%;
+  animation: gradientMove 18s ease infinite;
+  color: var(--color-text);
+  font-family: "Inter", "SF Pro Display", "Avenir Next", "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(129, 140, 248, 0.3);
+  color: #f8fafc;
+}
+
+.glass-surface {
+  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+}
+
+.gradient-ring {
+  position: relative;
+}
+
+.gradient-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 1.1rem;
+  background: linear-gradient(120deg, #6366f1, #a855f7, #ec4899);
+  opacity: 0.75;
+  z-index: -1;
+  filter: blur(12px);
+}
+
+.bg-float {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(56px);
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 0 10px rgba(99, 102, 241, 0.55),
+    0 0 18px rgba(56, 189, 248, 0.35);
+  animation: sparkleDrift 7s ease-in-out infinite;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes floatOne {
+  0%,
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-16px) scale(1.05);
+  }
+}
+
+@keyframes floatTwo {
+  0%,
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(12px) scale(0.97);
+  }
+}
+
+@keyframes sparkleDrift {
+  0%,
+  100% {
+    transform: translateY(0px);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(-10px);
+    opacity: 0.95;
+  }
+}
+
+.float-one {
+  animation: floatOne 14s ease-in-out infinite;
+}
+
+.float-two {
+  animation: floatTwo 18s ease-in-out infinite;
+}
+
