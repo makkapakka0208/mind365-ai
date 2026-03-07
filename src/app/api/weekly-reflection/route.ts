@@ -86,6 +86,11 @@ function parsePayload(value: unknown): WeeklyReflectionPayload | null {
 }
 
 function extractResponseText(value: unknown): string {
+  // 适配标准 OpenAI/硅基流动返回格式
+  if (isRecord(value) && Array.isArray(value.choices)) {
+    const content = value.choices[0]?.message?.content;
+    if (typeof content === "string") return content.trim();
+  }
   if (isRecord(value) && typeof value.output_text === "string" && value.output_text.trim()) {
     return value.output_text.trim();
   }
@@ -113,7 +118,7 @@ function extractResponseText(value: unknown): string {
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
-
+  console.log("当前的 Key 是:", apiKey?.substring(0, 8) + "...");
   if (!apiKey) {
     return NextResponse.json({
       reflection: null,
@@ -126,15 +131,16 @@ export async function POST(request: NextRequest) {
 
   try {
     body = await request.json();
+    //console.log("接收到的原始数据:", JSON.stringify(body, null, 2));
   } catch {
     return NextResponse.json({ message: "Invalid request body." }, { status: 400 });
   }
 
-  const payload = parsePayload(body);
+  const payload = parsePayload(body)||body;
 
-  if (!payload) {
-    return NextResponse.json({ message: "Invalid weekly data payload." }, { status: 400 });
-  }
+  //if (!payload) {
+  //  return NextResponse.json({ message: "Invalid weekly data payload." }, { status: 400 });
+  //}
 
   const prompt = [
     "Analyze the user's weekly personal growth data and provide a thoughtful reflection including:",
@@ -148,39 +154,34 @@ export async function POST(request: NextRequest) {
     "",
     "Weekly data:",
     JSON.stringify(payload, null, 2),
+    "",
+    "IMPORTANT: Please provide the final reflection in Chinese (Simplified)." // 输出中文
   ].join("\n");
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch("https://api.siliconflow.cn/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input: [
+        model: "deepseek-ai/DeepSeek-V3",
+        // 适配标准 Chat Completion 格式
+        messages: [
           {
             role: "system",
-            content: [
-              {
-                type: "input_text",
-                text: "You are a compassionate personal growth coach helping users reflect on habits and emotions.",
-              },
-            ],
+            content: "You are a compassionate personal growth coach helping users reflect on habits and emotions."
           },
           {
             role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: prompt,
-              },
-            ],
-          },
+            content: prompt
+          }
         ],
+        temperature: 0.7
       }),
     });
+        
 
     const json = (await response.json()) as unknown;
 

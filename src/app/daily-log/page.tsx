@@ -182,7 +182,7 @@ export default function DailyLogPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {recentLogs.map((log, index) => (
                 <StaggerItem className="h-full" index={index} key={log.id}>
-                  <Link className="block h-full" href={`/journal/${log.id}`}>
+                  <Link className="block h-full" href={`/journal?id=${log.id}`}>
                     <div className="h-full rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-950/35">
                       <p className="text-sm text-slate-400">{formatDate(log.date)}</p>
                       <p className="mt-2 text-sm font-medium text-slate-100">Mood {log.mood}/10</p>

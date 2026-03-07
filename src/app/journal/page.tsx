@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, Clock3, PencilLine, Save } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -52,18 +52,22 @@ function toEditState(entry: DailyLog): EditState {
 }
 
 export default function JournalDetailPage() {
-  const params = useParams<{ id: string | string[] }>();
   const router = useRouter();
   const logs = useDailyLogsStore();
 
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const [id] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
 
-  const entry = useMemo(() => logs.find((log) => log.id === id), [logs, id]);
-
+    const params = new URLSearchParams(window.location.search);
+    return params.get("id") ?? "";
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState<EditState | null>(null);
 
+  const entry = useMemo(() => logs.find((log) => log.id === id), [logs, id]);
 
   const goBack = () => {
     if (window.history.length > 1) {

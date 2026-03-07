@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mind365</string>
+    <string name="title_activity_main">Mind365</string>
+    <string name="package_name">com.mind365.app</string>
+    <string name="custom_url_scheme">com.mind365.app</string>
+</resources>

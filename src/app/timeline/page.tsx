@@ -38,7 +38,7 @@ export default function TimelinePage() {
             <StaggerItem className="relative pl-10" index={index} key={entry.id}>
               <span className="absolute left-0 top-6 h-3.5 w-3.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow shadow-purple-300/40" />
 
-              <Link className="block" href={`/journal/${entry.id}`}>
+              <Link className="block" href={`/journal?id=${entry.id}`}>
                 <Panel className="p-5" interactive>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-slate-400">{formatDate(entry.date)}</p>
