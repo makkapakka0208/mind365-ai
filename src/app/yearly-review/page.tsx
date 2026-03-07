@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { BookOpen, BrainCircuit, CalendarDays, Smile, Sparkles } from "lucide-react";
+import { BookOpen, BrainCircuit, CalendarRange, Smile, Sparkles } from "lucide-react";
 
 import { BarChartCard } from "@/components/charts/bar-chart-card";
 import { LineChartCard } from "@/components/charts/line-chart-card";
@@ -11,67 +11,67 @@ import { Illustration } from "@/components/ui/illustration";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
-import { buildChartSeries, computeSummary, getCurrentMonthLogs, parseReadingHours } from "@/lib/analytics";
-import { formatDate, getMonthRange, toISODate } from "@/lib/date";
+import { buildChartSeries, computeSummary, getCurrentYearLogs, parseReadingHours } from "@/lib/analytics";
+import { formatDate, getYearRange, toISODate } from "@/lib/date";
 import { useDailyLogsStore } from "@/lib/storage-store";
 
-export default function MonthlyReviewPage() {
-  const monthLogs = getCurrentMonthLogs(useDailyLogsStore());
-  const metrics = computeSummary(monthLogs);
-  const moodSeries = buildChartSeries(monthLogs, (log) => log.mood);
-  const studySeries = buildChartSeries(monthLogs, (log) => log.studyHours);
-  const readingSeries = buildChartSeries(monthLogs, (log) => parseReadingHours(log.reading));
-  const range = getMonthRange();
+export default function YearlyReviewPage() {
+  const yearLogs = getCurrentYearLogs(useDailyLogsStore());
+  const metrics = computeSummary(yearLogs);
+  const moodSeries = buildChartSeries(yearLogs, (log) => log.mood);
+  const studySeries = buildChartSeries(yearLogs, (log) => log.studyHours);
+  const readingSeries = buildChartSeries(yearLogs, (log) => parseReadingHours(log.reading));
+  const range = getYearRange();
 
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="汇总整个月的情绪、习惯和想法，看到更完整的成长路径。"
-        eyebrow="月度复盘"
-        icon={CalendarDays}
+        description="把一年里的心境、学习和阅读轨迹放在一起，看到真正的长期变化。"
+        eyebrow="年度复盘"
+        icon={CalendarRange}
         rightSlot={
           <div className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm backdrop-blur-md">
             {formatDate(toISODate(range.start))} - {formatDate(toISODate(range.end))}
           </div>
         }
-        title="月度复盘"
+        title="年度复盘"
       />
 
-      {monthLogs.length === 0 ? (
+      {yearLogs.length === 0 ? (
         <EmptyState
-          description="本月还没有足够的数据。先写几条日记，再回来做月度复盘。"
+          description="今年还没有足够的日记数据。持续记录一段时间后，这里会生成年度视角。"
           icon={Sparkles}
           illustrationAlt="nature illustration"
           illustrationSrc="/illustrations/among-nature.svg"
-          title="暂无本月数据"
+          title="暂无年度数据"
         />
       ) : (
         <>
           <StaggerItem index={0}>
             <Panel className="grid items-center gap-4 p-5 lg:grid-cols-[1.3fr_1fr]" interactive>
               <div>
-                <h3 className="text-base font-semibold text-slate-100">本月快照</h3>
+                <h3 className="text-base font-semibold text-slate-100">年度快照</h3>
                 <p className="mt-2 text-sm leading-7 text-slate-300">
-                  本月共记录 {metrics.entries} 条日记，平均情绪 {metrics.averageMood}/10，学习
+                  今年共记录 {metrics.entries} 条日记，平均情绪 {metrics.averageMood}/10，学习
                   {metrics.totalStudyHours.toFixed(1)} 小时，阅读 {metrics.totalReadingHours.toFixed(1)} 小时。
                 </p>
               </div>
               <Illustration
-                alt="monthly reflection illustration"
+                alt="yearly reflection illustration"
                 className="mx-auto max-w-[230px]"
-                src="/illustrations/reading-time.svg"
+                src="/illustrations/among-nature.svg"
               />
             </Panel>
           </StaggerItem>
 
           <StaggerItem index={1}>
             <AiReflectionPanel
-              emptyMessage="当前无法生成月度 AI 复盘。"
-              logs={monthLogs}
-              period="month"
+              emptyMessage="当前无法生成年度 AI 复盘。"
+              logs={yearLogs}
+              period="year"
               range={range}
               summary={metrics}
-              title="本月 AI 复盘"
+              title="年度 AI 复盘"
             />
           </StaggerItem>
 
@@ -101,18 +101,18 @@ export default function MonthlyReviewPage() {
               <LineChartCard
                 data={moodSeries.data}
                 datasetLabel="情绪"
-                description="查看本月情绪变化"
+                description="查看年度情绪变化趋势"
                 labels={moodSeries.labels}
-                title="本月情绪趋势"
+                title="年度情绪趋势"
               />
             </StaggerItem>
             <StaggerItem index={6}>
               <BarChartCard
                 data={studySeries.data}
                 datasetLabel="学习"
-                description="查看本月每天的学习投入"
+                description="查看年度学习投入变化"
                 labels={studySeries.labels}
-                title="本月学习时长"
+                title="年度学习时长"
               />
             </StaggerItem>
           </div>
@@ -121,9 +121,9 @@ export default function MonthlyReviewPage() {
             <LineChartCard
               data={readingSeries.data}
               datasetLabel="阅读"
-              description="查看本月阅读连续性"
+              description="查看年度阅读节奏"
               labels={readingSeries.labels}
-              title="本月阅读时长"
+              title="年度阅读时长"
             />
           </StaggerItem>
         </>

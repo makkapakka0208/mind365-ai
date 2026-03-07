@@ -23,3 +23,10 @@ export interface Note {
   content: string;
   tags: string[];
 }
+
+export interface Mind365Settings {
+  enableSupabaseSync: boolean;
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+  supabaseUserId: string;
+}

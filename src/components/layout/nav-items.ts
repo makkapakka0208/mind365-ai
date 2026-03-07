@@ -3,6 +3,7 @@
   BookOpen,
   CalendarClock,
   CalendarDays,
+  CalendarRange,
   LayoutDashboard,
   NotebookPen,
   Quote,
@@ -18,13 +19,15 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { label: "Overview", href: "/", icon: LayoutDashboard },
-  { label: "Journal", href: "/daily-log", icon: NotebookPen },
-  { label: "Timeline", href: "/timeline", icon: Sparkles },
-  { label: "Quote Library", href: "/quotes", icon: Quote },
-  { label: "Deep Thinking", href: "/notes", icon: BookOpen },
-  { label: "Weekly Review", href: "/weekly-review", icon: CalendarClock },
-  { label: "Monthly Review", href: "/monthly-review", icon: CalendarDays },
-  { label: "Data Dashboard", href: "/analytics", icon: BarChart3 },
-  { label: "Settings", href: "/settings", icon: Settings2 },
+  { label: "成长概览", href: "/", icon: LayoutDashboard },
+  { label: "写日记", href: "/daily-log", icon: NotebookPen },
+  { label: "日记时间线", href: "/timeline", icon: Sparkles },
+  { label: "灵感书库", href: "/quotes", icon: Quote },
+  { label: "深度思考", href: "/notes", icon: BookOpen },
+  { label: "周度复盘", href: "/weekly-review", icon: CalendarClock },
+  { label: "月度复盘", href: "/monthly-review", icon: CalendarDays },
+  { label: "年度复盘", href: "/yearly-review", icon: CalendarRange },
+  { label: "数据看板", href: "/analytics", icon: BarChart3 },
+  { label: "设置", href: "/settings", icon: Settings2 },
 ];
+

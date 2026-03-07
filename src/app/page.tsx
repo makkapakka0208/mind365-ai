@@ -28,9 +28,9 @@ import { useDailyLogsStore, useQuotesStore } from "@/lib/storage-store";
 import type { Quote as QuoteType } from "@/types";
 
 const DEFAULT_DAILY_QUOTE = {
-  text: "Even a small honest note can change the way you see your day.",
+  text: "只要你愿意诚实地写下一句感受，这一天就不会被白白错过。",
   author: "",
-  book: "The Curious Case of Benjamin Button",
+  book: "本杰明·巴顿奇事",
 };
 
 function pickRandomQuote(quotes: QuoteType[]) {
@@ -82,7 +82,7 @@ export default function DashboardPage() {
   const quoteSource =
     displayQuote.author || displayQuote.book
       ? `- ${displayQuote.author ? `${displayQuote.author}${displayQuote.book ? " · " : ""}` : ""}${displayQuote.book}`
-      : "- Benjamin Button";
+      : "- 匿名";
 
   const favoriteQuotes = quotes.slice(0, 3);
 
@@ -94,38 +94,38 @@ export default function DashboardPage() {
     tone?: "primary" | "accent";
   }> = [
     {
-      label: "Emotion Score",
+      label: "今日情绪",
       value: todayLog ? `${todayLog.mood}/10` : "-",
-      hint: "How you feel today",
+      hint: "记录今天的心境温度",
       icon: Sparkles,
     },
     {
-      label: "Study Hours",
+      label: "学习时长",
       value: todayLog ? `${todayLog.studyHours.toFixed(1)} h` : "0 h",
-      hint: "Focused deep work",
+      hint: "专注投入的累计时长",
       icon: Brain,
     },
     {
-      label: "Reading Hours",
+      label: "阅读时长",
       value: `${readingHoursToday.toFixed(1)} h`,
-      hint: "Daily reading ritual",
+      hint: "今天的阅读节奏",
       icon: BookOpen,
       tone: "accent",
     },
     {
-      label: "Growth Trend",
+      label: "成长记录",
       value: `${logs.length}`,
-      hint: "Total journal records",
+      hint: "累计写下的日记数量",
       icon: TrendingUp,
     },
   ];
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-[1280px] space-y-8 px-6">
+      <div className="mx-auto max-w-[1280px] space-y-8">
         <PageTitle
-          description="A calm space to reflect, learn, and move your growth forward every day."
-          eyebrow="Mind365 Dashboard"
+          description="把情绪、学习和思考放在同一个视角里，日常成长会更清晰。"
+          eyebrow="Mind365"
           icon={LayoutDashboard}
           rightSlot={
             <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 backdrop-blur-md">
@@ -133,13 +133,13 @@ export default function DashboardPage() {
               {formatDate(today)}
             </div>
           }
-          title="Overview"
+          title="成长概览"
         />
 
         <section className="grid grid-cols-1 gap-6 md:grid-cols-12">
           <StaggerItem className="md:col-span-12" index={0}>
             <Panel
-              className="gradient-ring relative overflow-hidden p-7 shadow-2xl shadow-indigo-950/45 sm:p-10"
+              className="gradient-ring relative overflow-hidden p-6 shadow-2xl shadow-indigo-950/45 sm:p-8 lg:p-10"
               interactive
             >
               <Image
@@ -150,7 +150,7 @@ export default function DashboardPage() {
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-indigo-500/12 via-purple-500/10 to-pink-500/12" />
               <div className="relative mx-auto max-w-4xl text-center">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">Today&apos;s Quote</p>
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">今日金句</p>
                 <div className="mt-4 flex justify-center">
                   <span className="rounded-2xl border border-indigo-300/30 bg-indigo-400/12 p-3 text-indigo-200 shadow-lg shadow-indigo-950/35">
                     <Quote size={22} />
@@ -183,7 +183,7 @@ export default function DashboardPage() {
             <Panel className="flex h-full flex-col justify-between p-6" interactive>
               <div>
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-slate-100">Reading Progress</h3>
+                  <h3 className="text-base font-semibold text-slate-100">阅读进度</h3>
                   <span className="text-sm text-slate-300">{readingProgress}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-white/15">
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                   />
                 </div>
                 <p className="mt-3 text-sm text-slate-300">
-                  Today {readingHoursToday.toFixed(1)}h / Goal {readingTargetHours}h
+                  今天 {readingHoursToday.toFixed(1)}h / 目标 {readingTargetHours}h
                 </p>
               </div>
               <Illustration
@@ -208,9 +208,9 @@ export default function DashboardPage() {
             <Panel className="relative flex h-full flex-col justify-between overflow-hidden p-6" interactive>
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-400/10 to-blue-500/10" />
               <div className="relative">
-                <h3 className="text-base font-semibold text-slate-100">Inspiration</h3>
+                <h3 className="text-base font-semibold text-slate-100">灵感角落</h3>
                 <p className="mt-3 text-sm leading-7 text-slate-300">
-                  You do not need a perfect day. You only need one conscious moment to keep growing.
+                  你不需要拥有一个完美的今天。只要留住一个清醒的瞬间，成长就还在继续。
                 </p>
               </div>
               <div className="relative mt-5 space-y-4">
@@ -222,12 +222,12 @@ export default function DashboardPage() {
                 <div className="flex flex-wrap gap-2">
                   <Link href="/daily-log">
                     <Button size="sm" variant="primary">
-                      Write Journal
+                      写日记
                     </Button>
                   </Link>
                   <Link href="/notes">
                     <Button size="sm" variant="ghost">
-                      Deep Thinking
+                      深度思考
                     </Button>
                   </Link>
                 </div>
@@ -239,11 +239,9 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 gap-6 md:grid-cols-12">
           <StaggerItem className="md:col-span-12" index={7}>
             <Panel className="p-6 lg:p-7" interactive>
-              <h3 className="text-lg font-semibold text-slate-100">Reflection Diary</h3>
+              <h3 className="text-lg font-semibold text-slate-100">最近一段反思</h3>
               <p className="mt-4 max-w-4xl text-sm leading-8 text-slate-200 lg:text-[15px]">
-                {latestReflection
-                  ? latestReflection.thoughts
-                  : "Capture one honest sentence about your day and let it guide your next step."}
+                {latestReflection ? latestReflection.thoughts : "先写下一句真实的感受，它会帮你看见下一步。"}
               </p>
             </Panel>
           </StaggerItem>
@@ -254,12 +252,12 @@ export default function DashboardPage() {
             <Panel className="flex h-full flex-col justify-between p-6" interactive>
               <div className="mb-5 flex items-center gap-2">
                 <Quote className="text-indigo-200" size={18} />
-                <h3 className="text-base font-semibold text-slate-100">Favorite Quotes</h3>
+                <h3 className="text-base font-semibold text-slate-100">收藏金句</h3>
               </div>
 
               {favoriteQuotes.length === 0 ? (
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                  Save your first quote and this section becomes your inspiration wall.
+                  保存第一条金句后，这里会成为你的灵感墙。
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -270,7 +268,7 @@ export default function DashboardPage() {
                     >
                       <p className="text-sm leading-7 text-slate-200">&ldquo;{quote.text}&rdquo;</p>
                       <p className="mt-2 text-xs text-slate-400">
-                        {quote.author || "Unknown"}
+                        {quote.author || "佚名"}
                         {quote.book ? ` · ${quote.book}` : ""}
                       </p>
                     </div>
@@ -285,10 +283,10 @@ export default function DashboardPage() {
               <div>
                 <div className="mb-4 flex items-center gap-2">
                   <Sparkles className="text-cyan-200" size={18} />
-                  <h3 className="text-base font-semibold text-slate-100">Gentle Reminder</h3>
+                  <h3 className="text-base font-semibold text-slate-100">温柔提醒</h3>
                 </div>
                 <p className="text-sm leading-7 text-slate-200">
-                  Your progress is not loud, but it is real. Keep writing, keep learning, keep noticing.
+                  你的进步不一定喧闹，但它一直真实存在。继续写，继续学，继续认真感受。
                 </p>
               </div>
               <Illustration
@@ -304,11 +302,11 @@ export default function DashboardPage() {
           <section className="grid grid-cols-1 gap-6 md:grid-cols-12">
             <StaggerItem className="md:col-span-12" index={10}>
               <EmptyState
-                description="Start with one journal entry. Your mood, study, and reading trends will appear here."
+                description="先写下一条日记，这里就会开始呈现你的情绪、学习与阅读趋势。"
                 icon={Sparkles}
                 illustrationAlt="notebook illustration"
                 illustrationSrc="/illustrations/personal-notebook.svg"
-                title="Ready to start your growth journey?"
+                title="准备开始你的成长旅程了吗？"
               />
             </StaggerItem>
           </section>
@@ -317,30 +315,28 @@ export default function DashboardPage() {
             <StaggerItem className="md:col-span-6" index={10}>
               <LineChartCard
                 data={moodSeries.data}
-                datasetLabel="Mood"
-                description="Emotion trend over the past two weeks"
+                datasetLabel="情绪"
+                description="过去两周的情绪变化"
                 labels={moodSeries.labels}
-                title="Emotion Trend"
+                title="情绪趋势"
               />
             </StaggerItem>
-
             <StaggerItem className="md:col-span-6" index={11}>
               <BarChartCard
                 data={studySeries.data}
-                datasetLabel="Study Hours"
-                description="Daily deep-focus study pattern"
+                datasetLabel="学习"
+                description="最近两周的学习投入"
                 labels={studySeries.labels}
-                title="Study Hours"
+                title="学习时长"
               />
             </StaggerItem>
-
             <StaggerItem className="md:col-span-12" index={12}>
               <LineChartCard
                 data={readingSeries.data}
-                datasetLabel="Reading Hours"
-                description="Reading rhythm and consistency"
+                datasetLabel="阅读"
+                description="阅读节奏与连续性"
                 labels={readingSeries.labels}
-                title="Reading Trend"
+                title="阅读趋势"
               />
             </StaggerItem>
           </section>

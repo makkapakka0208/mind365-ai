@@ -57,16 +57,16 @@ export default function QuotesPage() {
     setAuthor("");
     setBook("");
     setTags("");
-    setMessage("Quote saved to your inspiration library.");
+    setMessage("已保存到你的灵感书库。");
   };
 
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="Build a personal library of words that reset your focus and courage."
-        eyebrow="Quote Library"
+        description="把那些值得反复回看的句子，整理成一座自己的灵感书库。"
+        eyebrow="灵感书库"
         icon={Lightbulb}
-        title="Quote Library"
+        title="灵感书库"
       />
 
       <StaggerItem index={0}>
@@ -74,7 +74,7 @@ export default function QuotesPage() {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-indigo-500/16 via-purple-500/14 to-pink-500/16" />
           <div className="relative grid items-center gap-4 lg:grid-cols-[1.4fr_1fr]">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-300">Today&apos;s Inspiration</p>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-300">今日推荐</p>
               {dailyQuote ? (
                 <>
                   <div className="mt-3 flex gap-2">
@@ -82,12 +82,12 @@ export default function QuotesPage() {
                     <p className="text-lg leading-8 text-slate-100">{dailyQuote.text}</p>
                   </div>
                   <p className="mt-3 text-sm italic text-slate-300">
-                    {dailyQuote.author || "Unknown"}
+                    {dailyQuote.author || "佚名"}
                     {dailyQuote.book ? ` · ${dailyQuote.book}` : ""}
                   </p>
                 </>
               ) : (
-                <p className="mt-3 text-sm text-slate-300">Save one quote and your daily recommendation will appear here.</p>
+                <p className="mt-3 text-sm text-slate-300">保存第一条金句后，这里会出现今天的推荐语录。</p>
               )}
             </div>
 
@@ -104,11 +104,11 @@ export default function QuotesPage() {
         <Panel className="p-6">
           <form className="grid gap-4" onSubmit={onSubmit}>
             <label className="grid gap-2 text-sm font-medium text-slate-200">
-              Quote
+              金句内容
               <Textarea
                 className="min-h-28"
                 onChange={(event) => setText(event.target.value)}
-                placeholder="Write a line worth remembering..."
+                placeholder="写下一句值得反复回看的话..."
                 required
                 value={text}
               />
@@ -116,20 +116,20 @@ export default function QuotesPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-slate-200">
-                Author
+                作者
                 <Input
                   onChange={(event) => setAuthor(event.target.value)}
-                  placeholder="Author name"
+                  placeholder="作者姓名"
                   type="text"
                   value={author}
                 />
               </label>
 
               <label className="grid gap-2 text-sm font-medium text-slate-200">
-                Book / Source
+                书名 / 来源
                 <Input
                   onChange={(event) => setBook(event.target.value)}
-                  placeholder="Book or source"
+                  placeholder="书籍、影视或文章来源"
                   type="text"
                   value={book}
                 />
@@ -137,10 +137,10 @@ export default function QuotesPage() {
             </div>
 
             <label className="grid gap-2 text-sm font-medium text-slate-200">
-              Tags
+              标签
               <Input
                 onChange={(event) => setTags(event.target.value)}
-                placeholder="mindset, courage, calm"
+                placeholder="心态, 勇气, 平静"
                 type="text"
                 value={tags}
               />
@@ -148,7 +148,7 @@ export default function QuotesPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <Button size="lg" type="submit" variant="primary">
-                Save Quote
+                保存
               </Button>
               {message ? <span className="text-sm text-emerald-300">{message}</span> : null}
             </div>
@@ -158,11 +158,11 @@ export default function QuotesPage() {
 
       {quotes.length === 0 ? (
         <EmptyState
-          description="After your first quote, this page becomes a beautiful wall of reminders."
+          description="保存第一条金句后，这里会逐渐变成你的私人提醒墙。"
           icon={Sparkles}
           illustrationAlt="relaxed reading illustration"
           illustrationSrc="/illustrations/relaxed-reading.svg"
-          title="No quotes yet"
+          title="还没有收藏金句"
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -176,7 +176,7 @@ export default function QuotesPage() {
                   <div>
                     <p className="leading-7 text-slate-100">{quote.text}</p>
                     <p className="mt-3 text-sm text-slate-300">
-                      {quote.author || "Unknown"}
+                      {quote.author || "佚名"}
                       {quote.book ? ` · ${quote.book}` : ""}
                     </p>
 

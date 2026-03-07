@@ -1,10 +1,10 @@
-﻿import { formatShortDate, getMonthRange, getWeekRange, isDateWithinRange } from "@/lib/date";
+﻿import { formatShortDate, getMonthRange, getWeekRange, getYearRange, isDateWithinRange } from "@/lib/date";
 import type { DailyLog } from "@/types";
 
 export interface SummaryMetrics {
   averageMood: number;
-  totalStudyHours: number;
   totalReadingHours: number;
+  totalStudyHours: number;
   entries: number;
 }
 
@@ -24,10 +24,7 @@ export function parseReadingHours(reading: string): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-export function sortLogsByDate(
-  logs: DailyLog[],
-  direction: "asc" | "desc" = "asc",
-): DailyLog[] {
+export function sortLogsByDate(logs: DailyLog[], direction: "asc" | "desc" = "asc"): DailyLog[] {
   const sorted = [...logs].sort((a, b) => {
     if (a.date === b.date) {
       if (a.createdAt === b.createdAt) {
@@ -47,36 +44,30 @@ export function computeSummary(logs: DailyLog[]): SummaryMetrics {
   if (logs.length === 0) {
     return {
       averageMood: 0,
-      totalStudyHours: 0,
       totalReadingHours: 0,
+      totalStudyHours: 0,
       entries: 0,
     };
   }
 
   const moodTotal = logs.reduce((sum, log) => sum + log.mood, 0);
   const studyTotal = logs.reduce((sum, log) => sum + log.studyHours, 0);
-  const readingTotal = logs.reduce(
-    (sum, log) => sum + parseReadingHours(log.reading),
-    0,
-  );
+  const readingTotal = logs.reduce((sum, log) => sum + parseReadingHours(log.reading), 0);
 
   return {
     averageMood: Number((moodTotal / logs.length).toFixed(1)),
-    totalStudyHours: Number(studyTotal.toFixed(1)),
     totalReadingHours: Number(readingTotal.toFixed(1)),
+    totalStudyHours: Number(studyTotal.toFixed(1)),
     entries: logs.length,
   };
 }
 
-export function buildChartSeries(
-  logs: DailyLog[],
-  selector: (log: DailyLog) => number,
-): ChartSeries {
+export function buildChartSeries(logs: DailyLog[], selector: (log: DailyLog) => number): ChartSeries {
   const sorted = sortLogsByDate(logs, "asc");
 
   if (sorted.length === 0) {
     return {
-      labels: ["No Data"],
+      labels: ["暂无数据"],
       data: [0],
     };
   }
@@ -87,22 +78,18 @@ export function buildChartSeries(
   };
 }
 
-export function getCurrentWeekLogs(
-  logs: DailyLog[],
-  reference: Date = new Date(),
-): DailyLog[] {
-  const { start, end } = getWeekRange(reference);
+export function getCurrentWeekLogs(logs: DailyLog[], reference: Date = new Date()): DailyLog[] {
+  const { end, start } = getWeekRange(reference);
   return logs.filter((log) => isDateWithinRange(log.date, start, end));
 }
 
-export function getCurrentMonthLogs(
-  logs: DailyLog[],
-  reference: Date = new Date(),
-): DailyLog[] {
-  const { start, end } = getMonthRange(reference);
+export function getCurrentMonthLogs(logs: DailyLog[], reference: Date = new Date()): DailyLog[] {
+  const { end, start } = getMonthRange(reference);
   return logs.filter((log) => isDateWithinRange(log.date, start, end));
 }
 
-
-
+export function getCurrentYearLogs(logs: DailyLog[], reference: Date = new Date()): DailyLog[] {
+  const { end, start } = getYearRange(reference);
+  return logs.filter((log) => isDateWithinRange(log.date, start, end));
+}
 

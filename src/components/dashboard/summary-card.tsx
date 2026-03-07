@@ -30,7 +30,7 @@ export function SummaryCard({
     <Panel className={cn("h-full p-5", className)} interactive>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">{label}</p>
+          <p className="text-xs font-medium tracking-[0.12em] text-slate-400">{label}</p>
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-100">{value}</p>
           {hint ? <p className="mt-2 text-sm text-slate-300">{hint}</p> : null}
         </div>
@@ -42,3 +42,4 @@ export function SummaryCard({
     </Panel>
   );
 }
+

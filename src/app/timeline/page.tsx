@@ -17,19 +17,19 @@ export default function TimelinePage() {
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="Walk through your emotional and learning journey in chronological order."
-        eyebrow="Timeline"
+        description="按时间回看你的情绪、阅读和学习轨迹，复盘会更有上下文。"
+        eyebrow="日记时间线"
         icon={History}
-        title="Timeline"
+        title="日记时间线"
       />
 
       {entries.length === 0 ? (
         <EmptyState
-          description="Create your first journal entry and this timeline will start growing."
+          description="先写下第一条日记，这里就会开始生长出你的时间线。"
           icon={Sparkles}
           illustrationAlt="nature illustration"
           illustrationSrc="/illustrations/among-nature.svg"
-          title="No timeline entries yet"
+          title="还没有时间线记录"
         />
       ) : (
         <div className="relative space-y-4">
@@ -43,30 +43,30 @@ export default function TimelinePage() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-slate-400">{formatDate(entry.date)}</p>
                     <p className="rounded-full bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 px-3 py-1 text-xs font-semibold text-indigo-100">
-                      Mood {entry.mood}/10
+                      情绪 {entry.mood}/10
                     </p>
                   </div>
 
                   <p className="mt-4 text-sm leading-7 text-slate-200">
                     {entry.thoughts.length > 180
                       ? `${entry.thoughts.slice(0, 180)}...`
-                      : entry.thoughts || "No thoughts logged"}
+                      : entry.thoughts || "这一天还没有写下具体内容"}
                   </p>
 
                   <div className="mt-4 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
                     <p>
-                      <span className="font-medium text-slate-100">Reading: </span>
+                      <span className="font-medium text-slate-100">阅读记录：</span>
                       {entry.reading || "-"}
                     </p>
                     <p>
-                      <span className="font-medium text-slate-100">Study Hours: </span>
-                      {entry.studyHours}
+                      <span className="font-medium text-slate-100">学习时长：</span>
+                      {entry.studyHours} 小时
                     </p>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     {entry.tags.length === 0 ? (
-                      <p className="text-xs text-slate-400">No tags</p>
+                      <p className="text-xs text-slate-400">暂无标签</p>
                     ) : (
                       entry.tags.map((tag) => (
                         <span
@@ -87,3 +87,4 @@ export default function TimelinePage() {
     </PageTransition>
   );
 }
+

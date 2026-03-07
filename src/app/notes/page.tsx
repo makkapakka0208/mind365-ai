@@ -40,16 +40,16 @@ export default function NotesPage() {
     setTitle("");
     setContent("");
     setTags("");
-    setMessage("Note saved. Keep thinking deeply.");
+    setMessage("笔记已保存，继续把想法写清楚。")
   };
 
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="Turn deep reflections into reusable wisdom cards."
-        eyebrow="Deep Thinking"
+        description="把长段思考沉淀成能反复使用的判断和洞察。"
+        eyebrow="深度思考"
         icon={Brain}
-        title="Deep Thinking"
+        title="深度思考"
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
@@ -57,10 +57,10 @@ export default function NotesPage() {
           <Panel className="p-6">
             <form className="grid gap-4" onSubmit={onSubmit}>
               <label className="grid gap-2 text-sm font-medium text-slate-200">
-                Title
+                标题
                 <Input
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="What question does this note answer?"
+                  placeholder="这条笔记想回答什么问题？"
                   required
                   type="text"
                   value={title}
@@ -68,21 +68,21 @@ export default function NotesPage() {
               </label>
 
               <label className="grid gap-2 text-sm font-medium text-slate-200">
-                Content
+                内容
                 <Textarea
                   className="min-h-48"
                   onChange={(event) => setContent(event.target.value)}
-                  placeholder="Write your long-form thinking here..."
+                  placeholder="把你的长段思考写下来..."
                   required
                   value={content}
                 />
               </label>
 
               <label className="grid gap-2 text-sm font-medium text-slate-200">
-                Tags
+                标签
                 <Input
                   onChange={(event) => setTags(event.target.value)}
-                  placeholder="strategy, reflection, systems"
+                  placeholder="策略, 反思, 系统"
                   type="text"
                   value={tags}
                 />
@@ -90,7 +90,7 @@ export default function NotesPage() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <Button size="lg" type="submit" variant="secondary">
-                  Save Note
+                  保存
                 </Button>
                 {message ? <span className="text-sm text-emerald-300">{message}</span> : null}
               </div>
@@ -100,9 +100,9 @@ export default function NotesPage() {
 
         <StaggerItem index={1}>
           <Panel className="p-6" interactive>
-            <h3 className="text-base font-semibold text-slate-100">Thinking Prompt</h3>
+            <h3 className="text-base font-semibold text-slate-100">思考提示</h3>
             <p className="mt-3 text-sm leading-7 text-slate-300">
-              Clarity comes from writing. The act of naming your thought is often the act of understanding it.
+              很多时候，写下问题的过程，就是理解问题的过程。把模糊的感受写成明确的判断。
             </p>
             <Illustration
               alt="thinking illustration"
@@ -115,11 +115,11 @@ export default function NotesPage() {
 
       {notes.length === 0 ? (
         <EmptyState
-          description="Your long-form ideas will appear here as reusable cards."
+          description="你的长段想法会逐渐沉淀在这里，成为之后可复用的卡片。"
           icon={Sparkles}
           illustrationAlt="thinking notebook illustration"
           illustrationSrc="/illustrations/personal-notebook.svg"
-          title="No deep-thinking notes yet"
+          title="还没有深度笔记"
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

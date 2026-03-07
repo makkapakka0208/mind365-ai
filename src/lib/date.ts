@@ -41,7 +41,7 @@ export function getWeekRange(reference: Date = new Date()) {
   end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
 
-  return { start, end };
+  return { end, start };
 }
 
 export function getMonthRange(reference: Date = new Date()) {
@@ -51,14 +51,20 @@ export function getMonthRange(reference: Date = new Date()) {
   const end = new Date(reference.getFullYear(), reference.getMonth() + 1, 0);
   end.setHours(23, 59, 59, 999);
 
-  return { start, end };
+  return { end, start };
 }
 
-export function isDateWithinRange(
-  value: string,
-  start: Date,
-  end: Date,
-): boolean {
+export function getYearRange(reference: Date = new Date()) {
+  const start = new Date(reference.getFullYear(), 0, 1);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(reference.getFullYear(), 11, 31);
+  end.setHours(23, 59, 59, 999);
+
+  return { end, start };
+}
+
+export function isDateWithinRange(value: string, start: Date, end: Date): boolean {
   const current = parseISODate(value).getTime();
   return current >= start.getTime() && current <= end.getTime();
 }

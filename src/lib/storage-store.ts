@@ -1,11 +1,12 @@
 ﻿"use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import {
   getDailyLogs,
   getNotes,
   getQuotes,
+  refreshDailyLogs,
   STORAGE_CHANGE_EVENT,
   STORAGE_KEYS,
 } from "@/lib/storage";
@@ -17,6 +18,7 @@ const EMPTY_DAILY_LOGS: DailyLog[] = [];
 const EMPTY_QUOTES: Quote[] = [];
 const EMPTY_NOTES: Note[] = [];
 
+let hasRequestedInitialDailySync = false;
 let dailyLogsRawCache: string | null | undefined;
 let quotesRawCache: string | null | undefined;
 let notesRawCache: string | null | undefined;
@@ -105,11 +107,18 @@ function getServerNotesSnapshot() {
 }
 
 export function useDailyLogsStore(): DailyLog[] {
-  return useSyncExternalStore(
-    subscribe,
-    getDailyLogsSnapshot,
-    getServerDailyLogsSnapshot,
-  );
+  const snapshot = useSyncExternalStore(subscribe, getDailyLogsSnapshot, getServerDailyLogsSnapshot);
+
+  useEffect(() => {
+    if (hasRequestedInitialDailySync) {
+      return;
+    }
+
+    hasRequestedInitialDailySync = true;
+    void refreshDailyLogs();
+  }, []);
+
+  return snapshot;
 }
 
 export function useQuotesStore(): Quote[] {

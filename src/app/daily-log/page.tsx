@@ -26,12 +26,15 @@ export default function DailyLogPage() {
   const [studyHours, setStudyHours] = useState(0);
   const [tags, setTags] = useState("");
   const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const logs = sortLogsByDate(useDailyLogsStore(), "desc");
   const recentLogs = logs.slice(0, 4);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSaving(true);
+    setMessage("");
 
     const entry: DailyLog = {
       id: crypto.randomUUID(),
@@ -47,35 +50,36 @@ export default function DailyLogPage() {
         .filter(Boolean),
     };
 
-    saveDailyLog(entry);
+    const result = await saveDailyLog(entry);
     setThoughts("");
     setReading("");
     setStudyHours(0);
     setTags("");
-    setMessage("Saved. Your reflection is now part of your growth story.");
+    setMessage(result.synced ? "已保存，并同步到云端。" : "已保存到本地缓存，云端同步稍后重试。");
+    setIsSaving(false);
   };
 
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="Capture your mood, thoughts, and focus in one calm daily flow."
-        eyebrow="Daily Journal"
+        description="用最短的路径记录今天的心境、思考和学习投入。"
+        eyebrow="写日记"
         icon={NotebookPen}
-        title="Journal"
+        title="写日记"
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <StaggerItem index={0}>
-          <Panel className="p-6 sm:p-7">
+          <Panel className="p-5 sm:p-6 lg:p-7">
             <form className="grid gap-5" onSubmit={onSubmit}>
               <div className="grid gap-5 lg:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium text-slate-200">
-                  Date
+                  日期
                   <Input onChange={(event) => setDate(event.target.value)} type="date" value={date} />
                 </label>
 
                 <label className="grid gap-2 text-sm font-medium text-slate-200">
-                  Study Hours
+                  学习时长
                   <Input
                     min={0}
                     onChange={(event) => setStudyHours(Number(event.target.value))}
@@ -87,7 +91,7 @@ export default function DailyLogPage() {
               </div>
 
               <label className="grid gap-2 text-sm font-medium text-slate-200">
-                Mood ({mood}/10)
+                情绪分数 ({mood}/10)
                 <input
                   className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-indigo-400"
                   max={10}
@@ -99,30 +103,30 @@ export default function DailyLogPage() {
               </label>
 
               <label className="grid gap-2 text-sm font-medium text-slate-200">
-                Daily Thoughts
+                今日日记
                 <Textarea
                   onChange={(event) => setThoughts(event.target.value)}
-                  placeholder="Write the most meaningful moment of your day..."
+                  placeholder="写下今天最值得记住的一刻..."
                   value={thoughts}
                 />
               </label>
 
               <div className="grid gap-5 lg:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium text-slate-200">
-                  Reading
+                  阅读记录
                   <Input
                     onChange={(event) => setReading(event.target.value)}
-                    placeholder="e.g. 1.5h Atomic Habits"
+                    placeholder="例如：1.5h《原子习惯》"
                     type="text"
                     value={reading}
                   />
                 </label>
 
                 <label className="grid gap-2 text-sm font-medium text-slate-200">
-                  Tags (comma separated)
+                  标签（逗号分隔）
                   <Input
                     onChange={(event) => setTags(event.target.value)}
-                    placeholder="focus, growth, calm"
+                    placeholder="专注, 成长, 平静"
                     type="text"
                     value={tags}
                   />
@@ -130,8 +134,8 @@ export default function DailyLogPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <Button size="lg" type="submit" variant="primary">
-                  Save Entry
+                <Button disabled={isSaving} size="lg" type="submit" variant="primary">
+                  {isSaving ? "保存中..." : "保存"}
                 </Button>
                 {message ? (
                   <span className="inline-flex items-center gap-1.5 text-sm text-emerald-300">
@@ -146,13 +150,13 @@ export default function DailyLogPage() {
 
         <StaggerItem index={1}>
           <Panel className="overflow-hidden p-6" interactive>
-            <h3 className="text-base font-semibold text-slate-100">Writing Prompts</h3>
+            <h3 className="text-base font-semibold text-slate-100">书写提示</h3>
             <p className="mt-3 text-sm leading-7 text-slate-300">
-              1. What moment shifted your emotion today?
+              1. 今天哪个瞬间最影响你的情绪？
               <br />
-              2. What small win are you grateful for?
+              2. 今天最值得感谢的一件小事是什么？
               <br />
-              3. What one intention matters most tomorrow?
+              3. 明天最想守住的一个意图是什么？
             </p>
             <Illustration
               alt="journaling illustration"
@@ -165,18 +169,18 @@ export default function DailyLogPage() {
 
       <StaggerItem index={2}>
         <Panel className="p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-semibold text-slate-100">Recent Entries</h3>
-            <span className="text-sm text-slate-400">Last 4 logs</span>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-base font-semibold text-slate-100">最近记录</h3>
+            <span className="text-sm text-slate-400">最近 4 条</span>
           </div>
 
           {recentLogs.length === 0 ? (
             <EmptyState
-              description="Once you save your first entry, your recent timeline appears here."
+              description="保存第一条日记后，这里会出现最近的记录卡片。"
               icon={CalendarDays}
               illustrationAlt="notebook illustration"
               illustrationSrc="/illustrations/personal-notebook.svg"
-              title="No entries yet"
+              title="还没有日记"
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -185,8 +189,8 @@ export default function DailyLogPage() {
                   <Link className="block h-full" href={`/journal?id=${log.id}`}>
                     <div className="h-full rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-950/35">
                       <p className="text-sm text-slate-400">{formatDate(log.date)}</p>
-                      <p className="mt-2 text-sm font-medium text-slate-100">Mood {log.mood}/10</p>
-                      <p className="mt-1 text-sm text-slate-300">Study {log.studyHours} h</p>
+                      <p className="mt-2 text-sm font-medium text-slate-100">情绪 {log.mood}/10</p>
+                      <p className="mt-1 text-sm text-slate-300">学习 {log.studyHours} 小时</p>
                     </div>
                   </Link>
                 </StaggerItem>
@@ -198,3 +202,4 @@ export default function DailyLogPage() {
     </PageTransition>
   );
 }
+

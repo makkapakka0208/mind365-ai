@@ -30,9 +30,7 @@ export function PageTitle({
       )}
     >
       <div className={cn("space-y-2", centered && "max-w-3xl")}>
-        {eyebrow ? (
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{eyebrow}</p>
-        ) : null}
+        {eyebrow ? <p className="text-xs font-medium tracking-[0.16em] text-slate-400">{eyebrow}</p> : null}
 
         <div className={cn("flex items-center gap-3", centered && "justify-center")}>
           {Icon ? (

@@ -1,4 +1,11 @@
-﻿import type { DailyLog, Note, Quote } from "@/types";
+﻿import {
+  createDefaultSupabaseUserId,
+  createMind365SupabaseClient,
+  DEFAULT_SETTINGS,
+  getSupabaseConfig,
+  normalizeMind365Settings,
+} from "@/lib/supabase";
+import type { DailyLog, Mind365Settings, Note, Quote } from "@/types";
 
 export const STORAGE_KEYS = {
   dailyLogs: "daily_logs",
@@ -11,17 +18,48 @@ export const STORAGE_CHANGE_EVENT = "mind365:storage";
 
 type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
 
+interface SupabaseDiaryRow {
+  ai_analysis: string | null;
+  content: string;
+  created_at: string;
+  id: string;
+  user_id: string;
+}
+
 export interface Mind365BackupData {
   daily_logs: DailyLog[];
   quotes: Quote[];
   notes: Note[];
-  settings: unknown;
+  settings: Mind365Settings;
 }
 
 export interface BackupImportResult {
   dailyLogs: number;
-  quotes: number;
   notes: number;
+  quotes: number;
+}
+
+export interface DailyLogMutationResult {
+  logs: DailyLog[];
+  synced: boolean;
+}
+
+export interface CloudSyncStatus {
+  configured: boolean;
+  enabled: boolean;
+  message: string;
+  userId: string;
+}
+
+let refreshPromise: Promise<DailyLog[]> | null = null;
+let refreshSignature = "";
+
+function dispatchStorageChange() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new Event(STORAGE_CHANGE_EVENT));
 }
 
 function createId() {
@@ -100,6 +138,17 @@ function normalizeDailyLogs(values: unknown): DailyLog[] {
         ...log,
         id: nextId,
       };
+    })
+    .sort((left, right) => {
+      if (left.date === right.date) {
+        if (left.createdAt === right.createdAt) {
+          return right.id.localeCompare(left.id);
+        }
+
+        return right.createdAt.localeCompare(left.createdAt);
+      }
+
+      return right.date.localeCompare(left.date);
     });
 }
 
@@ -182,25 +231,210 @@ function writeCollection<T>(key: StorageKey, data: T[]) {
   }
 
   window.localStorage.setItem(key, JSON.stringify(data));
-  window.dispatchEvent(new Event(STORAGE_CHANGE_EVENT));
+  dispatchStorageChange();
 }
 
 function readSettingsValue(): unknown {
   if (typeof window === "undefined") {
-    return null;
+    return { ...DEFAULT_SETTINGS };
   }
 
   const raw = window.localStorage.getItem(STORAGE_KEYS.settings);
 
   if (raw === null) {
-    return null;
+    return { ...DEFAULT_SETTINGS };
   }
 
   try {
     return JSON.parse(raw) as unknown;
   } catch {
-    return raw;
+    return { ...DEFAULT_SETTINGS };
   }
+}
+
+function writeSettings(settings: Mind365Settings) {
+  if (typeof window === "undefined") {
+    return settings;
+  }
+
+  window.localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
+  dispatchStorageChange();
+  return settings;
+}
+
+function ensureSettingsUserId(settings: Mind365Settings): Mind365Settings {
+  if (settings.supabaseUserId.trim()) {
+    return settings;
+  }
+
+  const nextSettings: Mind365Settings = {
+    ...settings,
+    supabaseUserId: createDefaultSupabaseUserId(),
+  };
+
+  writeSettings(nextSettings);
+  return nextSettings;
+}
+
+function serializeDailyLog(log: DailyLog): string {
+  return JSON.stringify({
+    createdAt: log.createdAt,
+    date: log.date,
+    mood: log.mood,
+    reading: log.reading,
+    studyHours: log.studyHours,
+    tags: log.tags,
+    thoughts: log.thoughts,
+    version: 2,
+  });
+}
+
+function parseDiaryRow(row: SupabaseDiaryRow): DailyLog | null {
+  const fallbackDate = Number.isFinite(Date.parse(row.created_at))
+    ? new Date(row.created_at).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+
+  try {
+    const parsed = JSON.parse(row.content) as unknown;
+    const candidate = parseDailyLog({
+      ...(isRecord(parsed) ? parsed : {}),
+      id: row.id,
+      createdAt: isRecord(parsed) && typeof parsed.createdAt === "string" ? parsed.createdAt : row.created_at,
+      date: isRecord(parsed) && typeof parsed.date === "string" ? parsed.date : fallbackDate,
+    });
+
+    if (candidate) {
+      return candidate;
+    }
+  } catch {
+    // Fallback to plain text content from older rows.
+  }
+
+  return parseDailyLog({
+    id: row.id,
+    createdAt: row.created_at,
+    date: fallbackDate,
+    mood: 5,
+    thoughts: row.content,
+    reading: "",
+    studyHours: 0,
+    tags: [],
+  });
+}
+
+function mergeDailyLogs(localLogs: DailyLog[], remoteLogs: DailyLog[]): DailyLog[] {
+  const merged = new Map<string, DailyLog>();
+
+  for (const log of remoteLogs) {
+    merged.set(log.id, log);
+  }
+
+  for (const log of localLogs) {
+    merged.set(log.id, log);
+  }
+
+  return normalizeDailyLogs([...merged.values()]);
+}
+
+function areDailyLogsEqual(left: DailyLog[], right: DailyLog[]): boolean {
+  return JSON.stringify(normalizeDailyLogs(left)) === JSON.stringify(normalizeDailyLogs(right));
+}
+
+async function fetchRemoteDailyLogs(settings: Mind365Settings): Promise<DailyLog[]> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+
+  if (!client || !config) {
+    return [];
+  }
+
+  const { data, error } = await client
+    .from("diaries")
+    .select("id, user_id, content, ai_analysis, created_at")
+    .eq("user_id", config.userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = Array.isArray(data) ? (data as SupabaseDiaryRow[]) : [];
+  return normalizeDailyLogs(rows.map(parseDiaryRow).filter((log): log is DailyLog => log !== null));
+}
+
+async function upsertRemoteDailyLogs(logs: DailyLog[], settings: Mind365Settings): Promise<boolean> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+
+  if (!client || !config || logs.length === 0) {
+    return false;
+  }
+
+  const payload = logs.map((log) => ({
+    ai_analysis: null,
+    content: serializeDailyLog(log),
+    created_at: log.createdAt,
+    id: log.id,
+    user_id: config.userId,
+  }));
+
+  const { error } = await client.from("diaries").upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
+}
+
+export function getSettings(): Mind365Settings {
+  return normalizeMind365Settings(readSettingsValue());
+}
+
+function getSettingsForSync(): Mind365Settings {
+  if (typeof window === "undefined") {
+    return getSettings();
+  }
+
+  return ensureSettingsUserId(getSettings());
+}
+
+export function saveSettings(settings: Mind365Settings): Mind365Settings {
+  const normalized = normalizeMind365Settings(settings);
+  return writeSettings(ensureSettingsUserId(normalized));
+}
+
+export function getCloudSyncStatus(): CloudSyncStatus {
+  const settings = getSettings();
+  const envConfigured = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim(),
+  );
+  const config = getSupabaseConfig(settings);
+
+  if (!settings.enableSupabaseSync && !envConfigured) {
+    return {
+      configured: false,
+      enabled: false,
+      message: "云同步未启用，当前仍使用本地缓存。",
+      userId: settings.supabaseUserId,
+    };
+  }
+
+  if (!config) {
+    return {
+      configured: false,
+      enabled: true,
+      message: "请补全 Supabase URL、Anon Key 和同步用户 ID。",
+      userId: settings.supabaseUserId,
+    };
+  }
+
+  return {
+    configured: true,
+    enabled: true,
+    message: "已连接到 Supabase，日记会优先同步到云端。",
+    userId: config.userId,
+  };
 }
 
 export function getDailyLogs(): DailyLog[] {
@@ -208,26 +442,88 @@ export function getDailyLogs(): DailyLog[] {
 }
 
 export function setDailyLogs(logs: DailyLog[]) {
-  writeCollection(STORAGE_KEYS.dailyLogs, logs);
+  writeCollection(STORAGE_KEYS.dailyLogs, normalizeDailyLogs(logs));
 }
 
-export function saveDailyLog(log: DailyLog): DailyLog[] {
+export async function refreshDailyLogs(options?: { force?: boolean }): Promise<DailyLog[]> {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const settings = getSettingsForSync();
+  const config = getSupabaseConfig(settings);
+
+  if (!config) {
+    return readDailyLogs();
+  }
+
+  const signature = `${config.url}::${config.userId}`;
+
+  if (!options?.force && refreshPromise && refreshSignature === signature) {
+    return refreshPromise;
+  }
+
+  refreshSignature = signature;
+  refreshPromise = (async () => {
+    const localLogs = readDailyLogs();
+
+    try {
+      const remoteLogs = await fetchRemoteDailyLogs(settings);
+      const mergedLogs = mergeDailyLogs(localLogs, remoteLogs);
+
+      if (!areDailyLogsEqual(localLogs, mergedLogs)) {
+        writeCollection(STORAGE_KEYS.dailyLogs, mergedLogs);
+      }
+
+      if (!areDailyLogsEqual(remoteLogs, mergedLogs)) {
+        await upsertRemoteDailyLogs(mergedLogs, settings);
+      }
+
+      return mergedLogs;
+    } catch {
+      return localLogs;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+export async function saveDailyLog(log: DailyLog): Promise<DailyLogMutationResult> {
   const logs = getDailyLogs();
   const normalized: DailyLog = {
     ...log,
     id: log.id || createId(),
     createdAt: log.createdAt || new Date().toISOString(),
   };
-  const updated = [normalized, ...logs];
+  const updated = normalizeDailyLogs([normalized, ...logs]);
   setDailyLogs(updated);
-  return updated;
+
+  try {
+    const synced = await upsertRemoteDailyLogs([normalized], getSettingsForSync());
+    return { logs: updated, synced };
+  } catch {
+    return { logs: updated, synced: false };
+  }
 }
 
-export function updateDailyLog(nextLog: DailyLog): DailyLog[] {
+export async function updateDailyLog(nextLog: DailyLog): Promise<DailyLogMutationResult> {
   const logs = getDailyLogs();
-  const updated = logs.map((log) => (log.id === nextLog.id ? nextLog : log));
+  const updatedLog: DailyLog = {
+    ...nextLog,
+    id: nextLog.id || createId(),
+    createdAt: nextLog.createdAt || new Date().toISOString(),
+  };
+  const updated = normalizeDailyLogs(logs.map((log) => (log.id === updatedLog.id ? updatedLog : log)));
   setDailyLogs(updated);
-  return updated;
+
+  try {
+    const synced = await upsertRemoteDailyLogs([updatedLog], getSettingsForSync());
+    return { logs: updated, synced };
+  } catch {
+    return { logs: updated, synced: false };
+  }
 }
 
 export function getQuotes(): Quote[] {
@@ -263,9 +559,9 @@ export function saveNote(note: Note): Note[] {
 export function getMind365BackupData(): Mind365BackupData {
   return {
     daily_logs: getDailyLogs(),
-    quotes: getQuotes(),
     notes: getNotes(),
-    settings: readSettingsValue(),
+    quotes: getQuotes(),
+    settings: getSettings(),
   };
 }
 
@@ -307,30 +603,30 @@ export function importMind365Backup(raw: string): BackupImportResult {
   const dailyLogs = normalizeDailyLogs(parsed.daily_logs);
   const quotes = normalizeCollection(parsed.quotes, isQuote);
   const notes = normalizeCollection(parsed.notes, isNote);
-  const hasSettings = Object.prototype.hasOwnProperty.call(parsed, "settings");
+  const settings = normalizeMind365Settings(parsed.settings);
 
   window.localStorage.setItem(STORAGE_KEYS.dailyLogs, JSON.stringify(dailyLogs));
   window.localStorage.setItem(STORAGE_KEYS.quotes, JSON.stringify(quotes));
   window.localStorage.setItem(STORAGE_KEYS.notes, JSON.stringify(notes));
+  window.localStorage.setItem(
+    STORAGE_KEYS.settings,
+    JSON.stringify({
+      ...settings,
+      supabaseUserId: settings.supabaseUserId || createDefaultSupabaseUserId(),
+    }),
+  );
 
-  if (!hasSettings || parsed.settings === null || parsed.settings === undefined) {
-    window.localStorage.removeItem(STORAGE_KEYS.settings);
-  } else if (typeof parsed.settings === "string") {
-    try {
-      JSON.parse(parsed.settings);
-      window.localStorage.setItem(STORAGE_KEYS.settings, parsed.settings);
-    } catch {
-      window.localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(parsed.settings));
-    }
-  } else {
-    window.localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(parsed.settings));
-  }
-
-  window.dispatchEvent(new Event(STORAGE_CHANGE_EVENT));
+  dispatchStorageChange();
+  void upsertRemoteDailyLogs(dailyLogs, getSettingsForSync()).catch(() => undefined);
 
   return {
     dailyLogs: dailyLogs.length,
-    quotes: quotes.length,
     notes: notes.length,
+    quotes: quotes.length,
   };
 }
+
+
+
+
+

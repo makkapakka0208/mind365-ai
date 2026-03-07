@@ -14,18 +14,18 @@ interface AppShellProps {
 }
 
 interface SparklePoint {
-  left: string;
-  top: string;
   delay: string;
   duration: string;
+  left: string;
+  top: string;
 }
 
 function createSparkles(count: number): SparklePoint[] {
   return Array.from({ length: count }, (_, index) => ({
-    left: `${(index * 17) % 100}%`,
-    top: `${(index * 23) % 100}%`,
     delay: `${(index % 8) * 0.55}s`,
     duration: `${6 + (index % 5)}s`,
+    left: `${(index * 17) % 100}%`,
+    top: `${(index * 23) % 100}%`,
   }));
 }
 
@@ -34,8 +34,7 @@ export function AppShell({ children }: AppShellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const sparkles = useMemo(() => createSparkles(24), []);
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <div className="relative h-screen overflow-hidden text-slate-100">
@@ -50,16 +49,16 @@ export function AppShell({ children }: AppShellProps) {
             className="sparkle"
             key={`${sparkle.left}-${sparkle.top}-${index}`}
             style={{
-              left: sparkle.left,
-              top: sparkle.top,
               animationDelay: sparkle.delay,
               animationDuration: sparkle.duration,
+              left: sparkle.left,
+              top: sparkle.top,
             }}
           />
         ))}
       </div>
 
-      <div className="mx-auto flex h-full w-full max-w-[1600px] gap-3 px-2 md:px-4">
+      <div className="mx-auto flex h-full w-full max-w-[1500px] gap-3 px-0 sm:px-3 md:px-4">
         <aside className="hidden h-full w-72 shrink-0 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-xl backdrop-blur-md md:flex md:flex-col">
           <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-r from-indigo-500/85 via-purple-500/85 to-pink-500/85 p-4 text-white shadow-xl shadow-indigo-900/40">
             <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/20 blur-2xl" />
@@ -67,8 +66,8 @@ export function AppShell({ children }: AppShellProps) {
               <Sparkles size={15} />
               Mind365
             </div>
-            <p className="mt-3 text-lg font-semibold tracking-tight">Personal Growth Space</p>
-            <p className="mt-1 text-xs text-indigo-100/90">Slow down. Reflect. Grow.</p>
+            <p className="mt-3 text-lg font-semibold tracking-tight">个人成长空间</p>
+            <p className="mt-1 text-xs text-indigo-100/90">慢一点，写下来，继续成长。</p>
           </div>
 
           <nav className="mt-5 space-y-1.5">
@@ -104,21 +103,24 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
 
           <div className="mt-auto rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-300">Daily Whisper</p>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-300">今日提醒</p>
             <p className="mt-2 text-sm leading-7 text-slate-200">
-              Your future is built by tiny honest entries you make for yourself today.
+              你今天认真写下的一小段话，正在替未来的自己留下清晰的线索。
             </p>
           </div>
         </aside>
 
         <div className="flex h-full flex-1 flex-col overflow-hidden">
           <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-900/45 px-4 py-3 backdrop-blur-xl md:hidden">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2">
                 <span className="rounded-xl border border-white/15 bg-white/10 p-2 text-indigo-200">
                   <Sparkles size={14} />
                 </span>
-                <p className="text-sm font-semibold tracking-tight">Mind365</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold tracking-tight">Mind365</p>
+                  <p className="truncate text-xs text-slate-400">把日常记录成可回看的成长轨迹</p>
+                </div>
               </div>
 
               <button
@@ -165,11 +167,10 @@ export function AppShell({ children }: AppShellProps) {
             </AnimatePresence>
           </header>
 
-          <main className="h-full flex-1 overflow-y-auto p-8">{children}</main>
+          <main className="h-full flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
         </div>
       </div>
     </div>
   );
 }
-
 
