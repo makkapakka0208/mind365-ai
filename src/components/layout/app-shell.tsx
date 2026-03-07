@@ -66,7 +66,7 @@ export function AppShell({ children }: AppShellProps) {
               <Sparkles size={15} />
               Mind365
             </div>
-            <p className="mt-3 text-lg font-semibold tracking-tight">个人成长空间</p>
+            <p className="mt-3 text-lg font-semibold tracking-tight">Personal Growth</p>
             <p className="mt-1 text-xs text-indigo-100/90">慢一点，写下来，继续成长。</p>
           </div>
 

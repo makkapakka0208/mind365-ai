@@ -18,9 +18,9 @@ export default function TimelinePage() {
     <PageTransition className="space-y-6">
       <PageTitle
         description="按时间回看你的情绪、阅读和学习轨迹，复盘会更有上下文。"
-        eyebrow="日记时间线"
+        eyebrow="时光轨迹"
         icon={History}
-        title="日记时间线"
+        title="时光轨迹"
       />
 
       {entries.length === 0 ? (

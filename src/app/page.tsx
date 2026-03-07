@@ -27,10 +27,11 @@ import { formatDate, getTodayISODate } from "@/lib/date";
 import { useDailyLogsStore, useQuotesStore } from "@/lib/storage-store";
 import type { Quote as QuoteType } from "@/types";
 
+// 🌟 修改点 1：把默认金句改成了更符合你目标的“搞钱/周期”复盘语录
 const DEFAULT_DAILY_QUOTE = {
-  text: "只要你愿意诚实地写下一句感受，这一天就不会被白白错过。",
-  author: "",
-  book: "本杰明·巴顿奇事",
+  text: "人生发财靠康波。认清所处的宏观周期，在低谷时疯狂蓄力，在拐点时果断出击。",
+  author: "周金涛",
+  book: "康德拉季耶夫周期理论",
 };
 
 function pickRandomQuote(quotes: QuoteType[]) {
@@ -138,8 +139,9 @@ export default function DashboardPage() {
 
         <section className="grid grid-cols-1 gap-6 md:grid-cols-12">
           <StaggerItem className="md:col-span-12" index={0}>
+            {/* 🌟 修改点 2：把原本非常大的内边距 (p-6 sm:p-8 lg:p-10) 压缩成了紧凑的 (px-6 py-5 sm:px-8 sm:py-6) */}
             <Panel
-              className="gradient-ring relative overflow-hidden p-6 shadow-2xl shadow-indigo-950/45 sm:p-8 lg:p-10"
+              className="gradient-ring relative overflow-hidden px-6 py-5 shadow-2xl shadow-indigo-950/45 sm:px-8 sm:py-6"
               interactive
             >
               <Image
@@ -149,15 +151,19 @@ export default function DashboardPage() {
                 src="/illustrations/among-nature.svg"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-indigo-500/12 via-purple-500/10 to-pink-500/12" />
-              <div className="relative mx-auto max-w-4xl text-center">
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">今日金句</p>
-                <div className="mt-4 flex justify-center">
-                  <span className="rounded-2xl border border-indigo-300/30 bg-indigo-400/12 p-3 text-indigo-200 shadow-lg shadow-indigo-950/35">
-                    <Quote size={22} />
-                  </span>
+              
+              {/* 🌟 修改点 3：删掉了多余的 margin-top，用 Flex 布局让整体元素靠得更紧凑 */}
+              <div className="relative mx-auto max-w-4xl text-center flex flex-col items-center justify-center">
+                <div className="flex items-center gap-2 mb-3">
+                  <Quote size={16} className="text-indigo-300" />
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300">今日金句</p>
                 </div>
-                <p className="mt-5 text-2xl font-bold tracking-wide text-slate-100 sm:text-3xl">{displayQuote.text}</p>
-                <p className="mt-4 text-sm italic text-slate-300">{quoteSource}</p>
+                
+                {/* 🌟 修改点 4：稍微调小了标题字号，从原本极大的 text-2xl/3xl 降为 text-lg/xl，不喧宾夺主 */}
+                <p className="text-lg font-medium tracking-wide text-slate-100 sm:text-xl leading-relaxed">
+                  {displayQuote.text}
+                </p>
+                <p className="mt-2 text-xs italic text-slate-300/80">{quoteSource}</p>
               </div>
             </Panel>
           </StaggerItem>
@@ -178,6 +184,7 @@ export default function DashboardPage() {
           ))}
         </section>
 
+        {/* 下面的代码保持你的原样不动 */}
         <section className="grid grid-cols-1 gap-6 md:grid-cols-12">
           <StaggerItem className="md:col-span-6" index={5}>
             <Panel className="flex h-full flex-col justify-between p-6" interactive>
@@ -261,10 +268,10 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {favoriteQuotes.map((quote) => (
+                  {favoriteQuotes.map((quote, idx) => (
                     <div
                       className="rounded-xl border border-white/10 bg-white/10 p-4 shadow-lg shadow-indigo-950/20"
-                      key={quote.id}
+                      key={idx}
                     >
                       <p className="text-sm leading-7 text-slate-200">&ldquo;{quote.text}&rdquo;</p>
                       <p className="mt-2 text-xs text-slate-400">
@@ -345,4 +352,3 @@ export default function DashboardPage() {
     </PageTransition>
   );
 }
-

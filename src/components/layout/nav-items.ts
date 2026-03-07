@@ -20,8 +20,8 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { label: "成长概览", href: "/", icon: LayoutDashboard },
-  { label: "写日记", href: "/daily-log", icon: NotebookPen },
-  { label: "日记时间线", href: "/timeline", icon: Sparkles },
+  { label: "心境随笔", href: "/daily-log", icon: NotebookPen },
+  { label: "时光轨迹", href: "/timeline", icon: Sparkles },
   { label: "灵感书库", href: "/quotes", icon: Quote },
   { label: "深度思考", href: "/notes", icon: BookOpen },
   { label: "周度复盘", href: "/weekly-review", icon: CalendarClock },

@@ -1,11 +1,19 @@
 ﻿"use client";
 
 import { Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
-import { requestAiReflection, type ReviewPeriod, type ReviewSummary } from "@/lib/review-reflection";
+import {
+  getCurrentReviewKey,
+  getSavedReview,
+  requestAiReflection,
+  saveReview,
+  type ReviewPeriod,
+  type ReviewSummary,
+} from "@/lib/review-reflection";
 import type { DailyLog } from "@/types";
 
 interface AiReflectionPanelProps {
@@ -26,11 +34,38 @@ export function AiReflectionPanel({
   title,
 }: AiReflectionPanelProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasSavedReflection, setHasSavedReflection] = useState(false);
   const [reflection, setReflection] = useState("");
   const [message, setMessage] = useState("");
 
+  const reviewKey = getCurrentReviewKey(period);
+
+  useEffect(() => {
+    const savedReview = getSavedReview(period);
+
+    if (savedReview) {
+      setReflection(savedReview);
+      setHasSavedReflection(true);
+      setMessage(`已加载 ${reviewKey} 的已保存复盘，本次不会重复调用 AI。`);
+      return;
+    }
+
+    setReflection("");
+    setHasSavedReflection(false);
+    setMessage("");
+  }, [period, reviewKey]);
+
   const onGenerate = async () => {
     if (isGenerating || logs.length === 0) {
+      return;
+    }
+
+    const savedReview = getSavedReview(period);
+
+    if (savedReview) {
+      setReflection(savedReview);
+      setHasSavedReflection(true);
+      setMessage(`已加载 ${reviewKey} 的已保存复盘，本次不会重复调用 AI。`);
       return;
     }
 
@@ -42,14 +77,17 @@ export function AiReflectionPanel({
 
       if (!data.reflection) {
         setReflection("");
+        setHasSavedReflection(false);
         setMessage(data.message ?? emptyMessage);
         return;
       }
 
+      const savedKey = saveReview(period, data.reflection);
       setReflection(data.reflection);
-      setMessage("AI 复盘已生成。");
+      setHasSavedReflection(true);
+      setMessage(`复盘内容已生成并保存到本地（${savedKey}）。`);
     } catch {
-      setMessage("AI 复盘生成失败，请稍后再试。");
+      setMessage("AI 复盘生成失败，请稍后再试。")
     } finally {
       setIsGenerating(false);
     }
@@ -62,13 +100,14 @@ export function AiReflectionPanel({
           <div>
             <h3 className="text-base font-semibold text-slate-100">{title}</h3>
             <p className="mt-1 text-sm leading-7 text-slate-300">
-              汇总情绪、学习时长、阅读节奏和日记正文，生成一份温和的成长复盘。
+              穿透数据表象，汇总情绪、学习时长、阅读节奏和日记正文，生成一份成长复盘。
             </p>
+            <p className="mt-2 text-xs text-slate-400">当前周期缓存键：{reviewKey}</p>
           </div>
 
           <Button className="justify-center sm:min-w-48" onClick={onGenerate} size="lg" variant="primary">
             <Sparkles className="mr-2" size={16} />
-            {isGenerating ? "生成中..." : "生成 AI 复盘"}
+            {isGenerating ? "复盘生成中..." : hasSavedReflection ? "查看已保存复盘" : "启动战略复盘"}
           </Button>
         </div>
 
@@ -81,17 +120,49 @@ export function AiReflectionPanel({
           <div className="pointer-events-none absolute -bottom-12 left-8 h-40 w-40 rounded-full bg-pink-300/20 blur-3xl" />
 
           <div className="relative">
-            <h3 className="text-xl font-semibold tracking-tight text-slate-100">AI 成长复盘</h3>
-            <div className="mt-4 space-y-4 text-[15px] leading-8 text-slate-100/95">
-              {reflection
-                .split(/\n\s*\n/)
-                .map((paragraph) => paragraph.trim())
-                .filter(Boolean)
-                .map((paragraph, index) => (
-                  <p className="whitespace-pre-line" key={`${paragraph.slice(0, 24)}-${index}`}>
-                    {paragraph}
-                  </p>
-                ))}
+            <h3 className="mb-6 border-b border-indigo-400/30 pb-4 text-xl font-bold tracking-tight text-slate-100">
+              复盘报告
+            </h3>
+
+            <div className="mt-4 text-[15px] leading-8 text-slate-100/95">
+              <ReactMarkdown
+                components={{
+                  h1: (props) => <h1 className="mt-8 mb-4 text-2xl font-bold text-white" {...props} />,
+                  h2: (props) => <h2 className="mt-8 mb-4 text-xl font-bold text-indigo-200" {...props} />,
+                  h3: (props) => (
+                    <h3 className="mt-6 mb-3 flex items-center gap-2 text-lg font-bold text-pink-300/90" {...props} />
+                  ),
+                  p: (props) => <p className="mb-4 text-slate-200" {...props} />,
+                  ul: (props) => (
+                    <ul
+                      className="mb-4 list-disc list-inside space-y-2 text-slate-200 marker:text-indigo-400"
+                      {...props}
+                    />
+                  ),
+                  ol: (props) => (
+                    <ol
+                      className="mb-4 list-decimal list-inside space-y-2 text-slate-200 marker:text-pink-400"
+                      {...props}
+                    />
+                  ),
+                  li: (props) => <li className="ml-2" {...props} />,
+                  strong: (props) => (
+                    <strong
+                      className="bg-gradient-to-r from-pink-300 to-indigo-300 bg-clip-text font-bold text-transparent"
+                      {...props}
+                    />
+                  ),
+                  blockquote: (props) => (
+                    <blockquote
+                      className="my-5 rounded-r-lg border-l-4 border-indigo-500 bg-indigo-500/10 py-1 pl-4 text-slate-300 italic"
+                      {...props}
+                    />
+                  ),
+                  hr: (props) => <hr className="my-8 border-indigo-300/20" {...props} />,
+                }}
+              >
+                {reflection}
+              </ReactMarkdown>
             </div>
           </div>
         </Panel>
@@ -99,4 +170,3 @@ export function AiReflectionPanel({
     </div>
   );
 }
-
