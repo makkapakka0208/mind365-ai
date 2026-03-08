@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { Brain, Sparkles } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState , useEffect} from "react";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,6 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveNote } from "@/lib/storage";
 import { useNotesStore } from "@/lib/storage-store";
 import type { Note } from "@/types";
+import { refreshNotes } from "@/lib/storage";
+
+
 
 export default function NotesPage() {
   const [title, setTitle] = useState("");
@@ -22,7 +25,9 @@ export default function NotesPage() {
   const [message, setMessage] = useState("");
 
   const notes = useNotesStore();
-
+  useEffect(() => {
+    refreshNotes();
+  }, []);
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 

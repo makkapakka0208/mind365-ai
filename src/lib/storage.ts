@@ -362,6 +362,48 @@ async function fetchRemoteDailyLogs(settings: Mind365Settings): Promise<DailyLog
   return normalizeDailyLogs(rows.map(parseDiaryRow).filter((log): log is DailyLog => log !== null));
 }
 
+async function fetchRemoteQuotes(settings: Mind365Settings): Promise<Quote[]> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+
+  if (!client || !config) {
+    return [];
+  }
+
+  const { data, error } = await client
+    .from("quotes")
+    .select("*")
+    .eq("user_id", config.userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeCollection(data, isQuote);
+}
+
+async function fetchRemoteNotes(settings: Mind365Settings): Promise<Note[]> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+
+  if (!client || !config) {
+    return [];
+  }
+
+  const { data, error } = await client
+    .from("notes")
+    .select("*")
+    .eq("user_id", config.userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeCollection(data, isNote);
+}
+
 async function upsertRemoteDailyLogs(logs: DailyLog[], settings: Mind365Settings): Promise<boolean> {
   const client = createMind365SupabaseClient(settings);
   const config = getSupabaseConfig(settings);
@@ -379,6 +421,57 @@ async function upsertRemoteDailyLogs(logs: DailyLog[], settings: Mind365Settings
   }));
 
   const { error } = await client.from("diaries").upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
+}
+
+async function upsertRemoteQuotes(quotes: Quote[], settings: Mind365Settings) {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+
+  if (!client || !config || quotes.length === 0) {
+    return false;
+  }
+
+  const payload = quotes.map((q) => ({
+    id: q.id,
+    user_id: config.userId,
+    text: q.text,
+    author: q.author,
+    book: q.book,
+    tags: q.tags,
+  }));
+
+  const { error } = await client.from("quotes").upsert(payload, { onConflict: "id" });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return true;
+}
+
+async function upsertRemoteNotes(notes: Note[], settings: Mind365Settings) {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+
+  if (!client || !config || notes.length === 0) {
+    return false;
+  }
+
+  const payload = notes.map((n) => ({
+    id: n.id,
+    user_id: config.userId,
+    title: n.title,
+    content: n.content,
+    tags: n.tags,
+  }));
+
+  const { error } = await client.from("notes").upsert(payload, { onConflict: "id" });
 
   if (error) {
     throw new Error(error.message);
@@ -490,6 +583,61 @@ export async function refreshDailyLogs(options?: { force?: boolean }): Promise<D
   return refreshPromise;
 }
 
+export async function refreshQuotes(): Promise<Quote[]> {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const settings = getSettingsForSync();
+  const config = getSupabaseConfig(settings);
+
+  if (!config) {
+    return getQuotes();
+  }
+
+  const local = getQuotes();
+
+  try {
+    const remote = await fetchRemoteQuotes(settings);
+
+    if (remote.length > 0) {
+      setQuotes(remote);
+      return remote;
+    }
+
+    return local;
+  } catch {
+    return local;
+  }
+}
+
+export async function refreshNotes(): Promise<Note[]> {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const settings = getSettingsForSync();
+  const config = getSupabaseConfig(settings);
+
+  if (!config) {
+    return getNotes();
+  }
+
+  const local = getNotes();
+
+  try {
+    const remote = await fetchRemoteNotes(settings);
+
+    if (remote.length > 0) {
+      setNotes(remote);
+      return remote;
+    }
+
+    return local;
+  } catch {
+    return local;
+  }
+}
 export async function saveDailyLog(log: DailyLog): Promise<DailyLogMutationResult> {
   const logs = getDailyLogs();
   const normalized: DailyLog = {
@@ -534,10 +682,15 @@ export function setQuotes(quotes: Quote[]) {
   writeCollection(STORAGE_KEYS.quotes, quotes);
 }
 
-export function saveQuote(quote: Quote): Quote[] {
+export async function saveQuote(quote: Quote): Promise<Quote[]> {
   const quotes = getQuotes();
   const updated = [quote, ...quotes];
   setQuotes(updated);
+
+  try {
+    await upsertRemoteQuotes([quote], getSettingsForSync());
+  } catch {}
+
   return updated;
 }
 
@@ -549,10 +702,15 @@ export function setNotes(notes: Note[]) {
   writeCollection(STORAGE_KEYS.notes, notes);
 }
 
-export function saveNote(note: Note): Note[] {
+export async function saveNote(note: Note): Promise<Note[]> {
   const notes = getNotes();
   const updated = [note, ...notes];
   setNotes(updated);
+
+  try {
+    await upsertRemoteNotes([note], getSettingsForSync());
+  } catch {}
+
   return updated;
 }
 

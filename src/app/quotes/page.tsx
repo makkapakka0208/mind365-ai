@@ -15,6 +15,10 @@ import { getTodayISODate, parseISODate } from "@/lib/date";
 import { saveQuote } from "@/lib/storage";
 import { useQuotesStore } from "@/lib/storage-store";
 import type { Quote } from "@/types";
+import { refreshQuotes } from "@/lib/storage";
+import { useEffect } from "react";
+
+
 
 function getDailyQuote(quotes: Quote[]): Quote | null {
   if (quotes.length === 0) {
@@ -37,7 +41,9 @@ export default function QuotesPage() {
 
   const quotes = useQuotesStore();
   const dailyQuote = getDailyQuote(quotes);
-
+  useEffect(() => {
+    refreshQuotes();
+  }, []);
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
