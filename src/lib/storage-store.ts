@@ -7,6 +7,8 @@ import {
   getNotes,
   getQuotes,
   refreshDailyLogs,
+  refreshNotes,
+  refreshQuotes,
   STORAGE_CHANGE_EVENT,
   STORAGE_KEYS,
 } from "@/lib/storage";
@@ -19,6 +21,9 @@ const EMPTY_QUOTES: Quote[] = [];
 const EMPTY_NOTES: Note[] = [];
 
 let hasRequestedInitialDailySync = false;
+let hasRequestedInitialQuotesSync = false;
+let hasRequestedInitialNotesSync = false;
+
 let dailyLogsRawCache: string | null | undefined;
 let quotesRawCache: string | null | undefined;
 let notesRawCache: string | null | undefined;
@@ -122,10 +127,31 @@ export function useDailyLogsStore(): DailyLog[] {
 }
 
 export function useQuotesStore(): Quote[] {
-  return useSyncExternalStore(subscribe, getQuotesSnapshot, getServerQuotesSnapshot);
+  const snapshot = useSyncExternalStore(subscribe, getQuotesSnapshot, getServerQuotesSnapshot);
+
+  useEffect(() => {
+    if (hasRequestedInitialQuotesSync) {
+      return;
+    }
+
+    hasRequestedInitialQuotesSync = true;
+    void refreshQuotes();
+  }, []);
+
+  return snapshot;
 }
 
 export function useNotesStore(): Note[] {
-  return useSyncExternalStore(subscribe, getNotesSnapshot, getServerNotesSnapshot);
-}
+  const snapshot = useSyncExternalStore(subscribe, getNotesSnapshot, getServerNotesSnapshot);
 
+  useEffect(() => {
+    if (hasRequestedInitialNotesSync) {
+      return;
+    }
+
+    hasRequestedInitialNotesSync = true;
+    void refreshNotes();
+  }, []);
+
+  return snapshot;
+}

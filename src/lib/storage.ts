@@ -5,7 +5,6 @@
   getSupabaseConfig,
   normalizeMind365Settings,
 } from "@/lib/supabase";
-import type { DailyLog, Mind365Settings, Note, Quote } from "@/types";
 
 export const STORAGE_KEYS = {
   dailyLogs: "daily_logs",
@@ -525,7 +524,7 @@ export function getCloudSyncStatus(): CloudSyncStatus {
   return {
     configured: true,
     enabled: true,
-    message: "已连接到 Supabase，日记会优先同步到云端。",
+    message: "已连接到 Supabase，日记、金句、笔记均会自动双向同步到云端。",
     userId: config.userId,
   };
 }
@@ -584,60 +583,73 @@ export async function refreshDailyLogs(options?: { force?: boolean }): Promise<D
 }
 
 export async function refreshQuotes(): Promise<Quote[]> {
-  if (typeof window === "undefined") {
-    return [];
-  }
+  if (typeof window === "undefined") return [];
 
   const settings = getSettingsForSync();
   const config = getSupabaseConfig(settings);
-
-  if (!config) {
-    return getQuotes();
-  }
+  if (!config) return getQuotes();
 
   const local = getQuotes();
 
   try {
     const remote = await fetchRemoteQuotes(settings);
 
-    if (remote.length > 0) {
-      setQuotes(remote);
-      return remote;
+    // 双向 merge：以 id 为 key，本地优先
+    const merged = new Map<string, Quote>();
+    for (const q of remote) merged.set(q.id, q);
+    for (const q of local) merged.set(q.id, q);
+    const mergedArr = [...merged.values()];
+
+    // 更新本地
+    setQuotes(mergedArr);
+
+    // 把本地独有的上传到云端
+    const remoteIds = new Set(remote.map((q) => q.id));
+    const toUpload = mergedArr.filter((q) => !remoteIds.has(q.id));
+    if (toUpload.length > 0) {
+      await upsertRemoteQuotes(toUpload, settings);
     }
 
-    return local;
+    return mergedArr;
   } catch {
     return local;
   }
 }
 
 export async function refreshNotes(): Promise<Note[]> {
-  if (typeof window === "undefined") {
-    return [];
-  }
+  if (typeof window === "undefined") return [];
 
   const settings = getSettingsForSync();
   const config = getSupabaseConfig(settings);
-
-  if (!config) {
-    return getNotes();
-  }
+  if (!config) return getNotes();
 
   const local = getNotes();
 
   try {
     const remote = await fetchRemoteNotes(settings);
 
-    if (remote.length > 0) {
-      setNotes(remote);
-      return remote;
+    // 双向 merge：以 id 为 key，本地优先
+    const merged = new Map<string, Note>();
+    for (const n of remote) merged.set(n.id, n);
+    for (const n of local) merged.set(n.id, n);
+    const mergedArr = [...merged.values()];
+
+    // 更新本地
+    setNotes(mergedArr);
+
+    // 把本地独有的上传到云端
+    const remoteIds = new Set(remote.map((n) => n.id));
+    const toUpload = mergedArr.filter((n) => !remoteIds.has(n.id));
+    if (toUpload.length > 0) {
+      await upsertRemoteNotes(toUpload, settings);
     }
 
-    return local;
+    return mergedArr;
   } catch {
     return local;
   }
 }
+
 export async function saveDailyLog(log: DailyLog): Promise<DailyLogMutationResult> {
   const logs = getDailyLogs();
   const normalized: DailyLog = {
@@ -776,6 +788,8 @@ export function importMind365Backup(raw: string): BackupImportResult {
 
   dispatchStorageChange();
   void upsertRemoteDailyLogs(dailyLogs, getSettingsForSync()).catch(() => undefined);
+  void upsertRemoteQuotes(quotes, getSettingsForSync()).catch(() => undefined);
+  void upsertRemoteNotes(notes, getSettingsForSync()).catch(() => undefined);
 
   return {
     dailyLogs: dailyLogs.length,
@@ -783,8 +797,3 @@ export function importMind365Backup(raw: string): BackupImportResult {
     quotes: quotes.length,
   };
 }
-
-
-
-
-
