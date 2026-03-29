@@ -30,3 +30,19 @@ export interface Mind365Settings {
   supabaseAnonKey: string;
   supabaseUserId: string;
 }
+
+export interface ReviewReport {
+  id: string;
+  createdAt: string;
+  period: "week" | "month" | "year";
+  rangeStart: string; // ISO date yyyy-MM-dd
+  rangeEnd: string;
+  title: string;
+  metrics: {
+    averageMood: number;
+    totalReadingHours: number;
+    totalStudyHours: number;
+    entries: number;
+  };
+  notes: string; // 用户手写的复盘笔记
+}

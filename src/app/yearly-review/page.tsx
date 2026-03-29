@@ -1,6 +1,8 @@
 ﻿"use client";
 
-import { BookOpen, BrainCircuit, CalendarRange, Smile, Sparkles } from "lucide-react";
+import { BookOpen, BrainCircuit, CalendarRange, CheckCircle2, Loader2, Save, Smile, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
 import { BarChartCard } from "@/components/charts/bar-chart-card";
 import { LineChartCard } from "@/components/charts/line-chart-card";
@@ -11,17 +13,44 @@ import { Illustration } from "@/components/ui/illustration";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { buildChartSeries, computeSummary, getCurrentYearLogs, parseReadingHours } from "@/lib/analytics";
 import { formatDate, getYearRange, toISODate } from "@/lib/date";
-import { useDailyLogsStore } from "@/lib/storage-store";
+import { saveReviewReport } from "@/lib/storage";
+import { useSyncedDailyLogs } from "@/lib/storage-store";
+import type { ReviewReport } from "@/types";
 
 export default function YearlyReviewPage() {
-  const yearLogs = getCurrentYearLogs(useDailyLogsStore());
+  const { logs: allLogs, isSyncing } = useSyncedDailyLogs();
+  const yearLogs = getCurrentYearLogs(allLogs);
   const metrics = computeSummary(yearLogs);
   const moodSeries = buildChartSeries(yearLogs, (log) => log.mood);
   const studySeries = buildChartSeries(yearLogs, (log) => log.studyHours);
   const readingSeries = buildChartSeries(yearLogs, (log) => parseReadingHours(log.reading));
   const range = getYearRange();
+
+  const [notes, setNotes] = useState("");
+  const [isSavingReport, setIsSavingReport] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const onSaveReport = async () => {
+    setIsSavingReport(true);
+    const year = range.start.getFullYear();
+    const report: ReviewReport = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      period: "year",
+      rangeStart: toISODate(range.start),
+      rangeEnd: toISODate(range.end),
+      title: `${year} 年度复盘`,
+      metrics,
+      notes: notes.trim(),
+    };
+    await saveReviewReport(report);
+    setIsSavingReport(false);
+    setSaved(true);
+  };
 
   return (
     <PageTransition className="space-y-6">
@@ -37,7 +66,12 @@ export default function YearlyReviewPage() {
         title="年度复盘"
       />
 
-      {yearLogs.length === 0 ? (
+      {isSyncing ? (
+        <Panel className="flex items-center gap-3 p-7 text-slate-300">
+          <Loader2 className="animate-spin" size={18} />
+          <span className="text-sm">正在同步数据…</span>
+        </Panel>
+      ) : yearLogs.length === 0 ? (
         <EmptyState
           description="今年还没有足够的日记数据。持续记录一段时间后，这里会生成年度视角。"
           icon={Sparkles}
@@ -56,79 +90,60 @@ export default function YearlyReviewPage() {
                   {metrics.totalStudyHours.toFixed(1)} 小时，阅读 {metrics.totalReadingHours.toFixed(1)} 小时。
                 </p>
               </div>
-              <Illustration
-                alt="yearly reflection illustration"
-                className="mx-auto max-w-[230px]"
-                src="/illustrations/among-nature.svg"
-              />
+              <Illustration alt="yearly reflection illustration" className="mx-auto max-w-[230px]" src="/illustrations/among-nature.svg" />
             </Panel>
           </StaggerItem>
 
           <StaggerItem index={1}>
-            <AiReflectionPanel
-              emptyMessage="当前无法生成年度 AI 复盘。"
-              logs={yearLogs}
-              period="year"
-              range={range}
-              summary={metrics}
-              title="年度 AI 复盘"
-            />
+            <AiReflectionPanel emptyMessage="当前无法生成年度 AI 复盘。" logs={yearLogs} period="year" range={range} summary={metrics} title="年度 AI 复盘" />
           </StaggerItem>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <StaggerItem index={2}>
-              <SummaryCard icon={Smile} label="平均情绪" value={`${metrics.averageMood}/10`} />
-            </StaggerItem>
-            <StaggerItem index={3}>
-              <SummaryCard
-                icon={BrainCircuit}
-                label="学习总时长"
-                value={`${metrics.totalStudyHours.toFixed(1)} h`}
-              />
-            </StaggerItem>
-            <StaggerItem index={4}>
-              <SummaryCard
-                icon={BookOpen}
-                label="阅读总时长"
-                tone="accent"
-                value={`${metrics.totalReadingHours.toFixed(1)} h`}
-              />
-            </StaggerItem>
+            <StaggerItem index={2}><SummaryCard icon={Smile} label="平均情绪" value={`${metrics.averageMood}/10`} /></StaggerItem>
+            <StaggerItem index={3}><SummaryCard icon={BrainCircuit} label="学习总时长" value={`${metrics.totalStudyHours.toFixed(1)} h`} /></StaggerItem>
+            <StaggerItem index={4}><SummaryCard icon={BookOpen} label="阅读总时长" tone="accent" value={`${metrics.totalReadingHours.toFixed(1)} h`} /></StaggerItem>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-2">
-            <StaggerItem index={5}>
-              <LineChartCard
-                data={moodSeries.data}
-                datasetLabel="情绪"
-                description="查看年度情绪变化趋势"
-                labels={moodSeries.labels}
-                title="年度情绪趋势"
-              />
-            </StaggerItem>
-            <StaggerItem index={6}>
-              <BarChartCard
-                data={studySeries.data}
-                datasetLabel="学习"
-                description="查看年度学习投入变化"
-                labels={studySeries.labels}
-                title="年度学习时长"
-              />
-            </StaggerItem>
+            <StaggerItem index={5}><LineChartCard data={moodSeries.data} datasetLabel="情绪" description="查看年度情绪变化趋势" labels={moodSeries.labels} title="年度情绪趋势" /></StaggerItem>
+            <StaggerItem index={6}><BarChartCard data={studySeries.data} datasetLabel="学习" description="查看年度学习投入变化" labels={studySeries.labels} title="年度学习时长" /></StaggerItem>
           </div>
 
           <StaggerItem index={7}>
-            <LineChartCard
-              data={readingSeries.data}
-              datasetLabel="阅读"
-              description="查看年度阅读节奏"
-              labels={readingSeries.labels}
-              title="年度阅读时长"
-            />
+            <LineChartCard data={readingSeries.data} datasetLabel="阅读" description="查看年度阅读节奏" labels={readingSeries.labels} title="年度阅读时长" />
+          </StaggerItem>
+
+          {/* 保存复盘 */}
+          <StaggerItem index={8}>
+            <Panel className="space-y-4 p-6">
+              <h3 className="text-base font-semibold text-slate-100">保存年度复盘</h3>
+              <p className="text-sm text-slate-400">写下这一年的感悟或总结（选填），然后归档到复盘档案。</p>
+              <Textarea
+                className="min-h-28"
+                disabled={saved}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="这一年最重要的变化是……明年最想做到的是……"
+                value={notes}
+              />
+              {saved ? (
+                <div className="flex items-center gap-3">
+                  <p className="flex items-center gap-2 text-sm text-emerald-300">
+                    <CheckCircle2 size={16} /> 已保存到复盘档案
+                  </p>
+                  <Link className="text-sm text-indigo-300 hover:text-indigo-200 transition-colors" href="/review-history">
+                    查看档案 →
+                  </Link>
+                </div>
+              ) : (
+                <Button disabled={isSavingReport} onClick={onSaveReport} variant="primary">
+                  <Save className="mr-2" size={16} />
+                  {isSavingReport ? "保存中…" : "保存复盘"}
+                </Button>
+              )}
+            </Panel>
           </StaggerItem>
         </>
       )}
     </PageTransition>
   );
 }
-

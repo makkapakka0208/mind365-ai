@@ -1,4 +1,5 @@
 ﻿import {
+  Archive,
   BarChart3,
   BookOpen,
   CalendarClock,
@@ -27,7 +28,7 @@ export const navItems: NavItem[] = [
   { label: "周度复盘", href: "/weekly-review", icon: CalendarClock },
   { label: "月度复盘", href: "/monthly-review", icon: CalendarDays },
   { label: "年度复盘", href: "/yearly-review", icon: CalendarRange },
+  { label: "复盘档案", href: "/review-history", icon: Archive },
   { label: "数据看板", href: "/analytics", icon: BarChart3 },
   { label: "设置", href: "/settings", icon: Settings2 },
 ];
-

@@ -1,9 +1,9 @@
 ﻿"use client";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarDays, Clock3, PencilLine, Save } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { ArrowLeft, CalendarDays, Clock3, Loader2, PencilLine, Save } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Panel } from "@/components/ui/panel";
 import { Textarea } from "@/components/ui/textarea";
 import { parseReadingHours } from "@/lib/analytics";
 import { formatDate } from "@/lib/date";
-import { updateDailyLog } from "@/lib/storage";
+import { refreshDailyLogs, updateDailyLog } from "@/lib/storage";
 import { useDailyLogsStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
 
@@ -53,20 +53,27 @@ function toEditState(entry: DailyLog): EditState {
 
 export default function JournalDetailPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id") ?? "";
+
   const logs = useDailyLogsStore();
+  const [isSyncing, setIsSyncing] = useState(true);
+  const hasSynced = useRef(false);
 
-  const [id] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    return params.get("id") ?? "";
-  });
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<EditState | null>(null);
+
+  // 进入页面时强制拉一次云端数据，确保旧日记能找到
+  useEffect(() => {
+    if (hasSynced.current) return;
+    hasSynced.current = true;
+
+    refreshDailyLogs({ force: true }).finally(() => {
+      setIsSyncing(false);
+    });
+  }, []);
 
   const entry = useMemo(() => logs.find((log) => log.id === id), [logs, id]);
 
@@ -78,6 +85,23 @@ export default function JournalDetailPage() {
 
     router.push("/timeline");
   };
+
+  // 正在同步中，显示加载态，避免误判"未找到"
+  if (isSyncing && !entry) {
+    return (
+      <motion.div
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto w-full max-w-[720px]"
+        initial={{ opacity: 0, y: 10 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
+        <Panel className="flex items-center gap-3 p-7 text-slate-300">
+          <Loader2 className="animate-spin" size={18} />
+          <span className="text-sm">正在加载日记…</span>
+        </Panel>
+      </motion.div>
+    );
+  }
 
   if (!entry) {
     return (
@@ -296,4 +320,3 @@ export default function JournalDetailPage() {
     </motion.div>
   );
 }
-
