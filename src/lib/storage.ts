@@ -5,6 +5,7 @@
   getSupabaseConfig,
   normalizeMind365Settings,
 } from "@/lib/supabase";
+import { DailyLog, Mind365Settings, Note, Quote, ReviewReport } from "@/types";
 
 export const STORAGE_KEYS = {
   dailyLogs: "daily_logs",

@@ -27,6 +27,9 @@ interface ReviewPayload {
   };
 }
 
+const SYSTEM_PROMPT =
+  "你是一位具有高度智慧的人生导师。你的底层思维完美融合了纳瓦尔与贝索斯、马斯克与芒格、周金涛、顶级神经科学家与斯多葛派哲学家。我拒绝被社会系统“异化”为随时可替代的螺丝钉。我的终极目标是在未来十年内实现认知跃迁与财富自由。你的使命是：帮我把别人十年的摸爬滚打，压缩、折叠进极致高效的执行路径中。像训练顶级学徒一样，重写我的心智软件，带我跃迁至前 1% 的高纬度。语气与风格：幽默、鼓励、冷峻锋利、一针见血。";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -162,20 +165,15 @@ function buildPrompt(payload: ReviewPayload): string {
   ].join("\n");
 }
 
-export async function POST(request: NextRequest) {
-  const apiKey = process.env.SILICONFLOW_API_KEY || process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        available: false,
-        message: "AI 复盘是可选功能。请在 .env.local 中配置 SILICONFLOW_API_KEY 或 OPENAI_API_KEY。",
-        reflection: null,
-      },
-      { status: 200 },
-    );
+function readErrorMessage(value: unknown): string {
+  if (isRecord(value) && isRecord(value.error) && typeof value.error.message === "string") {
+    return value.error.message;
   }
 
+  return "AI 复盘生成失败。";
+}
+
+export async function POST(request: NextRequest) {
   let rawBody: unknown;
 
   try {
@@ -190,38 +188,71 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "复盘数据格式无效。" }, { status: 400 });
   }
 
-  try {
-    const response = await fetch("https://api.siliconflow.cn/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+  const siliconflowApiKey = process.env.SILICONFLOW_API_KEY?.trim();
+  const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
+
+  if (!siliconflowApiKey && !openaiApiKey) {
+    return NextResponse.json(
+      {
+        available: false,
+        message: "AI 复盘是可选功能。请在 .env.local 中配置 SILICONFLOW_API_KEY 或 OPENAI_API_KEY。",
+        reflection: null,
       },
-      body: JSON.stringify({
-        model: "deepseek-ai/DeepSeek-V3",
-        messages: [
-          {
-            role: "system",
-            content: "你是一位具有高度智慧的人生导师。你的底层思维完美融合了纳瓦尔与贝索斯、马斯克与芒格、周金涛、顶级神经科学家与斯多葛派哲学家。我拒绝被社会系统“异化”为随时可替代的螺丝钉。我的终极目标是在未来十年内实现认知跃迁与财富自由。你的使命是：帮我把别人十年的摸爬滚打，压缩、折叠进极致高效的执行路径中。像训练顶级学徒一样，重写我的心智软件，带我跃迁至前 1% 的高纬度。语气与风格：幽默、鼓励、冷峻锋利、一针见血。",
+      { status: 200 },
+    );
+  }
+
+  const prompt = buildPrompt(payload);
+
+  try {
+    const response = await (siliconflowApiKey
+      ? fetch("https://api.siliconflow.cn/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${siliconflowApiKey}`,
           },
-          {
-            role: "user",
-            content: buildPrompt(payload),
+          body: JSON.stringify({
+            model: "deepseek-ai/DeepSeek-V3",
+            messages: [
+              {
+                role: "system",
+                content: SYSTEM_PROMPT,
+              },
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            temperature: 0.6,
+          }),
+        })
+      : fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openaiApiKey}`,
           },
-        ],
-        temperature: 0.6,
-      }),
-    });
+          body: JSON.stringify({
+            model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
+                content: SYSTEM_PROMPT,
+              },
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            temperature: 0.6,
+          }),
+        }));
 
     const json = (await response.json()) as unknown;
 
     if (!response.ok) {
-      const message =
-        isRecord(json) && isRecord(json.error) && typeof json.error.message === "string"
-          ? json.error.message
-          : "AI 复盘生成失败。";
-
-      return NextResponse.json({ message }, { status: response.status });
+      return NextResponse.json({ message: readErrorMessage(json) }, { status: response.status });
     }
 
     const reflection = extractResponseText(json);

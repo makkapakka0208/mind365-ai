@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, Clock3, Loader2, PencilLine, Save } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +51,7 @@ function toEditState(entry: DailyLog): EditState {
   };
 }
 
-export default function JournalDetailPage() {
+function JournalDetailPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id") ?? "";
@@ -318,5 +318,29 @@ export default function JournalDetailPage() {
         )}
       </Panel>
     </motion.div>
+  );
+}
+
+function JournalPageFallback() {
+  return (
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      className="mx-auto w-full max-w-[720px]"
+      initial={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+    >
+      <Panel className="flex items-center gap-3 p-7 text-slate-300">
+        <Loader2 className="animate-spin" size={18} />
+        <span className="text-sm">正在加载日记…</span>
+      </Panel>
+    </motion.div>
+  );
+}
+
+export default function JournalDetailPage() {
+  return (
+    <Suspense fallback={<JournalPageFallback />}>
+      <JournalDetailPageInner />
+    </Suspense>
   );
 }
