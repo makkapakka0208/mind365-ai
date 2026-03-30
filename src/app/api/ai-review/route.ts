@@ -188,10 +188,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "复盘数据格式无效。" }, { status: 400 });
   }
 
+  const provider = process.env.AI_PROVIDER?.trim().toLowerCase();
   const siliconflowApiKey = process.env.SILICONFLOW_API_KEY?.trim();
   const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
+  const legacySiliconflowKey = !siliconflowApiKey && provider !== "openai" ? openaiApiKey : undefined;
+  const effectiveSiliconflowKey = siliconflowApiKey || legacySiliconflowKey;
 
-  if (!siliconflowApiKey && !openaiApiKey) {
+  if (!effectiveSiliconflowKey && !openaiApiKey) {
     return NextResponse.json(
       {
         available: false,
@@ -202,18 +205,41 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (provider === "openai" && !openaiApiKey) {
+    return NextResponse.json(
+      {
+        available: false,
+        message: "已设置 AI_PROVIDER=openai，但未配置 OPENAI_API_KEY。",
+        reflection: null,
+      },
+      { status: 200 },
+    );
+  }
+
+  if (provider !== "openai" && !effectiveSiliconflowKey) {
+    return NextResponse.json(
+      {
+        available: false,
+        message: "已使用 SiliconFlow 模式，但未配置可用的 API Key。",
+        reflection: null,
+      },
+      { status: 200 },
+    );
+  }
+
   const prompt = buildPrompt(payload);
 
   try {
-    const response = await (siliconflowApiKey
-      ? fetch("https://api.siliconflow.cn/v1/chat/completions", {
+    const useOpenAI = provider === "openai";
+    const response = await (useOpenAI
+      ? fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${siliconflowApiKey}`,
+            Authorization: `Bearer ${openaiApiKey}`,
           },
           body: JSON.stringify({
-            model: "deepseek-ai/DeepSeek-V3",
+            model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
             messages: [
               {
                 role: "system",
@@ -227,14 +253,14 @@ export async function POST(request: NextRequest) {
             temperature: 0.6,
           }),
         })
-      : fetch("https://api.openai.com/v1/chat/completions", {
+      : fetch("https://api.siliconflow.cn/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${openaiApiKey}`,
+            Authorization: `Bearer ${effectiveSiliconflowKey}`,
           },
           body: JSON.stringify({
-            model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+            model: "deepseek-ai/DeepSeek-V3",
             messages: [
               {
                 role: "system",

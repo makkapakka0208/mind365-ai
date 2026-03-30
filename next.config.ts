@@ -1,11 +1,17 @@
-﻿import type { NextConfig } from "next";
+import type { NextConfig } from "next";
+
+const isVercel = process.env.VERCEL === "1" || process.env.VERCEL === "true";
 
 const nextConfig: NextConfig = {
-  output: "export",
+  ...(isVercel
+    ? {}
+    : {
+        output: "export",
+        trailingSlash: true,
+      }),
   images: {
-    unoptimized: true,
+    unoptimized: !isVercel,
   },
-  trailingSlash: true,
 };
 
 export default nextConfig;
