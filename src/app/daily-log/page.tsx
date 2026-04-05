@@ -70,7 +70,7 @@ export default function DailyLogPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <StaggerItem index={0}>
-          <Panel className="p-5 sm:p-6 lg:p-7">
+          <Panel className="p-5 sm:p-6 lg:p-7 max-md:shadow-[inset_2px_2px_6px_rgba(180,150,110,.45),inset_-2px_-2px_5px_rgba(255,250,240,.9)] max-md:bg-[var(--m-base)]">
             <form className="grid gap-5" onSubmit={onSubmit}>
               <div className="grid gap-5 lg:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium text-slate-200">
@@ -134,7 +134,13 @@ export default function DailyLogPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <Button disabled={isSaving} size="lg" type="submit" variant="primary">
+                <Button
+                  className="max-md:bg-[var(--m-accent)] max-md:from-[var(--m-accent)] max-md:via-[var(--m-accent)] max-md:to-[var(--m-accent)] max-md:text-white"
+                  disabled={isSaving}
+                  size="lg"
+                  type="submit"
+                  variant="primary"
+                >
                   {isSaving ? "保存中..." : "保存"}
                 </Button>
                 {message ? (

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { navItems } from "@/components/layout/nav-items";
 import { cn } from "@/lib/cn";
 
@@ -37,7 +38,7 @@ export function AppShell({ children }: AppShellProps) {
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
-    <div className="relative h-screen overflow-hidden text-slate-100">
+    <div className="relative h-screen overflow-hidden text-slate-100 max-md:bg-[var(--m-base)] max-md:text-[var(--m-ink)]">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="bg-float float-one -left-28 -top-24 h-80 w-80 bg-indigo-500/40" />
         <div className="bg-float float-two right-[-72px] top-[18%] h-72 w-72 bg-pink-500/35" />
@@ -111,7 +112,7 @@ export function AppShell({ children }: AppShellProps) {
         </aside>
 
         <div className="flex h-full flex-1 flex-col overflow-hidden">
-          <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-900/45 px-4 py-3 backdrop-blur-xl md:hidden">
+          <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-900/45 px-4 py-3 backdrop-blur-xl hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="rounded-xl border border-white/15 bg-white/10 p-2 text-indigo-200">
@@ -167,9 +168,11 @@ export function AppShell({ children }: AppShellProps) {
             </AnimatePresence>
           </header>
 
-          <main className="h-full flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">{children}</main>
+          <main className="h-full flex-1 overflow-y-auto p-4 pb-20 sm:p-6 md:pb-8 lg:p-8">{children}</main>
         </div>
       </div>
+
+      <MobileTabBar />
     </div>
   );
 }

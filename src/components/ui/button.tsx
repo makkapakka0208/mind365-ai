@@ -44,6 +44,7 @@ export function Button({
         "hover:-translate-y-0.5 hover:scale-[1.02]",
         variants[variant],
         sizes[size],
+        "max-md:shadow-[4px_4px_10px_rgba(180,150,110,.45),-2px_-2px_6px_rgba(255,250,240,.9)] max-md:font-[Noto_Serif_SC,serif]",
         className,
       )}
       type={type}

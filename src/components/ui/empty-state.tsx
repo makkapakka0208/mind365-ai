@@ -30,7 +30,7 @@ export function EmptyState({
       ) : null}
 
       {Icon ? (
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30 text-indigo-100">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30 text-indigo-100 max-md:border-[var(--m-rule)] max-md:bg-[var(--m-base)] max-md:text-[var(--m-accent)] max-md:shadow-[4px_4px_10px_rgba(180,150,110,.45),-2px_-2px_6px_rgba(255,250,240,.9)]">
           <Icon size={22} />
         </div>
       ) : null}

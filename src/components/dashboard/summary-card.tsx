@@ -30,12 +30,12 @@ export function SummaryCard({
     <Panel className={cn("h-full p-5", className)} interactive>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium tracking-[0.12em] text-slate-400">{label}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-100">{value}</p>
-          {hint ? <p className="mt-2 text-sm text-slate-300">{hint}</p> : null}
+          <p className="text-xs font-medium tracking-[0.12em] text-slate-400 max-md:text-[var(--m-ink3)]">{label}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-100 max-md:text-[var(--m-ink)]">{value}</p>
+          {hint ? <p className="mt-2 text-sm text-slate-300 max-md:text-[var(--m-ink2)]">{hint}</p> : null}
         </div>
 
-        <span className={`rounded-xl border border-white/15 p-2.5 shadow-lg shadow-indigo-900/20 ${iconClasses}`}>
+        <span className={`rounded-xl border border-white/15 p-2.5 shadow-lg shadow-indigo-900/20 max-md:border-[var(--m-rule)] max-md:bg-[var(--m-base)] max-md:text-[var(--m-accent)] max-md:shadow-[4px_4px_10px_rgba(180,150,110,.45),-2px_-2px_6px_rgba(255,250,240,.9)] ${iconClasses}`}>
           <Icon size={18} />
         </span>
       </div>

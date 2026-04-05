@@ -30,18 +30,18 @@ export function PageTitle({
       )}
     >
       <div className={cn("space-y-2", centered && "max-w-3xl")}>
-        {eyebrow ? <p className="text-xs font-medium tracking-[0.16em] text-slate-400">{eyebrow}</p> : null}
+        {eyebrow ? <p className="text-xs font-medium tracking-[0.16em] text-slate-400 max-md:text-[var(--m-ink3)]">{eyebrow}</p> : null}
 
         <div className={cn("flex items-center gap-3", centered && "justify-center")}>
           {Icon ? (
-            <span className="rounded-xl border border-white/15 bg-white/10 p-2 text-indigo-200 shadow-lg shadow-indigo-950/25">
+            <span className="rounded-xl border border-white/15 bg-white/10 p-2 text-indigo-200 shadow-lg shadow-indigo-950/25 max-md:border-[var(--m-rule)] max-md:bg-[var(--m-base-light)] max-md:text-[var(--m-accent)] max-md:shadow-[4px_4px_10px_rgba(180,150,110,.45),-2px_-2px_6px_rgba(255,250,240,.9)]">
               <Icon size={18} />
             </span>
           ) : null}
-          <h2 className="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">{title}</h2>
+          <h2 className="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl max-md:text-[var(--m-ink)] max-md:text-2xl">{title}</h2>
         </div>
 
-        {description ? <p className="text-sm leading-7 text-slate-300 sm:text-[15px]">{description}</p> : null}
+        {description ? <p className="text-sm leading-7 text-slate-300 sm:text-[15px] max-md:text-[var(--m-ink2)]">{description}</p> : null}
       </div>
 
       {rightSlot ? <div className="text-sm text-slate-300">{rightSlot}</div> : null}

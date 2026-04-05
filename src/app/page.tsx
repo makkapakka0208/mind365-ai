@@ -13,6 +13,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { MobileGreeting } from "@/components/layout/mobile-greeting";
 import { BarChartCard } from "@/components/charts/bar-chart-card";
 import { LineChartCard } from "@/components/charts/line-chart-card";
 import { SummaryCard } from "@/components/dashboard/summary-card";
@@ -124,6 +125,7 @@ export default function DashboardPage() {
   return (
     <PageTransition>
       <div className="mx-auto max-w-[1280px] space-y-8">
+        <MobileGreeting />
         <PageTitle
           description="把情绪、学习和思考放在同一个视角里，日常成长会更清晰。"
           eyebrow="Mind365"
@@ -160,10 +162,10 @@ export default function DashboardPage() {
                 </div>
                 
                 {/* 🌟 修改点 4：稍微调小了标题字号，从原本极大的 text-2xl/3xl 降为 text-lg/xl，不喧宾夺主 */}
-                <p className="text-lg font-medium tracking-wide text-slate-100 sm:text-xl leading-relaxed">
+                <p className="text-lg font-medium tracking-wide text-slate-100 sm:text-xl leading-relaxed max-md:text-[var(--m-ink)]">
                   {displayQuote.text}
                 </p>
-                <p className="mt-2 text-xs italic text-slate-300/80">{quoteSource}</p>
+                <p className="mt-2 text-xs italic text-slate-300/80 max-md:text-[var(--m-ink2)]">{quoteSource}</p>
               </div>
             </Panel>
           </StaggerItem>
