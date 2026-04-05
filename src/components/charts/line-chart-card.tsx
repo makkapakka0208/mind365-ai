@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ChartOptions, ScriptableContext } from "chart.js";
 import { Line } from "react-chartjs-2";
@@ -24,10 +24,10 @@ const options: ChartOptions<"line"> = {
   plugins: {
     legend: { display: false },
     tooltip: {
-      backgroundColor: "rgba(15, 23, 42, 0.94)",
-      titleColor: "#f8fafc",
-      bodyColor: "#e2e8f0",
-      borderColor: "rgba(99, 102, 241, 0.45)",
+      backgroundColor: "rgba(44, 26, 14, 0.92)",
+      titleColor: "#fdf6eb",
+      bodyColor: "#f0e6d3",
+      borderColor: "rgba(139, 94, 60, 0.45)",
       borderWidth: 1,
       displayColors: false,
       padding: 12,
@@ -37,13 +37,13 @@ const options: ChartOptions<"line"> = {
   scales: {
     x: {
       grid: { display: false },
-      ticks: { color: "#94a3b8", font: { size: 11 } },
+      ticks: { color: "#a07850", font: { size: 11 } },
     },
     y: {
       beginAtZero: true,
       border: { display: false },
-      grid: { color: "rgba(148, 163, 184, 0.2)" },
-      ticks: { color: "#94a3b8", font: { size: 11 } },
+      grid: { color: "rgba(221, 208, 188, 0.6)" },
+      ticks: { color: "#a07850", font: { size: 11 } },
     },
   },
 };
@@ -53,13 +53,13 @@ function lineGradient(context: ScriptableContext<"line">) {
   const { ctx, chartArea } = chart;
 
   if (!chartArea) {
-    return "#818cf8";
+    return "#8b5e3c";
   }
 
   const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-  gradient.addColorStop(0, "#6366f1");
-  gradient.addColorStop(0.5, "#a855f7");
-  gradient.addColorStop(1, "#ec4899");
+  gradient.addColorStop(0, "#a07850");
+  gradient.addColorStop(0.5, "#8b5e3c");
+  gradient.addColorStop(1, "#6b4c2a");
 
   return gradient;
 }
@@ -69,12 +69,12 @@ function fillGradient(context: ScriptableContext<"line">) {
   const { ctx, chartArea } = chart;
 
   if (!chartArea) {
-    return "rgba(99, 102, 241, 0.2)";
+    return "rgba(139, 94, 60, 0.15)";
   }
 
   const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-  gradient.addColorStop(0, "rgba(168, 85, 247, 0.35)");
-  gradient.addColorStop(1, "rgba(56, 189, 248, 0.03)");
+  gradient.addColorStop(0, "rgba(139, 94, 60, 0.3)");
+  gradient.addColorStop(1, "rgba(240, 230, 211, 0.05)");
 
   return gradient;
 }
@@ -89,8 +89,8 @@ export function LineChartCard({
   return (
     <Panel className="p-5" interactive>
       <div className="space-y-1">
-        <h3 className="text-base font-semibold text-slate-100">{title}</h3>
-        {description ? <p className="text-sm text-slate-300">{description}</p> : null}
+        <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>{title}</h3>
+        {description ? <p className="text-sm" style={{ color: "var(--m-ink2)" }}>{description}</p> : null}
       </div>
 
       <div className="mt-5 h-72">
@@ -105,8 +105,8 @@ export function LineChartCard({
                 backgroundColor: fillGradient,
                 borderWidth: 2.5,
                 fill: true,
-                pointBackgroundColor: "#22d3ee",
-                pointBorderColor: "rgba(34, 211, 238, 0.35)",
+                pointBackgroundColor: "#8b5e3c",
+                pointBorderColor: "rgba(139, 94, 60, 0.35)",
                 pointRadius: 3,
                 pointHoverRadius: 5,
                 tension: 0.42,
@@ -120,4 +120,3 @@ export function LineChartCard({
     </Panel>
   );
 }
-

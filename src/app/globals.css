@@ -1,12 +1,19 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 :root {
-  --color-primary: #6366f1;
-  --color-secondary: #06b6d4;
-  --color-text: #e2e8f0;
-  --color-bg-a: #0f172a;
-  --color-bg-b: #312e81;
-  --color-bg-c: #1e293b;
+  --m-base: #f0e6d3;
+  --m-base-light: #fdf6eb;
+  --m-ink: #2c1a0e;
+  --m-ink2: #6b4c2a;
+  --m-ink3: #a07850;
+  --m-accent: #8b5e3c;
+  --m-rule: #ddd0bc;
+  --m-shadow-out: 4px 4px 10px rgba(180, 150, 110, 0.45),
+    -2px -2px 6px rgba(255, 250, 240, 0.9);
+  --m-shadow-in: inset 2px 2px 6px rgba(180, 150, 110, 0.45),
+    inset -2px -2px 5px rgba(255, 250, 240, 0.9);
+  --m-success: #5a8a3c;
+  --m-danger: #b04040;
 }
 
 * {
@@ -20,328 +27,18 @@ body {
 }
 
 body {
-  background: linear-gradient(
-    135deg,
-    var(--color-bg-a) 0%,
-    var(--color-bg-b) 48%,
-    var(--color-bg-c) 100%
-  );
-  background-size: 200% 200%;
-  animation: gradientMove 18s ease infinite;
-  color: var(--color-text);
-  font-family: "Inter", "SF Pro Display", "Avenir Next", "Segoe UI", sans-serif;
+  background: var(--m-base);
+  color: var(--m-ink);
+  font-family: "Noto Serif SC", serif;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: rgba(129, 140, 248, 0.3);
-  color: #f8fafc;
+  background: rgba(139, 94, 60, 0.25);
+  color: var(--m-ink);
 }
 
-.glass-surface {
-  backdrop-filter: blur(14px);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
-}
-
-.gradient-ring {
-  position: relative;
-}
-
-.gradient-ring::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: 1.1rem;
-  background: linear-gradient(120deg, #6366f1, #a855f7, #ec4899);
-  opacity: 0.75;
-  z-index: -1;
-  filter: blur(12px);
-}
-
-.bg-float {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(56px);
-  opacity: 0.38;
-  pointer-events: none;
-}
-
-.sparkle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow:
-    0 0 10px rgba(99, 102, 241, 0.55),
-    0 0 18px rgba(56, 189, 248, 0.35);
-  animation: sparkleDrift 7s ease-in-out infinite;
-}
-
-@keyframes gradientMove {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes floatOne {
-  0%,
-  100% {
-    transform: translateY(0px) scale(1);
-  }
-  50% {
-    transform: translateY(-16px) scale(1.05);
-  }
-}
-
-@keyframes floatTwo {
-  0%,
-  100% {
-    transform: translateY(0px) scale(1);
-  }
-  50% {
-    transform: translateY(12px) scale(0.97);
-  }
-}
-
-@keyframes sparkleDrift {
-  0%,
-  100% {
-    transform: translateY(0px);
-    opacity: 0.45;
-  }
-  50% {
-    transform: translateY(-10px);
-    opacity: 0.95;
-  }
-}
-
-.float-one {
-  animation: floatOne 14s ease-in-out infinite;
-}
-
-.float-two {
-  animation: floatTwo 18s ease-in-out infinite;
-}
-
-/* ─── Mobile washi-tape neumorphic theme (< 768px) ─── */
-:root {
-  --m-base: #f0e6d3;
-  --m-base-light: #fdf6eb;
-  --m-ink: #2c1a0e;
-  --m-ink2: #6b4c2a;
-  --m-ink3: #a07850;
-  --m-accent: #8b5e3c;
-  --m-rule: #ddd0bc;
-  --m-shadow-out: 4px 4px 10px rgba(180, 150, 110, 0.45),
-    -2px -2px 6px rgba(255, 250, 240, 0.9);
-  --m-shadow-in: inset 2px 2px 6px rgba(180, 150, 110, 0.45),
-    inset -2px -2px 5px rgba(255, 250, 240, 0.9);
-}
-
-@media (max-width: 767px) {
-  body {
-    background: var(--m-base) !important;
-    animation: none !important;
-    color: var(--m-ink) !important;
-    font-family: "Noto Serif SC", serif;
-  }
-
-  ::selection {
-    background: rgba(139, 94, 60, 0.25);
-    color: var(--m-ink);
-  }
-
-  /* hide desktop decorations on mobile */
-  .bg-float,
-  .sparkle {
-    display: none !important;
-  }
-
-  /* ── Neumorphic panel (凸出) ── */
-  .glass-surface,
-  [class*="backdrop-blur"] {
-    backdrop-filter: none !important;
-  }
-
-  .m-panel-out {
-    background: var(--m-base-light);
-    border: 1px solid var(--m-rule);
-    border-radius: 16px;
-    box-shadow: var(--m-shadow-out);
-    color: var(--m-ink);
-  }
-
-  .m-panel-in {
-    background: var(--m-base);
-    border: 1px solid var(--m-rule);
-    border-radius: 16px;
-    box-shadow: var(--m-shadow-in);
-    color: var(--m-ink);
-  }
-
-  .m-btn {
-    background: var(--m-accent);
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    box-shadow: var(--m-shadow-out);
-    font-family: "Noto Serif SC", serif;
-  }
-
-  .m-btn:active {
-    box-shadow: var(--m-shadow-in);
-    transform: translateY(1px);
-  }
-
-  .m-input {
-    background: var(--m-base);
-    border: 1px solid var(--m-rule);
-    border-radius: 12px;
-    box-shadow: var(--m-shadow-in);
-    color: var(--m-ink);
-    font-family: "Noto Serif SC", serif;
-  }
-
-  .m-input::placeholder {
-    color: var(--m-ink3);
-  }
-
-  .m-input:focus {
-    outline: none;
-    border-color: var(--m-accent);
-    box-shadow: var(--m-shadow-in), 0 0 0 2px rgba(139, 94, 60, 0.18);
-  }
-
-  /* Override common slate text colors on mobile for readability */
-  .text-slate-100 { color: var(--m-ink) !important; }
-  .text-slate-200 { color: var(--m-ink) !important; }
-  .text-slate-300 { color: var(--m-ink2) !important; }
-  .text-slate-400 { color: var(--m-ink3) !important; }
-  .text-white { color: var(--m-ink) !important; }
-  .text-indigo-100 { color: var(--m-accent) !important; }
-  .text-indigo-200 { color: var(--m-accent) !important; }
-  .text-indigo-300 { color: var(--m-accent) !important; }
-  .text-cyan-100 { color: var(--m-ink2) !important; }
-  .text-cyan-200 { color: var(--m-accent) !important; }
-  .text-emerald-300 { color: #5a8a3c !important; }
-
-  /* Override gradient backgrounds on panels for clean washi look */
-  .bg-gradient-to-r,
-  .bg-gradient-to-br {
-    background-image: none !important;
-  }
-
-  /* Override gradient ring decorations */
-  .gradient-ring::before {
-    display: none;
-  }
-
-  /* Override glass surface backgrounds */
-  .bg-white\/10 { background-color: var(--m-base-light) !important; }
-  .bg-white\/5 { background-color: var(--m-base) !important; }
-  .border-white\/10,
-  .border-white\/15 { border-color: var(--m-rule) !important; }
-
-  /* Override progress bar colors */
-  .bg-white\/15 {
-    background-color: var(--m-rule) !important;
-  }
-
-  /* accent slider */
-  .accent-indigo-400 {
-    accent-color: var(--m-accent) !important;
-  }
-
-  /* Tags & badges */
-  .rounded-full.border {
-    background-color: var(--m-base) !important;
-    border-color: var(--m-rule) !important;
-  }
-
-  /* Status boxes */
-  .bg-cyan-400\/10 {
-    background-color: rgba(139, 94, 60, 0.08) !important;
-    border-color: var(--m-rule) !important;
-  }
-  .bg-amber-400\/10 {
-    background-color: rgba(180, 150, 110, 0.12) !important;
-    border-color: var(--m-rule) !important;
-  }
-  .text-cyan-100\/90,
-  .text-cyan-100\/70 { color: var(--m-ink2) !important; }
-  .text-amber-100,
-  .text-amber-100\/90 { color: var(--m-ink2) !important; }
-
-  /* Chart card mobile overrides */
-  canvas {
-    filter: sepia(0.15) saturate(0.85);
-  }
-
-  /* Reduce chart height on mobile */
-  .h-72 {
-    height: 12rem !important;
-  }
-
-  /* AI reflection panel: tame gradients & blurs */
-  .blur-3xl { filter: none !important; }
-
-  /* Gradient text clips → solid accent on mobile */
-  .bg-clip-text {
-    -webkit-background-clip: unset !important;
-    background-clip: unset !important;
-    -webkit-text-fill-color: var(--m-accent) !important;
-    color: var(--m-accent) !important;
-    background-image: none !important;
-  }
-
-  /* Review history period badges */
-  .bg-indigo-500\/20,
-  .bg-cyan-500\/20,
-  .bg-pink-500\/20 {
-    background-color: var(--m-base) !important;
-    border-color: var(--m-rule) !important;
-  }
-  .text-indigo-200,
-  .text-cyan-200,
-  .text-pink-200 {
-    color: var(--m-accent) !important;
-  }
-  .border-indigo-400\/30,
-  .border-cyan-400\/30,
-  .border-pink-400\/30 {
-    border-color: var(--m-rule) !important;
-  }
-
-  /* Markdown list markers */
-  .marker\:text-indigo-400 *::marker,
-  .marker\:text-pink-400 *::marker {
-    color: var(--m-accent) !important;
-  }
-
-  /* Shadow overrides for specific desktop shadows */
-  .shadow-indigo-900\/40,
-  .shadow-indigo-900\/35,
-  .shadow-indigo-950\/45,
-  .shadow-indigo-950\/25,
-  .shadow-indigo-950\/20,
-  .shadow-indigo-950\/35,
-  .shadow-cyan-900\/40,
-  .shadow-emerald-900\/30,
-  .shadow-purple-300\/40 {
-    --tw-shadow-color: rgba(180, 150, 110, 0.2) !important;
-  }
-}
-
-/* ── Mobile tab bar ── */
+/* ── Tab bar ── */
 .m-tab-bar {
   position: fixed;
   bottom: 0;
@@ -375,7 +72,7 @@ body {
   color: var(--m-accent);
 }
 
-/* ── Mobile greeting ── */
+/* ── Greeting ── */
 .m-greeting {
   font-family: "Noto Serif SC", serif;
   color: var(--m-ink);
@@ -405,4 +102,3 @@ body {
 }
 .m-slide-left { animation: m-slide-left 0.3s ease-out; }
 .m-slide-right { animation: m-slide-right 0.3s ease-out; }
-

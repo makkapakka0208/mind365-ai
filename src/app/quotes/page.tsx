@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Lightbulb, Quote as QuoteIcon, Sparkles } from "lucide-react";
 import { FormEvent, useState } from "react";
@@ -77,23 +77,22 @@ export default function QuotesPage() {
 
       <StaggerItem index={0}>
         <Panel className="relative overflow-hidden p-6 sm:p-7" interactive>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-indigo-500/16 via-purple-500/14 to-pink-500/16" />
           <div className="relative grid items-center gap-4 lg:grid-cols-[1.4fr_1fr]">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-300">今日推荐</p>
+              <p className="text-xs font-medium uppercase tracking-[0.16em]" style={{ color: "var(--m-ink2)" }}>今日推荐</p>
               {dailyQuote ? (
                 <>
                   <div className="mt-3 flex gap-2">
-                    <QuoteIcon className="mt-1 text-indigo-200" size={18} />
-                    <p className="text-lg leading-8 text-slate-100">{dailyQuote.text}</p>
+                    <QuoteIcon className="mt-1" style={{ color: "var(--m-accent)" }} size={18} />
+                    <p className="text-lg leading-8" style={{ color: "var(--m-ink)" }}>{dailyQuote.text}</p>
                   </div>
-                  <p className="mt-3 text-sm italic text-slate-300">
+                  <p className="mt-3 text-sm italic" style={{ color: "var(--m-ink2)" }}>
                     {dailyQuote.author || "佚名"}
                     {dailyQuote.book ? ` · ${dailyQuote.book}` : ""}
                   </p>
                 </>
               ) : (
-                <p className="mt-3 text-sm text-slate-300">保存第一条金句后，这里会出现今天的推荐语录。</p>
+                <p className="mt-3 text-sm" style={{ color: "var(--m-ink2)" }}>保存第一条金句后，这里会出现今天的推荐语录。</p>
               )}
             </div>
 
@@ -109,7 +108,7 @@ export default function QuotesPage() {
       <StaggerItem index={1}>
         <Panel className="p-6">
           <form className="grid gap-4" onSubmit={onSubmit}>
-            <label className="grid gap-2 text-sm font-medium text-slate-200">
+            <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               金句内容
               <Textarea
                 className="min-h-28"
@@ -121,7 +120,7 @@ export default function QuotesPage() {
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 作者
                 <Input
                   onChange={(event) => setAuthor(event.target.value)}
@@ -131,7 +130,7 @@ export default function QuotesPage() {
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 书名 / 来源
                 <Input
                   onChange={(event) => setBook(event.target.value)}
@@ -142,7 +141,7 @@ export default function QuotesPage() {
               </label>
             </div>
 
-            <label className="grid gap-2 text-sm font-medium text-slate-200">
+            <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               标签
               <Input
                 onChange={(event) => setTags(event.target.value)}
@@ -156,7 +155,7 @@ export default function QuotesPage() {
               <Button size="lg" type="submit" variant="primary">
                 保存
               </Button>
-              {message ? <span className="text-sm text-emerald-300">{message}</span> : null}
+              {message ? <span className="text-sm" style={{ color: "var(--m-success)" }}>{message}</span> : null}
             </div>
           </form>
         </Panel>
@@ -176,12 +175,15 @@ export default function QuotesPage() {
             <StaggerItem index={index} key={quote.id}>
               <Panel className="p-5" interactive>
                 <div className="flex items-start gap-3">
-                  <span className="mt-1 rounded-xl border border-white/15 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30 p-2 text-indigo-100">
+                  <span
+                    className="mt-1 rounded-xl p-2"
+                    style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-out)", color: "var(--m-accent)" }}
+                  >
                     <QuoteIcon size={15} />
                   </span>
                   <div>
-                    <p className="leading-7 text-slate-100">{quote.text}</p>
-                    <p className="mt-3 text-sm text-slate-300">
+                    <p className="leading-7" style={{ color: "var(--m-ink)" }}>{quote.text}</p>
+                    <p className="mt-3 text-sm" style={{ color: "var(--m-ink2)" }}>
                       {quote.author || "佚名"}
                       {quote.book ? ` · ${quote.book}` : ""}
                     </p>
@@ -189,7 +191,8 @@ export default function QuotesPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       {quote.tags.map((tag) => (
                         <span
-                          className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-slate-300"
+                          className="rounded-full px-3 py-1 text-xs"
+                          style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
                           key={`${quote.id}-${tag}`}
                         >
                           #{tag}
@@ -206,4 +209,3 @@ export default function QuotesPage() {
     </PageTransition>
   );
 }
-

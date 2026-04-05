@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { CalendarDays, CheckCircle2, NotebookPen } from "lucide-react";
 import Link from "next/link";
@@ -70,15 +70,15 @@ export default function DailyLogPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <StaggerItem index={0}>
-          <Panel className="p-5 sm:p-6 lg:p-7 max-md:shadow-[inset_2px_2px_6px_rgba(180,150,110,.45),inset_-2px_-2px_5px_rgba(255,250,240,.9)] max-md:bg-[var(--m-base)]">
+          <Panel className="p-5 sm:p-6 lg:p-7" inset>
             <form className="grid gap-5" onSubmit={onSubmit}>
               <div className="grid gap-5 lg:grid-cols-2">
-                <label className="grid gap-2 text-sm font-medium text-slate-200">
+                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                   日期
                   <Input onChange={(event) => setDate(event.target.value)} type="date" value={date} />
                 </label>
 
-                <label className="grid gap-2 text-sm font-medium text-slate-200">
+                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                   学习时长
                   <Input
                     min={0}
@@ -90,19 +90,20 @@ export default function DailyLogPage() {
                 </label>
               </div>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 情绪分数 ({mood}/10)
                 <input
-                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-indigo-400"
+                  className="h-2 w-full cursor-pointer appearance-none rounded-full"
                   max={10}
                   min={1}
                   onChange={(event) => setMood(Number(event.target.value))}
+                  style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", accentColor: "var(--m-accent)" }}
                   type="range"
                   value={mood}
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 今日日记
                 <Textarea
                   onChange={(event) => setThoughts(event.target.value)}
@@ -112,7 +113,7 @@ export default function DailyLogPage() {
               </label>
 
               <div className="grid gap-5 lg:grid-cols-2">
-                <label className="grid gap-2 text-sm font-medium text-slate-200">
+                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                   阅读记录
                   <Input
                     onChange={(event) => setReading(event.target.value)}
@@ -122,7 +123,7 @@ export default function DailyLogPage() {
                   />
                 </label>
 
-                <label className="grid gap-2 text-sm font-medium text-slate-200">
+                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                   标签（逗号分隔）
                   <Input
                     onChange={(event) => setTags(event.target.value)}
@@ -135,7 +136,6 @@ export default function DailyLogPage() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <Button
-                  className="max-md:bg-[var(--m-accent)] max-md:from-[var(--m-accent)] max-md:via-[var(--m-accent)] max-md:to-[var(--m-accent)] max-md:text-white"
                   disabled={isSaving}
                   size="lg"
                   type="submit"
@@ -144,7 +144,7 @@ export default function DailyLogPage() {
                   {isSaving ? "保存中..." : "保存"}
                 </Button>
                 {message ? (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-emerald-300">
+                  <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--m-success)" }}>
                     <CheckCircle2 size={16} />
                     {message}
                   </span>
@@ -156,8 +156,8 @@ export default function DailyLogPage() {
 
         <StaggerItem index={1}>
           <Panel className="overflow-hidden p-6" interactive>
-            <h3 className="text-base font-semibold text-slate-100">书写提示</h3>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
+            <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>书写提示</h3>
+            <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
               1. 今天哪个瞬间最影响你的情绪？
               <br />
               2. 今天最值得感谢的一件小事是什么？
@@ -176,8 +176,8 @@ export default function DailyLogPage() {
       <StaggerItem index={2}>
         <Panel className="p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 className="text-base font-semibold text-slate-100">最近记录</h3>
-            <span className="text-sm text-slate-400">最近 4 条</span>
+            <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>最近记录</h3>
+            <span className="text-sm" style={{ color: "var(--m-ink3)" }}>最近 4 条</span>
           </div>
 
           {recentLogs.length === 0 ? (
@@ -193,10 +193,17 @@ export default function DailyLogPage() {
               {recentLogs.map((log, index) => (
                 <StaggerItem className="h-full" index={index} key={log.id}>
                   <Link className="block h-full" href={`/journal?id=${log.id}`}>
-                    <div className="h-full rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-950/35">
-                      <p className="text-sm text-slate-400">{formatDate(log.date)}</p>
-                      <p className="mt-2 text-sm font-medium text-slate-100">情绪 {log.mood}/10</p>
-                      <p className="mt-1 text-sm text-slate-300">学习 {log.studyHours} 小时</p>
+                    <div
+                      className="h-full rounded-2xl p-4 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
+                      style={{
+                        background: "var(--m-base)",
+                        border: "1px solid var(--m-rule)",
+                        boxShadow: "var(--m-shadow-out)",
+                      }}
+                    >
+                      <p className="text-sm" style={{ color: "var(--m-ink3)" }}>{formatDate(log.date)}</p>
+                      <p className="mt-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>情绪 {log.mood}/10</p>
+                      <p className="mt-1 text-sm" style={{ color: "var(--m-ink2)" }}>学习 {log.studyHours} 小时</p>
                     </div>
                   </Link>
                 </StaggerItem>
@@ -208,4 +215,3 @@ export default function DailyLogPage() {
     </PageTransition>
   );
 }
-

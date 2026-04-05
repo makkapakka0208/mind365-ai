@@ -73,7 +73,7 @@ export default function WeeklyReviewPage() {
         eyebrow="周度复盘"
         icon={CalendarClock}
         rightSlot={
-          <div className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm backdrop-blur-md">
+          <div className="rounded-xl px-4 py-2 text-sm" style={{ background: "var(--m-base-light)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-out)" }}>
             {formatDate(toISODate(range.start))} - {formatDate(toISODate(range.end))}
           </div>
         }
@@ -81,7 +81,7 @@ export default function WeeklyReviewPage() {
       />
 
       {isSyncing ? (
-        <Panel className="flex items-center gap-3 p-7 text-slate-300">
+        <Panel className="flex items-center gap-3 p-7" style={{ color: "var(--m-ink2)" }}>
           <Loader2 className="animate-spin" size={18} />
           <span className="text-sm">正在同步数据…</span>
         </Panel>
@@ -98,8 +98,8 @@ export default function WeeklyReviewPage() {
           <StaggerItem index={0}>
             <Panel className="grid items-center gap-4 p-5 lg:grid-cols-[1.3fr_1fr]" interactive>
               <div>
-                <h3 className="text-base font-semibold text-slate-100">本周快照</h3>
-                <p className="mt-2 text-sm leading-7 text-slate-300">
+                <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>本周快照</h3>
+                <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
                   你本周记录了 {metrics.entries} 天，平均情绪 {metrics.averageMood}/10，学习
                   {metrics.totalStudyHours.toFixed(1)} 小时，阅读 {metrics.totalReadingHours.toFixed(1)} 小时。
                 </p>
@@ -130,8 +130,8 @@ export default function WeeklyReviewPage() {
           {/* 保存复盘 */}
           <StaggerItem index={8}>
             <Panel className="space-y-4 p-6">
-              <h3 className="text-base font-semibold text-slate-100">保存本周复盘</h3>
-              <p className="text-sm text-slate-400">写下这周的感悟或总结（选填），然后归档到复盘档案。</p>
+              <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>保存本周复盘</h3>
+              <p className="text-sm" style={{ color: "var(--m-ink3)" }}>写下这周的感悟或总结（选填），然后归档到复盘档案。</p>
               <Textarea
                 className="min-h-28"
                 disabled={saved}
@@ -141,10 +141,10 @@ export default function WeeklyReviewPage() {
               />
               {saved ? (
                 <div className="flex items-center gap-3">
-                  <p className="flex items-center gap-2 text-sm text-emerald-300">
+                  <p className="flex items-center gap-2 text-sm" style={{ color: "var(--m-success)" }}>
                     <CheckCircle2 size={16} /> 已保存到复盘档案
                   </p>
-                  <Link className="text-sm text-indigo-300 hover:text-indigo-200 transition-colors" href="/review-history">
+                  <Link className="text-sm transition-colors" style={{ color: "var(--m-accent)" }} href="/review-history">
                     查看档案 →
                   </Link>
                 </div>
