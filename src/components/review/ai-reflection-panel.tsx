@@ -107,7 +107,7 @@ export function AiReflectionPanel({
 
           <Button className="justify-center sm:min-w-48" onClick={onGenerate} size="lg" variant="primary">
             <Sparkles className="mr-2" size={16} />
-            {isGenerating ? "复盘生成中..." : hasSavedReflection ? "查看已保存复盘" : "启动战略复盘"}
+            {isGenerating ? "复盘生成中..." : hasSavedReflection ? "查看已保存复盘" : "启动AI复盘"}
           </Button>
         </div>
 
