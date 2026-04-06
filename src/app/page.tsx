@@ -36,12 +36,12 @@ import type { DailyLog } from "@/types";
 function getGreeting(date: Date) {
   const hour = date.getHours();
 
-  if (hour < 6) return "星光静默 ，";     // 原：夜深了
-  if (hour < 9) return "晨曦微露 ，";     // 原：早上好（偏清晨）
-  if (hour < 12) return "日光正好 ，";    // 原：早上好（偏上午）
-  if (hour < 14) return "浮生半日 ，";    // 原：中午好
-  if (hour < 18) return "山色向晚 ，";    // 原：下午好
-  if (hour < 21) return "华灯初上 ，";    // 原：晚上好
+  if (hour < 6) return "星光静默 ";     // 原：夜深了
+  if (hour < 9) return "晨曦微露 ";     // 原：早上好（偏清晨）
+  if (hour < 12) return "日光正好 ";    // 原：早上好（偏上午）
+  if (hour < 14) return "浮生半日 ";    // 原：中午好
+  if (hour < 18) return "山色向晚 ";    // 原：下午好
+  if (hour < 21) return "华灯初上 ";    // 原：晚上好
   return "月色入户，";
 }
 
