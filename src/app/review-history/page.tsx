@@ -65,7 +65,7 @@ export default function ReviewHistoryPage() {
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="这里保存了你手动归档的每一次周/月/年度复盘，点击"查看详情"可展开完整内容。"
+        description={"这里保存了你手动归档的每一次周/月/年度复盘，点击\u201C查看详情\u201D可展开完整内容。"}
         eyebrow="复盘档案"
         icon={Archive}
         title="复盘档案"
@@ -73,7 +73,7 @@ export default function ReviewHistoryPage() {
 
       {reports.length === 0 ? (
         <EmptyState
-          description="还没有保存过复盘记录。去周度、月度或年度复盘页，点击"保存复盘"按钮归档。"
+          description={"还没有保存过复盘记录。去周度、月度或年度复盘页，点击\u201C保存复盘\u201D按钮归档。"}
           icon={Archive}
           illustrationAlt="archive illustration"
           illustrationSrc="/illustrations/relaxed-reading.svg"

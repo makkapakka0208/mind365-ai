@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { ArrowLeft, CalendarDays, Clock3, Loader2, PencilLine, Save } from "lucide-react";
@@ -65,7 +65,6 @@ function JournalDetailPageInner() {
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<EditState | null>(null);
 
-  // 进入页面时强制拉一次云端数据，确保旧日记能找到
   useEffect(() => {
     if (hasSynced.current) return;
     hasSynced.current = true;
@@ -86,7 +85,6 @@ function JournalDetailPageInner() {
     router.push("/timeline");
   };
 
-  // 正在同步中，显示加载态，避免误判"未找到"
   if (isSyncing && !entry) {
     return (
       <motion.div
@@ -95,7 +93,7 @@ function JournalDetailPageInner() {
         initial={{ opacity: 0, y: 10 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        <Panel className="flex items-center gap-3 p-7 text-slate-300">
+        <Panel className="flex items-center gap-3 p-7" style={{ color: "var(--m-ink2)" }}>
           <Loader2 className="animate-spin" size={18} />
           <span className="text-sm">正在加载日记…</span>
         </Panel>
@@ -112,8 +110,8 @@ function JournalDetailPageInner() {
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
         <Panel className="space-y-5 p-7">
-          <h1 className="text-2xl font-semibold text-slate-100">未找到这条日记</h1>
-          <p className="text-sm leading-7 text-slate-300">这条记录可能已被删除，或者当前链接中的 id 无效。</p>
+          <h1 className="text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>未找到这条日记</h1>
+          <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>这条记录可能已被删除，或者当前链接中的 id 无效。</p>
           <div className="flex items-center gap-3">
             <Button onClick={goBack} variant="ghost">
               <ArrowLeft className="mr-2" size={16} />
@@ -190,10 +188,10 @@ function JournalDetailPageInner() {
       <Panel className="p-6 sm:p-8 md:p-9">
         {isEditing && form ? (
           <form className="space-y-5" onSubmit={onSave}>
-            <h1 className="text-2xl font-semibold text-slate-100">编辑日记</h1>
+            <h1 className="text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>编辑日记</h1>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 日期
                 <Input
                   onChange={(event) => setForm({ ...form, date: event.target.value })}
@@ -202,7 +200,7 @@ function JournalDetailPageInner() {
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 情绪分数（1-10）
                 <Input
                   max={10}
@@ -213,7 +211,7 @@ function JournalDetailPageInner() {
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 学习时长
                 <Input
                   min={0}
@@ -224,7 +222,7 @@ function JournalDetailPageInner() {
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 阅读记录
                 <Input
                   onChange={(event) => setForm({ ...form, reading: event.target.value })}
@@ -234,7 +232,7 @@ function JournalDetailPageInner() {
               </label>
             </div>
 
-            <label className="grid gap-2 text-sm font-medium text-slate-200">
+            <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               完整日记内容
               <Textarea
                 className="min-h-44"
@@ -243,7 +241,7 @@ function JournalDetailPageInner() {
               />
             </label>
 
-            <label className="grid gap-2 text-sm font-medium text-slate-200">
+            <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               标签
               <Input
                 onChange={(event) => setForm({ ...form, tags: event.target.value })}
@@ -257,47 +255,62 @@ function JournalDetailPageInner() {
                 <Save className="mr-2" size={16} />
                 {isSaving ? "保存中..." : "保存修改"}
               </Button>
-              {message ? <span className="text-sm text-emerald-300">{message}</span> : null}
+              {message ? <span className="text-sm" style={{ color: "var(--m-success)" }}>{message}</span> : null}
             </div>
           </form>
         ) : (
           <div className="space-y-7">
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-100">日记详情</h1>
-              <p className="mt-2 inline-flex items-center gap-2 text-sm text-slate-300">
+              <h1 className="text-3xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>日记详情</h1>
+              <p className="mt-2 inline-flex items-center gap-2 text-sm" style={{ color: "var(--m-ink2)" }}>
                 <Clock3 size={14} />
                 {formatTimestamp(entry.createdAt)}
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/10 p-4">
-                <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-slate-400">
+              <div
+                className="rounded-xl p-4"
+                style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-in)" }}
+              >
+                <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>
                   <CalendarDays size={14} />
                   日期
                 </p>
-                <p className="mt-2 text-base text-slate-100">{formatDate(entry.date)}</p>
+                <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>{formatDate(entry.date)}</p>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/10 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-slate-400">情绪分数</p>
-                <p className="mt-2 text-base text-slate-100">{entry.mood}/10</p>
+              <div
+                className="rounded-xl p-4"
+                style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-in)" }}
+              >
+                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>情绪分数</p>
+                <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>{entry.mood}/10</p>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/10 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-slate-400">学习时长</p>
-                <p className="mt-2 text-base text-slate-100">{entry.studyHours.toFixed(1)} 小时</p>
+              <div
+                className="rounded-xl p-4"
+                style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-in)" }}
+              >
+                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>学习时长</p>
+                <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>{entry.studyHours.toFixed(1)} 小时</p>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/10 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-slate-400">阅读时长</p>
-                <p className="mt-2 text-base text-slate-100">{parseReadingHours(entry.reading).toFixed(1)} 小时</p>
+              <div
+                className="rounded-xl p-4"
+                style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-in)" }}
+              >
+                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>阅读时长</p>
+                <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>{parseReadingHours(entry.reading).toFixed(1)} 小时</p>
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/10 p-5">
-              <p className="text-xs uppercase tracking-[0.14em] text-slate-400">完整日记内容</p>
-              <p className="mt-3 whitespace-pre-wrap text-[15px] leading-8 text-slate-100">
+            <div
+              className="rounded-xl p-5"
+              style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-in)" }}
+            >
+              <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>完整日记内容</p>
+              <p className="mt-3 whitespace-pre-wrap text-[15px] leading-8" style={{ color: "var(--m-ink)" }}>
                 {entry.thoughts || "这一天还没有写下具体内容。"}
               </p>
             </div>
@@ -306,8 +319,9 @@ function JournalDetailPageInner() {
               <div className="flex flex-wrap gap-2">
                 {entry.tags.map((tag) => (
                   <span
-                    className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-slate-300"
+                    className="rounded-full px-3 py-1 text-xs"
                     key={`${entry.id}-${tag}`}
+                    style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
                   >
                     #{tag}
                   </span>
@@ -329,7 +343,7 @@ function JournalPageFallback() {
       initial={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
     >
-      <Panel className="flex items-center gap-3 p-7 text-slate-300">
+      <Panel className="flex items-center gap-3 p-7" style={{ color: "var(--m-ink2)" }}>
         <Loader2 className="animate-spin" size={18} />
         <span className="text-sm">正在加载日记…</span>
       </Panel>

@@ -128,10 +128,10 @@ export default function MonthlyReviewPage() {
               />
               {saved ? (
                 <div className="flex items-center gap-3">
-                  <p className="flex items-center gap-2 text-sm text-emerald-300">
+                  <p className="flex items-center gap-2 text-sm" style={{ color: "var(--m-success)" }}>
                     <CheckCircle2 size={16} /> 已保存到复盘档案
                   </p>
-                  <Link className="text-sm text-indigo-300 hover:text-indigo-200 transition-colors" href="/review-history">
+                  <Link className="text-sm transition-colors" style={{ color: "var(--m-accent)" }} href="/review-history">
                     查看档案 →
                   </Link>
                 </div>
