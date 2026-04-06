@@ -1,4 +1,4 @@
-﻿import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { Illustration } from "@/components/ui/illustration";
 import { Panel } from "@/components/ui/panel";
@@ -30,14 +30,21 @@ export function EmptyState({
       ) : null}
 
       {Icon ? (
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-gradient-to-r from-indigo-500/30 via-purple-500/25 to-pink-500/30 text-indigo-100">
+        <div
+          className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
+          style={{
+            background: "var(--m-base)",
+            border: "1px solid var(--m-rule)",
+            boxShadow: "var(--m-shadow-out)",
+            color: "var(--m-accent)",
+          }}
+        >
           <Icon size={22} />
         </div>
       ) : null}
 
-      <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-7 text-slate-300">{description}</p>
+      <h3 className="text-lg font-semibold" style={{ color: "var(--m-ink)" }}>{title}</h3>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-7" style={{ color: "var(--m-ink2)" }}>{description}</p>
     </Panel>
   );
 }
-

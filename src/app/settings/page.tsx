@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { AlertTriangle, Cloud, Download, RefreshCcw, Settings2, Upload } from "lucide-react";
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
@@ -140,16 +140,17 @@ export default function SettingsPage() {
       <Panel className="p-6 sm:p-8">
         <form className="space-y-6" onSubmit={onSaveSyncSettings}>
           <div>
-            <h3 className="text-lg font-semibold text-slate-100">Supabase 云同步</h3>
-            <p className="mt-2 text-sm leading-7 text-slate-300">
+            <h3 className="text-lg font-semibold" style={{ color: "var(--m-ink)" }}>Supabase 云同步</h3>
+            <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
               开启后，日记会优先同步到 Supabase 的 <code>diaries</code> 表，本地缓存仍会保留用于离线读取。
             </p>
           </div>
 
-          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+          <label className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm" style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink)" }}>
             <input
               checked={form.enableSupabaseSync}
-              className="h-4 w-4 rounded border-white/20 bg-transparent accent-indigo-400"
+              className="h-4 w-4 rounded"
+              style={{ accentColor: "var(--m-accent)" }}
               onChange={(event) => setForm({ ...form, enableSupabaseSync: event.target.checked })}
               type="checkbox"
             />
@@ -157,7 +158,7 @@ export default function SettingsPage() {
           </label>
 
           <div className="grid gap-4">
-            <label className="grid gap-2 text-sm font-medium text-slate-200">
+            <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               Supabase URL
               <Input
                 onChange={(event) => setForm({ ...form, supabaseUrl: event.target.value })}
@@ -167,7 +168,7 @@ export default function SettingsPage() {
               />
             </label>
 
-            <label className="grid gap-2 text-sm font-medium text-slate-200">
+            <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               Supabase Anon Key
               <Input
                 onChange={(event) => setForm({ ...form, supabaseAnonKey: event.target.value })}
@@ -177,7 +178,7 @@ export default function SettingsPage() {
               />
             </label>
 
-            <label className="grid gap-2 text-sm font-medium text-slate-200">
+            <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               同步用户 ID（UUID）
               <Input
                 onChange={(event) => setForm({ ...form, supabaseUserId: event.target.value })}
@@ -188,13 +189,13 @@ export default function SettingsPage() {
             </label>
           </div>
 
-          <div className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 p-4 text-sm text-cyan-100">
+          <div className="rounded-xl p-4 text-sm" style={{ background: "rgba(139,94,60,0.08)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}>
             <p className="inline-flex items-center gap-2 font-medium">
               <Cloud size={16} />
               当前状态
             </p>
-            <p className="mt-2 leading-6 text-cyan-100/90">{status.message}</p>
-            <p className="mt-2 text-xs text-cyan-100/70">当前同步用户 ID：{status.userId || form.supabaseUserId || "未设置"}</p>
+            <p className="mt-2 leading-6" style={{ color: "var(--m-ink2)" }}>{status.message}</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--m-ink2)" }}>当前同步用户 ID：{status.userId || form.supabaseUserId || "未设置"}</p>
           </div>
 
           <Button className="justify-center" disabled={isSyncing} size="lg" type="submit" variant="primary">
@@ -207,8 +208,8 @@ export default function SettingsPage() {
       <Panel className="p-6 sm:p-8">
         <div className="space-y-6">
           <div>
-            <h3 className="text-lg font-semibold text-slate-100">数据备份</h3>
-            <p className="mt-2 text-sm leading-7 text-slate-300">
+            <h3 className="text-lg font-semibold" style={{ color: "var(--m-ink)" }}>数据备份</h3>
+            <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
               导出完整 JSON 备份，或导入备份文件恢复你的日记、金句、笔记和设置。
             </p>
           </div>
@@ -233,19 +234,18 @@ export default function SettingsPage() {
             type="file"
           />
 
-          <div className="rounded-xl border border-amber-300/25 bg-amber-400/10 p-4 text-sm text-amber-100">
+          <div className="rounded-xl p-4 text-sm" style={{ background: "rgba(180,150,110,0.12)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}>
             <p className="inline-flex items-center gap-2 font-medium">
               <AlertTriangle size={16} />
               覆盖保护
             </p>
-            <p className="mt-2 leading-6 text-amber-100/90">导入前会弹出确认框，避免误覆盖当前数据。</p>
+            <p className="mt-2 leading-6" style={{ color: "var(--m-ink2)" }}>导入前会弹出确认框，避免误覆盖当前数据。</p>
           </div>
 
-          {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
-          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+          {message ? <p className="text-sm" style={{ color: "var(--m-success)" }}>{message}</p> : null}
+          {error ? <p className="text-sm" style={{ color: "var(--m-danger)" }}>{error}</p> : null}
         </div>
       </Panel>
     </PageTransition>
   );
 }
-

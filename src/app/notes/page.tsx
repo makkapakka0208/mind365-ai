@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Brain, Sparkles } from "lucide-react";
 import { FormEvent, useState , useEffect} from "react";
@@ -61,7 +61,7 @@ export default function NotesPage() {
         <StaggerItem index={0}>
           <Panel className="p-6">
             <form className="grid gap-4" onSubmit={onSubmit}>
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 标题
                 <Input
                   onChange={(event) => setTitle(event.target.value)}
@@ -72,7 +72,7 @@ export default function NotesPage() {
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 内容
                 <Textarea
                   className="min-h-48"
@@ -83,7 +83,7 @@ export default function NotesPage() {
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-200">
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 标签
                 <Input
                   onChange={(event) => setTags(event.target.value)}
@@ -97,7 +97,7 @@ export default function NotesPage() {
                 <Button size="lg" type="submit" variant="secondary">
                   保存
                 </Button>
-                {message ? <span className="text-sm text-emerald-300">{message}</span> : null}
+                {message ? <span className="text-sm" style={{ color: "var(--m-success)" }}>{message}</span> : null}
               </div>
             </form>
           </Panel>
@@ -105,8 +105,8 @@ export default function NotesPage() {
 
         <StaggerItem index={1}>
           <Panel className="p-6" interactive>
-            <h3 className="text-base font-semibold text-slate-100">思考提示</h3>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
+            <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>思考提示</h3>
+            <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
               很多时候，写下问题的过程，就是理解问题的过程。把模糊的感受写成明确的判断。
             </p>
             <Illustration
@@ -131,13 +131,14 @@ export default function NotesPage() {
           {notes.map((note, index) => (
             <StaggerItem index={index} key={note.id}>
               <Panel className="p-5" interactive>
-                <h3 className="text-lg font-semibold tracking-tight text-slate-100">{note.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-200">{note.content}</p>
+                <h3 className="text-lg font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>{note.title}</h3>
+                <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink)" }}>{note.content}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {note.tags.map((tag) => (
                     <span
-                      className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-slate-300"
+                      className="rounded-full px-3 py-1 text-xs"
                       key={`${note.id}-${tag}`}
+                      style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
                     >
                       #{tag}
                     </span>
@@ -151,4 +152,3 @@ export default function NotesPage() {
     </PageTransition>
   );
 }
-

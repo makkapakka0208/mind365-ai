@@ -1,4 +1,4 @@
-﻿import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
@@ -30,22 +30,46 @@ export function PageTitle({
       )}
     >
       <div className={cn("space-y-2", centered && "max-w-3xl")}>
-        {eyebrow ? <p className="text-xs font-medium tracking-[0.16em] text-slate-400">{eyebrow}</p> : null}
+        {eyebrow ? (
+          <p className="text-xs font-medium tracking-[0.16em]" style={{ color: "var(--m-ink3)" }}>
+            {eyebrow}
+          </p>
+        ) : null}
 
         <div className={cn("flex items-center gap-3", centered && "justify-center")}>
           {Icon ? (
-            <span className="rounded-xl border border-white/15 bg-white/10 p-2 text-indigo-200 shadow-lg shadow-indigo-950/25">
+            <span
+              className="rounded-xl p-2"
+              style={{
+                background: "var(--m-base-light)",
+                border: "1px solid var(--m-rule)",
+                boxShadow: "var(--m-shadow-out)",
+                color: "var(--m-accent)",
+              }}
+            >
               <Icon size={18} />
             </span>
           ) : null}
-          <h2 className="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">{title}</h2>
+          <h2
+            className="text-2xl font-semibold tracking-tight sm:text-3xl"
+            style={{ color: "var(--m-ink)" }}
+          >
+            {title}
+          </h2>
         </div>
 
-        {description ? <p className="text-sm leading-7 text-slate-300 sm:text-[15px]">{description}</p> : null}
+        {description ? (
+          <p className="text-sm leading-7 sm:text-[15px]" style={{ color: "var(--m-ink2)" }}>
+            {description}
+          </p>
+        ) : null}
       </div>
 
-      {rightSlot ? <div className="text-sm text-slate-300">{rightSlot}</div> : null}
+      {rightSlot ? (
+        <div className="text-sm" style={{ color: "var(--m-ink2)" }}>
+          {rightSlot}
+        </div>
+      ) : null}
     </div>
   );
 }
-

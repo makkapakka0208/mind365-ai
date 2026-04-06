@@ -1,4 +1,4 @@
-﻿import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes } from "react";
 
 import { cn } from "@/lib/cn";
 
@@ -11,14 +11,34 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<ButtonVariant, string> = {
-  primary:
-    "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-indigo-900/40 hover:brightness-110",
-  secondary:
-    "bg-gradient-to-r from-cyan-400 to-blue-500 text-white shadow-lg shadow-cyan-900/40 hover:brightness-110",
-  ghost:
-    "bg-white/10 text-slate-100 border border-white/15 hover:bg-white/15",
-  accent:
-    "bg-gradient-to-r from-emerald-400 to-green-500 text-white shadow-lg shadow-emerald-900/30 hover:brightness-110",
+  primary: "",
+  secondary: "",
+  ghost: "",
+  accent: "",
+};
+
+const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
+  primary: {
+    background: "var(--m-accent)",
+    color: "#fff",
+    boxShadow: "var(--m-shadow-out)",
+  },
+  secondary: {
+    background: "var(--m-ink2)",
+    color: "#fff",
+    boxShadow: "var(--m-shadow-out)",
+  },
+  ghost: {
+    background: "var(--m-base-light)",
+    color: "var(--m-ink2)",
+    border: "1px solid var(--m-rule)",
+    boxShadow: "var(--m-shadow-out)",
+  },
+  accent: {
+    background: "var(--m-success)",
+    color: "#fff",
+    boxShadow: "var(--m-shadow-out)",
+  },
 };
 
 const sizes: Record<ButtonSize, string> = {
@@ -32,6 +52,7 @@ export function Button({
   variant = "primary",
   size = "md",
   type = "button",
+  style,
   ...props
 }: ButtonProps) {
   return (
@@ -39,16 +60,20 @@ export function Button({
       className={cn(
         "inline-flex items-center justify-center rounded-xl font-medium",
         "transition-all duration-300 ease-out",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-60",
-        "hover:-translate-y-0.5 hover:scale-[1.02]",
+        "hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0.5",
         variants[variant],
         sizes[size],
         className,
       )}
+      style={{
+        ...variantStyles[variant],
+        fontFamily: "'Noto Serif SC', serif",
+        ...style,
+      }}
       type={type}
       {...props}
     />
   );
 }
-

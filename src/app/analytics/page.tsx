@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { BookOpen, BrainCircuit, ChartColumnBig, Smile, Sparkles } from "lucide-react";
 
@@ -42,8 +42,8 @@ export default function AnalyticsPage() {
           <StaggerItem index={0}>
             <Panel className="grid items-center gap-4 p-5 lg:grid-cols-[1.25fr_1fr]" interactive>
               <div>
-                <h3 className="text-base font-semibold text-slate-100">成长快照</h3>
-                <p className="mt-2 text-sm leading-7 text-slate-300">
+                <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>成长快照</h3>
+                <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
                   你已累计记录 {metrics.entries} 条日记，平均情绪 {metrics.averageMood}/10，总学习
                   {metrics.totalStudyHours.toFixed(1)} 小时，总阅读 {metrics.totalReadingHours.toFixed(1)} 小时。
                 </p>
@@ -111,4 +111,3 @@ export default function AnalyticsPage() {
     </PageTransition>
   );
 }
-
