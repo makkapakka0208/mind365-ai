@@ -22,7 +22,6 @@ export default function DailyLogPage() {
   const [date, setDate] = useState(getTodayISODate());
   const [mood, setMood] = useState(7);
   const [thoughts, setThoughts] = useState("");
-  const [reading, setReading] = useState("");
   const [studyHours, setStudyHours] = useState(0);
   const [tags, setTags] = useState("");
   const [message, setMessage] = useState("");
@@ -42,7 +41,7 @@ export default function DailyLogPage() {
       date,
       mood,
       thoughts: thoughts.trim(),
-      reading: reading.trim(),
+      reading: "",
       studyHours: Number.isFinite(studyHours) ? Math.max(0, studyHours) : 0,
       tags: tags
         .split(",")
@@ -52,7 +51,6 @@ export default function DailyLogPage() {
 
     const result = await saveDailyLog(entry);
     setThoughts("");
-    setReading("");
     setStudyHours(0);
     setTags("");
     setMessage(result.synced ? "已保存，并同步到云端。" : "已保存到本地缓存，云端同步稍后重试。");
@@ -62,7 +60,7 @@ export default function DailyLogPage() {
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="用最短的路径记录今天的心境、思考和学习投入。"
+        description="用最短的路径记录今天的心境、思考和学习投入。阅读积累现在统一记录到金句页。"
         eyebrow="写日记"
         icon={NotebookPen}
         title="写日记"
@@ -70,7 +68,7 @@ export default function DailyLogPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <StaggerItem index={0}>
-          <Panel className="p-5 sm:p-6 lg:p-7" inset>
+          <Panel className="p-5 sm:p-6 lg:p-7" interactive>
             <form className="grid gap-5" onSubmit={onSubmit}>
               <div className="grid gap-5 lg:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
@@ -97,7 +95,11 @@ export default function DailyLogPage() {
                   max={10}
                   min={1}
                   onChange={(event) => setMood(Number(event.target.value))}
-                  style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", accentColor: "var(--m-accent)" }}
+                  style={{
+                    background: "var(--m-base)",
+                    border: "1px solid var(--m-rule)",
+                    accentColor: "var(--m-accent)",
+                  }}
                   type="range"
                   value={mood}
                 />
@@ -112,37 +114,23 @@ export default function DailyLogPage() {
                 />
               </label>
 
-              <div className="grid gap-5 lg:grid-cols-2">
-                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  阅读记录
-                  <Input
-                    onChange={(event) => setReading(event.target.value)}
-                    placeholder="例如：1.5h《原子习惯》"
-                    type="text"
-                    value={reading}
-                  />
-                </label>
-
-                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  标签（逗号分隔）
-                  <Input
-                    onChange={(event) => setTags(event.target.value)}
-                    placeholder="专注, 成长, 平静"
-                    type="text"
-                    value={tags}
-                  />
-                </label>
-              </div>
+              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                标签（逗号分隔）
+                <Input
+                  onChange={(event) => setTags(event.target.value)}
+                  placeholder="专注, 成长, 平静"
+                  type="text"
+                  value={tags}
+                />
+              </label>
 
               <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  disabled={isSaving}
-                  size="lg"
-                  type="submit"
-                  variant="primary"
-                >
+                <Button disabled={isSaving} size="lg" type="submit" variant="primary">
                   {isSaving ? "保存中..." : "保存"}
                 </Button>
+                <Link className="text-sm" href="/library" style={{ color: "var(--m-accent)" }}>
+                  去记录书籍摘抄
+                </Link>
                 {message ? (
                   <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--m-success)" }}>
                     <CheckCircle2 size={16} />
@@ -154,30 +142,56 @@ export default function DailyLogPage() {
           </Panel>
         </StaggerItem>
 
-        <StaggerItem index={1}>
-          <Panel className="overflow-hidden p-6" interactive>
-            <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>书写提示</h3>
-            <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-              1. 今天哪个瞬间最影响你的情绪？
-              <br />
-              2. 今天最值得感谢的一件小事是什么？
-              <br />
-              3. 明天最想守住的一个意图是什么？
-            </p>
-            <Illustration
-              alt="journaling illustration"
-              className="mt-5 max-w-[260px]"
-              src="/illustrations/personal-notebook.svg"
-            />
-          </Panel>
+        <StaggerItem index={1} className="h-full">
+          <div className="flex h-full flex-col gap-6">
+            {/* 上方：原有的书写提示卡片 */}
+            <Panel className="flex flex-1 flex-col overflow-hidden p-6" interactive>
+              <div>
+                <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
+                  书写提示
+                </h3>
+                <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+                  1. 今天哪个瞬间最影响你的情绪？
+                  <br />
+                  2. 今天最值得感谢的一件小事是什么？
+                  <br />
+                  3. 明天最想守住的一个意图是什么？
+                </p>
+              </div>
+              <div className="mt-auto flex justify-center pt-4">
+                <Illustration
+                  alt="journaling illustration"
+                  className="max-w-[240px]"
+                  src="/illustrations/personal-notebook2.svg"
+                />
+              </div>
+            </Panel>
+
+            {/* 下方：新增的灵感小卡片，属性和上方完全一致 */}
+            <Panel className="p-6" interactive>
+              <div className="flex items-center gap-2">
+                <span className="text-base">💡</span>
+                <h4 className="text-sm font-semibold tracking-wide" style={{ color: "var(--m-ink)" }}>
+                  记录的意义
+                </h4>
+              </div>
+              <p className="mt-3 text-[13.5px] leading-relaxed" style={{ color: "var(--m-ink2)" }}>
+                “无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。”
+              </p>
+            </Panel>
+          </div>
         </StaggerItem>
       </div>
 
       <StaggerItem index={2}>
         <Panel className="p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>最近记录</h3>
-            <span className="text-sm" style={{ color: "var(--m-ink3)" }}>最近 4 条</span>
+            <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
+              最近记录
+            </h3>
+            <span className="text-sm" style={{ color: "var(--m-ink3)" }}>
+              最近 4 条
+            </span>
           </div>
 
           {recentLogs.length === 0 ? (
@@ -201,9 +215,15 @@ export default function DailyLogPage() {
                         boxShadow: "var(--m-shadow-out)",
                       }}
                     >
-                      <p className="text-sm" style={{ color: "var(--m-ink3)" }}>{formatDate(log.date)}</p>
-                      <p className="mt-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>情绪 {log.mood}/10</p>
-                      <p className="mt-1 text-sm" style={{ color: "var(--m-ink2)" }}>学习 {log.studyHours} 小时</p>
+                      <p className="text-sm" style={{ color: "var(--m-ink3)" }}>
+                        {formatDate(log.date)}
+                      </p>
+                      <p className="mt-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                        情绪 {log.mood}/10
+                      </p>
+                      <p className="mt-1 text-sm" style={{ color: "var(--m-ink2)" }}>
+                        学习 {log.studyHours.toFixed(1)} 小时
+                      </p>
                     </div>
                   </Link>
                 </StaggerItem>

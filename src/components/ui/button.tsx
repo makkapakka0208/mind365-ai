@@ -20,12 +20,12 @@ const variants: Record<ButtonVariant, string> = {
 const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
   primary: {
     background: "var(--m-accent)",
-    color: "#fff",
+    color: "#fffaf3",
     boxShadow: "var(--m-shadow-out)",
   },
   secondary: {
-    background: "var(--m-ink2)",
-    color: "#fff",
+    background: "#7e6046",
+    color: "#fffaf3",
     boxShadow: "var(--m-shadow-out)",
   },
   ghost: {
@@ -58,11 +58,11 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-xl font-medium",
+        "inline-flex items-center justify-center rounded-xl md:rounded-full font-semibold",
         "transition-all duration-300 ease-out",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-60",
-        "hover:-translate-y-0.5 hover:scale-[1.02] active:translate-y-0.5",
+        "hover:-translate-y-0.5 active:translate-y-0.5",
         variants[variant],
         sizes[size],
         className,

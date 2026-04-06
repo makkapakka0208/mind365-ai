@@ -11,9 +11,11 @@
 
 export interface Quote {
   id: string;
+  createdAt: string;
   text: string;
   author: string;
   book: string;
+  readingHours: number;
   tags: string[];
 }
 

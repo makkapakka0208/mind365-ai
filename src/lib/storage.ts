@@ -130,15 +130,45 @@ function normalizeDailyLogs(values: unknown): DailyLog[] {
     });
 }
 
-function isQuote(value: unknown): value is Quote {
-  if (!isRecord(value)) return false;
-  return (
-    typeof value.id === "string" &&
-    typeof value.text === "string" &&
-    typeof value.author === "string" &&
-    typeof value.book === "string" &&
-    isStringArray(value.tags)
-  );
+function parseQuote(value: unknown): Quote | null {
+  if (!isRecord(value)) return null;
+  if (
+    typeof value.id !== "string" ||
+    typeof value.text !== "string" ||
+    typeof value.author !== "string" ||
+    typeof value.book !== "string" ||
+    !isStringArray(value.tags)
+  ) {
+    return null;
+  }
+
+  const createdAt =
+    typeof value.createdAt === "string" && Number.isFinite(Date.parse(value.createdAt))
+      ? value.createdAt
+      : new Date().toISOString();
+
+  const readingHours =
+    typeof value.readingHours === "number" && Number.isFinite(value.readingHours)
+      ? Math.max(0, value.readingHours)
+      : 0;
+
+  return {
+    id: value.id,
+    createdAt,
+    text: value.text,
+    author: value.author,
+    book: value.book,
+    readingHours,
+    tags: value.tags,
+  };
+}
+
+function normalizeQuotes(values: unknown): Quote[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map(parseQuote)
+    .filter((quote): quote is Quote => quote !== null)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
 function isNote(value: unknown): value is Note {
@@ -276,7 +306,17 @@ async function fetchRemoteQuotes(settings: Mind365Settings): Promise<Quote[]> {
   if (!client || !config) return [];
   const { data, error } = await client.from("quotes").select("*").eq("user_id", config.userId).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return normalizeCollection(data, isQuote);
+  return normalizeQuotes(
+    Array.isArray(data)
+      ? data.map((item) => ({
+          ...(isRecord(item) ? item : {}),
+          createdAt:
+            isRecord(item) && typeof item.created_at === "string"
+              ? item.created_at
+              : new Date().toISOString(),
+        }))
+      : [],
+  );
 }
 
 async function fetchRemoteNotes(settings: Mind365Settings): Promise<Note[]> {
@@ -320,7 +360,15 @@ async function upsertRemoteQuotes(quotes: Quote[], settings: Mind365Settings) {
   const client = createMind365SupabaseClient(settings);
   const config = getSupabaseConfig(settings);
   if (!client || !config || quotes.length === 0) return false;
-  const payload = quotes.map((q) => ({ id: q.id, user_id: config.userId, text: q.text, author: q.author, book: q.book, tags: q.tags }));
+  const payload = quotes.map((q) => ({
+    id: q.id,
+    user_id: config.userId,
+    created_at: q.createdAt,
+    text: q.text,
+    author: q.author,
+    book: q.book,
+    tags: q.tags,
+  }));
   const { error } = await client.from("quotes").upsert(payload, { onConflict: "id" });
   if (error) throw new Error(error.message);
   return true;
@@ -484,13 +532,26 @@ export async function updateDailyLog(nextLog: DailyLog): Promise<DailyLogMutatio
   } catch { return { logs: updated, synced: false }; }
 }
 
-export function getQuotes(): Quote[] { return readCollection(STORAGE_KEYS.quotes, isQuote); }
-export function setQuotes(quotes: Quote[]) { writeCollection(STORAGE_KEYS.quotes, quotes); }
+export function getQuotes(): Quote[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(STORAGE_KEYS.quotes);
+  if (!raw) return [];
+  try {
+    return normalizeQuotes(JSON.parse(raw) as unknown);
+  } catch {
+    return [];
+  }
+}
+export function setQuotes(quotes: Quote[]) { writeCollection(STORAGE_KEYS.quotes, normalizeQuotes(quotes)); }
 
 export async function saveQuote(quote: Quote): Promise<Quote[]> {
-  const updated = [quote, ...getQuotes()];
+  const normalized = parseQuote(quote);
+  if (!normalized) {
+    return getQuotes();
+  }
+  const updated = normalizeQuotes([normalized, ...getQuotes()]);
   setQuotes(updated);
-  try { await upsertRemoteQuotes([quote], getSettingsForSync()); } catch {}
+  try { await upsertRemoteQuotes([normalized], getSettingsForSync()); } catch {}
   return updated;
 }
 
@@ -546,7 +607,7 @@ export function importMind365Backup(raw: string): BackupImportResult {
   if (!isRecord(parsed)) throw new Error("Invalid backup format.");
 
   const dailyLogs = normalizeDailyLogs(parsed.daily_logs);
-  const quotes = normalizeCollection(parsed.quotes, isQuote);
+  const quotes = normalizeQuotes(parsed.quotes);
   const notes = normalizeCollection(parsed.notes, isNote);
   const settings = normalizeMind365Settings(parsed.settings);
   const reviewReports = normalizeCollection(parsed.review_reports, isReviewReport);

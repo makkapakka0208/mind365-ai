@@ -1,5 +1,5 @@
-﻿import { formatShortDate, getMonthRange, getWeekRange, getYearRange, isDateWithinRange } from "@/lib/date";
-import type { DailyLog } from "@/types";
+import { formatShortDate, getMonthRange, getWeekRange, getYearRange, isDateWithinRange } from "@/lib/date";
+import type { DailyLog, Quote } from "@/types";
 
 export interface SummaryMetrics {
   averageMood: number;
@@ -24,6 +24,18 @@ export function parseReadingHours(reading: string): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+export function getQuoteReadingHours(quote: Quote): number {
+  return Number.isFinite(quote.readingHours) ? Math.max(0, quote.readingHours) : 0;
+}
+
+export function getQuoteDate(quote: Quote): string {
+  if (Number.isFinite(Date.parse(quote.createdAt))) {
+    return quote.createdAt.slice(0, 10);
+  }
+
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function sortLogsByDate(logs: DailyLog[], direction: "asc" | "desc" = "asc"): DailyLog[] {
   const sorted = [...logs].sort((a, b) => {
     if (a.date === b.date) {
@@ -40,11 +52,13 @@ export function sortLogsByDate(logs: DailyLog[], direction: "asc" | "desc" = "as
   return direction === "asc" ? sorted : sorted.reverse();
 }
 
-export function computeSummary(logs: DailyLog[]): SummaryMetrics {
+export function computeSummary(logs: DailyLog[], quotes: Quote[] = []): SummaryMetrics {
+  const quoteReadingTotal = quotes.reduce((sum, quote) => sum + getQuoteReadingHours(quote), 0);
+
   if (logs.length === 0) {
     return {
       averageMood: 0,
-      totalReadingHours: 0,
+      totalReadingHours: Number(quoteReadingTotal.toFixed(1)),
       totalStudyHours: 0,
       entries: 0,
     };
@@ -52,7 +66,8 @@ export function computeSummary(logs: DailyLog[]): SummaryMetrics {
 
   const moodTotal = logs.reduce((sum, log) => sum + log.mood, 0);
   const studyTotal = logs.reduce((sum, log) => sum + log.studyHours, 0);
-  const readingTotal = logs.reduce((sum, log) => sum + parseReadingHours(log.reading), 0);
+  const legacyReadingTotal = logs.reduce((sum, log) => sum + parseReadingHours(log.reading), 0);
+  const readingTotal = legacyReadingTotal + quoteReadingTotal;
 
   return {
     averageMood: Number((moodTotal / logs.length).toFixed(1)),
@@ -78,6 +93,33 @@ export function buildChartSeries(logs: DailyLog[], selector: (log: DailyLog) => 
   };
 }
 
+export function buildReadingChartSeries(logs: DailyLog[], quotes: Quote[]): ChartSeries {
+  const aggregate = new Map<string, number>();
+
+  logs.forEach((log) => {
+    aggregate.set(log.date, (aggregate.get(log.date) ?? 0) + parseReadingHours(log.reading));
+  });
+
+  quotes.forEach((quote) => {
+    const date = getQuoteDate(quote);
+    aggregate.set(date, (aggregate.get(date) ?? 0) + getQuoteReadingHours(quote));
+  });
+
+  const entries = [...aggregate.entries()].sort(([left], [right]) => left.localeCompare(right));
+
+  if (entries.length === 0) {
+    return {
+      labels: ["暂无数据"],
+      data: [0],
+    };
+  }
+
+  return {
+    labels: entries.map(([date]) => formatShortDate(date)),
+    data: entries.map(([, value]) => Number(value.toFixed(1))),
+  };
+}
+
 export function getCurrentWeekLogs(logs: DailyLog[], reference: Date = new Date()): DailyLog[] {
   const { end, start } = getWeekRange(reference);
   return logs.filter((log) => isDateWithinRange(log.date, start, end));
@@ -93,3 +135,17 @@ export function getCurrentYearLogs(logs: DailyLog[], reference: Date = new Date(
   return logs.filter((log) => isDateWithinRange(log.date, start, end));
 }
 
+export function getCurrentWeekQuotes(quotes: Quote[], reference: Date = new Date()): Quote[] {
+  const { end, start } = getWeekRange(reference);
+  return quotes.filter((quote) => isDateWithinRange(getQuoteDate(quote), start, end));
+}
+
+export function getCurrentMonthQuotes(quotes: Quote[], reference: Date = new Date()): Quote[] {
+  const { end, start } = getMonthRange(reference);
+  return quotes.filter((quote) => isDateWithinRange(getQuoteDate(quote), start, end));
+}
+
+export function getCurrentYearQuotes(quotes: Quote[], reference: Date = new Date()): Quote[] {
+  const { end, start } = getYearRange(reference);
+  return quotes.filter((quote) => isDateWithinRange(getQuoteDate(quote), start, end));
+}

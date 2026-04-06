@@ -15,19 +15,21 @@ import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { buildChartSeries, computeSummary, getCurrentYearLogs, parseReadingHours } from "@/lib/analytics";
+import { buildChartSeries, buildReadingChartSeries, computeSummary, getCurrentYearLogs, getCurrentYearQuotes } from "@/lib/analytics";
 import { formatDate, getYearRange, toISODate } from "@/lib/date";
 import { saveReviewReport } from "@/lib/storage";
-import { useSyncedDailyLogs } from "@/lib/storage-store";
+import { useQuotesStore, useSyncedDailyLogs } from "@/lib/storage-store";
 import type { ReviewReport } from "@/types";
 
 export default function YearlyReviewPage() {
   const { logs: allLogs, isSyncing } = useSyncedDailyLogs();
+  const allQuotes = useQuotesStore();
   const yearLogs = getCurrentYearLogs(allLogs);
-  const metrics = computeSummary(yearLogs);
+  const yearQuotes = getCurrentYearQuotes(allQuotes);
+  const metrics = computeSummary(yearLogs, yearQuotes);
   const moodSeries = buildChartSeries(yearLogs, (log) => log.mood);
   const studySeries = buildChartSeries(yearLogs, (log) => log.studyHours);
-  const readingSeries = buildChartSeries(yearLogs, (log) => parseReadingHours(log.reading));
+  const readingSeries = buildReadingChartSeries(yearLogs, yearQuotes);
   const range = getYearRange();
 
   const [notes, setNotes] = useState("");

@@ -1,13 +1,9 @@
-﻿import {
-  Archive,
-  BarChart3,
+import {
   BookOpen,
-  CalendarClock,
-  CalendarDays,
-  CalendarRange,
-  LayoutDashboard,
+  Grid2x2,
   NotebookPen,
   Quote,
+  ScanSearch,
   Settings2,
   Sparkles,
 } from "lucide-react";
@@ -19,16 +15,22 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-export const navItems: NavItem[] = [
-  { label: "成长概览", href: "/", icon: LayoutDashboard },
-  { label: "心境随笔", href: "/daily-log", icon: NotebookPen },
-  { label: "时光轨迹", href: "/timeline", icon: Sparkles },
-  { label: "灵感书库", href: "/quotes", icon: Quote },
-  { label: "深度思考", href: "/notes", icon: BookOpen },
-  { label: "周度复盘", href: "/weekly-review", icon: CalendarClock },
-  { label: "月度复盘", href: "/monthly-review", icon: CalendarDays },
-  { label: "年度复盘", href: "/yearly-review", icon: CalendarRange },
-  { label: "复盘档案", href: "/review-history", icon: Archive },
-  { label: "数据看板", href: "/analytics", icon: BarChart3 },
-  { label: "设置", href: "/settings", icon: Settings2 },
+// Mobile bottom navigation.
+export const mobileNavItems: NavItem[] = [
+  { label: "\u9996\u9875", href: "/", icon: Grid2x2 },
+  { label: "\u8bb0\u5f55", href: "/record", icon: NotebookPen },
+  { label: "\u590d\u76d8", href: "/review", icon: ScanSearch },
+  { label: "\u4e66\u5e93", href: "/library", icon: BookOpen },
+  { label: "\u6211\u7684", href: "/settings", icon: Settings2 },
+];
+
+// Desktop sidebar navigation.
+export const desktopNavItems: NavItem[] = [
+  { label: "\u6210\u957f\u6982\u89c8", href: "/", icon: Grid2x2 },
+  { label: "\u5fc3\u5883\u968f\u7b14", href: "/record", icon: NotebookPen },
+  { label: "\u65f6\u5149\u8f68\u8ff9", href: "/timeline", icon: Sparkles },
+  { label: "\u7075\u611f\u4e66\u5e93", href: "/library", icon: Quote },
+  { label: "\u6df1\u5ea6\u601d\u8003", href: "/notes", icon: BookOpen },
+  { label: "\u590d\u76d8\u62a5\u544a", href: "/review", icon: ScanSearch },
+  { label: "\u8bbe\u7f6e", href: "/settings", icon: Settings2 },
 ];

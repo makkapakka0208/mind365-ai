@@ -15,19 +15,21 @@ import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { buildChartSeries, computeSummary, getCurrentMonthLogs, parseReadingHours } from "@/lib/analytics";
+import { buildChartSeries, buildReadingChartSeries, computeSummary, getCurrentMonthLogs, getCurrentMonthQuotes } from "@/lib/analytics";
 import { formatDate, getMonthRange, toISODate } from "@/lib/date";
 import { saveReviewReport } from "@/lib/storage";
-import { useSyncedDailyLogs } from "@/lib/storage-store";
+import { useQuotesStore, useSyncedDailyLogs } from "@/lib/storage-store";
 import type { ReviewReport } from "@/types";
 
 export default function MonthlyReviewPage() {
   const { logs: allLogs, isSyncing } = useSyncedDailyLogs();
+  const allQuotes = useQuotesStore();
   const monthLogs = getCurrentMonthLogs(allLogs);
-  const metrics = computeSummary(monthLogs);
+  const monthQuotes = getCurrentMonthQuotes(allQuotes);
+  const metrics = computeSummary(monthLogs, monthQuotes);
   const moodSeries = buildChartSeries(monthLogs, (log) => log.mood);
   const studySeries = buildChartSeries(monthLogs, (log) => log.studyHours);
-  const readingSeries = buildChartSeries(monthLogs, (log) => parseReadingHours(log.reading));
+  const readingSeries = buildReadingChartSeries(monthLogs, monthQuotes);
   const range = getMonthRange();
 
   const [notes, setNotes] = useState("");

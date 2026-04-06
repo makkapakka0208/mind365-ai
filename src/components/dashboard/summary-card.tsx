@@ -21,17 +21,22 @@ export function SummaryCard({
   tone = "primary",
   className,
 }: SummaryCardProps) {
+  const [mainValue, unit = ""] = value.split(" ");
+
   return (
-    <Panel className={cn("h-full p-5", className)} interactive>
+    <Panel className={cn("h-full p-5 md:p-6", className)} interactive>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium tracking-[0.12em]" style={{ color: "var(--m-ink3)" }}>{label}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>{value}</p>
+          <p className="mt-3 flex items-end gap-1 tracking-tight">
+            <span className="text-4xl font-semibold" style={{ color: "var(--m-ink)" }}>{mainValue}</span>
+            {unit ? <span className="pb-1 text-sm font-medium" style={{ color: "var(--m-ink3)" }}>{unit}</span> : null}
+          </p>
           {hint ? <p className="mt-2 text-sm" style={{ color: "var(--m-ink2)" }}>{hint}</p> : null}
         </div>
 
         <span
-          className="rounded-xl p-2.5"
+          className="rounded-2xl md:rounded-[18px] p-2.5"
           style={{
             background: "var(--m-base)",
             border: "1px solid var(--m-rule)",

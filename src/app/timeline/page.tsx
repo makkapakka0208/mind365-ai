@@ -1,158 +1,28 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, History, Sparkles } from "lucide-react";
+import { History, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
+import { parseISODate } from "@/lib/date";
 import { sortLogsByDate } from "@/lib/analytics";
-import { formatDate } from "@/lib/date";
 import { useDailyLogsStore } from "@/lib/storage-store";
 
-function useSwipe(onSwipeLeft: () => void, onSwipeRight: () => void) {
-  const startX = useRef(0);
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-  }, []);
-  const onTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      const diff = e.changedTouches[0].clientX - startX.current;
-      if (Math.abs(diff) > 60) {
-        if (diff < 0) onSwipeLeft();
-        else onSwipeRight();
-      }
-    },
-    [onSwipeLeft, onSwipeRight],
-  );
-  return { onTouchStart, onTouchEnd };
-}
+function getExcerpt(text: string, maxLength = 180) {
+  const clean = text.trim().replace(/\s+/g, " ");
 
-function MobileTimelineCard({
-  entries,
-}: {
-  entries: ReturnType<typeof sortLogsByDate>;
-}) {
-  const [idx, setIdx] = useState(0);
-  const [dir, setDir] = useState<"left" | "right" | "">("");
+  if (!clean) {
+    return "这一天还没有写下完整内容，先记住这一刻留下的空白。";
+  }
 
-  const goPrev = useCallback(() => {
-    setDir("right");
-    setIdx((i) => Math.max(0, i - 1));
-  }, []);
-  const goNext = useCallback(() => {
-    setDir("left");
-    setIdx((i) => Math.min(entries.length - 1, i + 1));
-  }, [entries.length]);
+  if (clean.length <= maxLength) {
+    return clean;
+  }
 
-  const swipe = useSwipe(goNext, goPrev);
-  const entry = entries[idx];
-  if (!entry) return null;
-
-  return (
-    <div className="space-y-4" {...swipe}>
-      <div className="flex items-center justify-between text-sm">
-        <button
-          className="rounded-lg p-1.5 disabled:opacity-30"
-          disabled={idx === 0}
-          onClick={goPrev}
-          style={{
-            background: "var(--m-base-light)",
-            boxShadow: idx > 0 ? "var(--m-shadow-out)" : "none",
-          }}
-          type="button"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <span style={{ color: "var(--m-ink3)" }}>
-          {idx + 1} / {entries.length}
-        </span>
-        <button
-          className="rounded-lg p-1.5 disabled:opacity-30"
-          disabled={idx === entries.length - 1}
-          onClick={goNext}
-          style={{
-            background: "var(--m-base-light)",
-            boxShadow: idx < entries.length - 1 ? "var(--m-shadow-out)" : "none",
-          }}
-          type="button"
-        >
-          <ChevronRight size={18} />
-        </button>
-      </div>
-
-      <Link className="block" href={`/journal?id=${entry.id}`}>
-        <Panel
-          className={`p-5 ${dir === "left" ? "m-slide-left" : dir === "right" ? "m-slide-right" : ""}`}
-          key={entry.id}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm" style={{ color: "var(--m-ink2)" }}>
-              {formatDate(entry.date)}
-            </p>
-            <p
-              className="rounded-full px-3 py-1 text-xs font-semibold"
-              style={{
-                background: "var(--m-base)",
-                boxShadow: "var(--m-shadow-out)",
-                color: "var(--m-accent)",
-              }}
-            >
-              情绪 {entry.mood}/10
-            </p>
-          </div>
-
-          <p
-            className="mt-4 text-sm leading-7"
-            style={{ color: "var(--m-ink)" }}
-          >
-            {entry.thoughts.length > 180
-              ? `${entry.thoughts.slice(0, 180)}...`
-              : entry.thoughts || "这一天还没有写下具体内容"}
-          </p>
-
-          <div className="mt-4 grid gap-2 text-sm" style={{ color: "var(--m-ink2)" }}>
-            <p>
-              <span className="font-medium" style={{ color: "var(--m-ink)" }}>
-                阅读记录：
-              </span>
-              {entry.reading || "-"}
-            </p>
-            <p>
-              <span className="font-medium" style={{ color: "var(--m-ink)" }}>
-                学习时长：
-              </span>
-              {entry.studyHours} 小时
-            </p>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {entry.tags.length === 0 ? (
-              <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
-                暂无标签
-              </p>
-            ) : (
-              entry.tags.map((tag) => (
-                <span
-                  className="rounded-full px-3 py-1 text-xs"
-                  key={`${entry.id}-${tag}`}
-                  style={{
-                    background: "var(--m-base)",
-                    border: "1px solid var(--m-rule)",
-                    color: "var(--m-ink2)",
-                  }}
-                >
-                  #{tag}
-                </span>
-              ))
-            )}
-          </div>
-        </Panel>
-      </Link>
-    </div>
-  );
+  return `${clean.slice(0, maxLength)}...`;
 }
 
 export default function TimelinePage() {
@@ -160,24 +30,98 @@ export default function TimelinePage() {
 
   return (
     <PageTransition className="space-y-6">
-      <PageTitle
-        description="按时间回看你的情绪、阅读和学习轨迹，复盘会更有上下文。"
-        eyebrow="时光轨迹"
-        icon={History}
-        title="时光轨迹"
-      />
-
-      {entries.length === 0 ? (
-        <EmptyState
-          description="先写下第一条日记，这里就会开始生长出你的时间线。"
-          icon={Sparkles}
-          illustrationAlt="nature illustration"
-          illustrationSrc="/illustrations/among-nature.svg"
-          title="还没有时间线记录"
+      <div className="w-full">
+        <PageTitle
+          description="从最近的一页一路往回翻，按时间顺序浏览所有日记。左侧看日期，右侧读内容，让变化和轨迹在一条纵向长页里自然展开。"
+          eyebrow="时光轨迹"
+          icon={History}
+          title="浏览所有日记"
         />
-      ) : (
-        <MobileTimelineCard entries={entries} />
-      )}
+
+        {entries.length === 0 ? (
+          <EmptyState
+            description="先写下第一条日记，这里就会开始生长出属于你的时间线。"
+            icon={Sparkles}
+            illustrationAlt="nature illustration"
+            illustrationSrc="/illustrations/among-nature.svg"
+            title="还没有时间线记录"
+          />
+        ) : (
+          <Panel className="p-6 md:p-7">
+            <div className="flex items-center justify-between border-b border-dashed pb-4" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
+              <div>
+                <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
+                  TIMELINE · ALL ENTRIES
+                </p>
+                <h3 className="mt-2 text-2xl font-semibold tracking-tight">时间轴</h3>
+              </div>
+              <Link href="/record">继续记录</Link>
+            </div>
+
+            <div className="mt-6 space-y-5">
+              {entries.map((entry) => (
+                <Link className="group block" href={`/journal?id=${entry.id}`} key={entry.id}>
+                  <article
+                    className="grid gap-5 rounded-[22px] border border-dashed bg-[rgba(255,248,238,0.74)] px-5 py-5 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_28px_rgba(180,150,110,0.14)] md:grid-cols-[128px_minmax(0,1fr)] md:px-6"
+                    style={{ borderColor: "rgba(139,94,60,0.16)" }}
+                  >
+                    <div className="relative md:pr-8">
+                      <div className="absolute right-0 top-1 hidden h-[calc(100%-8px)] border-r border-dashed md:block" style={{ borderColor: "rgba(139,94,60,0.18)" }} />
+                      <span className="absolute -right-[6px] top-2 hidden h-3 w-3 rounded-full bg-[var(--m-accent)] shadow-[0_0_0_4px_rgba(240,230,211,1)] md:block" />
+
+                      <div className="text-xs tracking-[0.16em]" style={{ color: "var(--m-ink3)" }}>
+                        {new Intl.DateTimeFormat("en-US", { month: "short" }).format(parseISODate(entry.date)).toUpperCase()}
+                      </div>
+                      <div className="mt-2 text-[2.2rem] font-semibold leading-none tracking-[-0.06em]" style={{ color: "var(--m-ink)" }}>
+                        {new Intl.DateTimeFormat("zh-CN", { day: "2-digit" }).format(parseISODate(entry.date))}
+                      </div>
+                      <div className="mt-2 text-sm" style={{ color: "var(--m-ink2)" }}>
+                        {new Intl.DateTimeFormat("zh-CN", { weekday: "long" }).format(parseISODate(entry.date))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                          情绪 {entry.mood}/10 · 学习 {entry.studyHours.toFixed(1)}h
+                        </div>
+                        <span
+                          className="rounded-full px-3 py-1 text-xs whitespace-nowrap"
+                          style={{ background: "rgba(139,94,60,0.12)", color: "var(--m-accent)" }}
+                        >
+                          {entry.reading.trim() ? "有阅读记录" : "日常记录"}
+                        </span>
+                      </div>
+
+                      <p className="mt-3 text-sm leading-8 md:text-[15px]" style={{ color: "var(--m-ink2)" }}>
+                        {getExcerpt(entry.thoughts)}
+                      </p>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        {entry.reading.trim() ? (
+                          <span className="rounded-full px-3 py-1 text-xs" style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink2)" }}>
+                            {entry.reading.trim()}
+                          </span>
+                        ) : null}
+
+                        {entry.tags.map((tag) => (
+                          <span
+                            className="rounded-full px-3 py-1 text-xs"
+                            key={`${entry.id}-${tag}`}
+                            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink3)" }}
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              ))}
+            </div>
+          </Panel>
+        )}
+      </div>
     </PageTransition>
   );
 }

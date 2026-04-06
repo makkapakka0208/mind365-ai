@@ -21,6 +21,14 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body className="antialiased">
         <AppShell>{children}</AppShell>

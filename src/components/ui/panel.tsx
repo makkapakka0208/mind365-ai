@@ -11,8 +11,8 @@ export function Panel({ className, interactive = false, inset = false, ...props 
   return (
     <div
       className={cn(
-        "rounded-2xl transition-all duration-300 ease-out",
-        interactive && "transform-gpu hover:-translate-y-1 hover:scale-[1.02]",
+        "rounded-2xl md:rounded-[20px] transition-all duration-300 ease-out",
+        interactive && "transform-gpu hover:-translate-y-0.5",
         className,
       )}
       style={{
