@@ -7,6 +7,7 @@
   reading: string;
   studyHours: number;
   tags: string[];
+  images?: string[];
 }
 
 export interface Quote {

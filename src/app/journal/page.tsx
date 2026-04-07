@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { Input } from "@/components/ui/input";
 import { Panel } from "@/components/ui/panel";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +21,7 @@ interface EditState {
   studyHours: number;
   thoughts: string;
   tags: string;
+  images: string[];
 }
 
 function formatTimestamp(value: string) {
@@ -45,6 +47,7 @@ function toEditState(entry: DailyLog): EditState {
     studyHours: entry.studyHours,
     thoughts: entry.thoughts,
     tags: entry.tags.join(", "),
+    images: entry.images ?? [],
   };
 }
 
@@ -147,6 +150,7 @@ function JournalDetailPageInner() {
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
+      images: form.images,
     };
 
     const result = await updateDailyLog(nextLog);
@@ -243,6 +247,11 @@ function JournalDetailPageInner() {
                 value={form.thoughts}
               />
             </label>
+
+            <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+              图片
+              <ImageUploader images={form.images} onChange={(imgs) => setForm({ ...form, images: imgs })} />
+            </div>
 
             <div className="flex items-center gap-3">
               <Button disabled={isSaving} type="submit" variant="primary">
@@ -362,6 +371,28 @@ function JournalDetailPageInner() {
                     #{tag}
                   </span>
                 ))}
+              </div>
+            ) : null}
+
+            {entry.images && entry.images.length > 0 ? (
+              <div>
+                <p className="mb-3 text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>
+                  图片
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {entry.images.map((src, i) => (
+                    <a href={src} key={i} rel="noopener noreferrer" target="_blank">
+                      <div className="overflow-hidden rounded-xl" style={{ aspectRatio: "1" }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          alt={`日记图片 ${i + 1}`}
+                          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                          src={src}
+                        />
+                      </div>
+                    </a>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>

@@ -106,6 +106,7 @@ function parseDailyLog(value: unknown): DailyLog | null {
     reading: value.reading,
     studyHours: value.studyHours,
     tags: value.tags,
+    images: isStringArray(value.images) ? value.images : [],
   };
 }
 
@@ -258,7 +259,7 @@ function serializeDailyLog(log: DailyLog): string {
   return JSON.stringify({
     createdAt: log.createdAt, date: log.date, mood: log.mood,
     reading: log.reading, studyHours: log.studyHours, tags: log.tags,
-    thoughts: log.thoughts, version: 2,
+    thoughts: log.thoughts, images: log.images ?? [], version: 2,
   });
 }
 

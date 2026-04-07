@@ -7,6 +7,7 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Illustration } from "@/components/ui/illustration";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { Input } from "@/components/ui/input";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
@@ -24,6 +25,7 @@ export default function DailyLogPage() {
   const [thoughts, setThoughts] = useState("");
   const [studyHours, setStudyHours] = useState(0);
   const [tags, setTags] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -47,12 +49,14 @@ export default function DailyLogPage() {
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
+      images,
     };
 
     const result = await saveDailyLog(entry);
     setThoughts("");
     setStudyHours(0);
     setTags("");
+    setImages([]);
     setMessage(result.synced ? "已保存，并同步到云端。" : "已保存到本地缓存，云端同步稍后重试。");
     setIsSaving(false);
   };
@@ -123,6 +127,11 @@ export default function DailyLogPage() {
                   value={tags}
                 />
               </label>
+
+              <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                插入图片
+                <ImageUploader images={images} onChange={setImages} />
+              </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <Button disabled={isSaving} size="lg" type="submit" variant="primary">
