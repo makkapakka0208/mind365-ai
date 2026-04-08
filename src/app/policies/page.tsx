@@ -4,6 +4,7 @@ import { Loader2, Plus, RefreshCw, TreePine } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { PolicyNode } from "@/components/policies/policy-node";
+import { PolicyTreeGraph } from "@/components/policies/PolicyTreeGraph";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -32,6 +33,35 @@ interface AddModal {
 interface ExtinguishModal {
   policy: Policy;
   descendantCount: number;
+}
+
+// ── Tree legend ───────────────────────────────────────────────────────────────
+
+function TreeLegend({ hint }: { hint: string }) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>
+      <span className="flex items-center gap-1.5">
+        <span className="relative flex h-2 w-2 flex-shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: "#D4A42A" }} />
+          <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#D4A42A" }} />
+        </span>
+        待打卡
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: "#4A9B6F" }} />
+        今日成功
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: "#C0392B" }} />
+        今日未达成
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: "#B4B2A9" }} />
+        已熄灭
+      </span>
+      <span className="ml-auto">{hint}</span>
+    </div>
+  );
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -239,47 +269,36 @@ export default function PoliciesPage() {
               title="还没有国策"
             />
           ) : (
-            <Panel className="p-4 sm:p-5">
-              {/* Legend */}
-              <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>
-                <span className="flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: "#facc15" }} />
-                    <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#facc15" }} />
-                  </span>
-                  待打卡
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ background: "#22c55e" }} />
-                  今日成功
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ background: "#ef4444" }} />
-                  今日未达成
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ background: "var(--m-rule)" }} />
-                  已熄灭
-                </span>
-                <span className="ml-auto hidden sm:block" style={{ color: "var(--m-ink3)" }}>
-                  悬停卡片查看操作
-                </span>
-              </div>
+            <>
+              {/* ── Desktop: SVG tree (md+) ── */}
+              <Panel className="hidden overflow-hidden p-4 md:block">
+                <TreeLegend hint="点击节点卡片查看操作" />
+                <PolicyTreeGraph
+                  onAddChild={openAddChild}
+                  onCheckin={openCheckin}
+                  onDelete={onDelete}
+                  onExtinguish={openExtinguish}
+                  policies={tree}
+                />
+              </Panel>
 
-              {/* Tree nodes */}
-              <div className="space-y-1.5">
-                {tree.map((policy) => (
-                  <PolicyNode
-                    key={policy.id}
-                    onAddChild={openAddChild}
-                    onCheckin={openCheckin}
-                    onDelete={onDelete}
-                    onExtinguish={openExtinguish}
-                    policy={policy}
-                  />
-                ))}
-              </div>
-            </Panel>
+              {/* ── Mobile: list view (< md) ── */}
+              <Panel className="p-4 md:hidden">
+                <TreeLegend hint="悬停卡片查看操作" />
+                <div className="space-y-1.5">
+                  {tree.map((policy) => (
+                    <PolicyNode
+                      key={policy.id}
+                      onAddChild={openAddChild}
+                      onCheckin={openCheckin}
+                      onDelete={onDelete}
+                      onExtinguish={openExtinguish}
+                      policy={policy}
+                    />
+                  ))}
+                </div>
+              </Panel>
+            </>
           )}
         </>
       )}
