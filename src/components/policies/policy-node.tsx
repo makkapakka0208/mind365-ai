@@ -3,191 +3,217 @@
 import { CheckCircle2, ChevronDown, ChevronRight, Plus, Trash2, XCircle, Zap } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { countDescendants } from "@/lib/policies";
 import type { Policy } from "@/types/policy";
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function StatusDot({ isExtinct, todayCheckin }: { isExtinct: boolean; todayCheckin: Policy["todayCheckin"] }) {
+  if (isExtinct) {
+    return <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: "var(--m-rule)" }} />;
+  }
+  if (todayCheckin === "success") {
+    return <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: "#22c55e" }} />;
+  }
+  if (todayCheckin === "fail") {
+    return <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: "#ef4444" }} />;
+  }
+  // Needs checkin — animated yellow pulse
+  return (
+    <span className="relative flex h-2 w-2 flex-shrink-0 items-center justify-center">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: "#facc15" }} />
+      <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#facc15" }} />
+    </span>
+  );
+}
+
+function StreakBadge({ streak }: { streak: number }) {
+  if (!streak) return null;
+  if (streak >= 30) {
+    return <span className="flex-shrink-0 text-xs font-bold" style={{ color: "#dc2626" }}>🔥{streak}</span>;
+  }
+  if (streak >= 7) {
+    return <span className="flex-shrink-0 text-xs font-semibold" style={{ color: "#a16207" }}>⭐{streak}</span>;
+  }
+  return <span className="flex-shrink-0 text-[11px]" style={{ color: "var(--m-ink3)" }}>{streak}天</span>;
+}
+
+// ── Action icon button ─────────────────────────────────────────────────────────
+
+interface ActionBtnProps {
+  icon: React.ReactNode;
+  title: string;
+  onClick: () => void;
+  danger?: boolean;
+}
+
+function ActionBtn({ icon, title, onClick, danger }: ActionBtnProps) {
+  return (
+    <button
+      className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg transition-all duration-150 hover:scale-110"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      style={{ color: danger ? "#ef4444" : "var(--m-ink3)" }}
+      title={title}
+      type="button"
+    >
+      {icon}
+    </button>
+  );
+}
+
+// ── PolicyNode ─────────────────────────────────────────────────────────────────
 
 interface PolicyNodeProps {
   policy: Policy;
   depth?: number;
+  isLast?: boolean;
   onAddChild: (parentId: string) => void;
   onCheckin: (policyId: string) => void;
   onExtinguish: (policy: Policy) => void;
   onDelete: (policyId: string) => void;
 }
 
-function StreakBadge({ streak }: { streak: number }) {
-  if (streak === 0) return null;
-
-  const isRed = streak >= 30;
-  const isGold = streak >= 7;
-
-  const style = isRed
-    ? { background: "rgba(239,68,68,0.12)", color: "#dc2626", border: "1px solid rgba(239,68,68,0.25)" }
-    : isGold
-      ? { background: "rgba(234,179,8,0.12)", color: "#a16207", border: "1px solid rgba(234,179,8,0.25)" }
-      : { background: "var(--m-base)", color: "var(--m-ink3)", border: "1px solid var(--m-rule)" };
-
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={style}>
-      {isRed ? "🔥" : isGold ? "⭐" : "✦"} {streak}天
-    </span>
-  );
-}
-
-function CheckinBadge({ status }: { status: "success" | "fail" | null | undefined }) {
-  if (status === "success") {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-        style={{ background: "rgba(34,197,94,0.1)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.2)" }}
-      >
-        <CheckCircle2 size={12} /> 今日已打卡
-      </span>
-    );
-  }
-  if (status === "fail") {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-        style={{ background: "rgba(239,68,68,0.1)", color: "#dc2626", border: "1px solid rgba(239,68,68,0.2)" }}
-      >
-        <XCircle size={12} /> 今日未达成
-      </span>
-    );
-  }
-  return null;
-}
-
 export function PolicyNode({
   policy,
   depth = 0,
+  isLast = false,
   onAddChild,
   onCheckin,
   onExtinguish,
   onDelete,
 }: PolicyNodeProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const hasChildren = (policy.children?.length ?? 0) > 0;
+  const children = policy.children ?? [];
+  const hasChildren = children.length > 0;
   const isExtinct = policy.status === "extinct";
   const needsCheckin = !isExtinct && policy.todayCheckin === null;
 
   return (
-    <div className={depth > 0 ? "pl-4 border-l" : ""} style={depth > 0 ? { borderColor: "var(--m-rule)" } : {}}>
+    <div className="relative">
+      {/* Horizontal connector line (for non-root nodes) */}
+      {depth > 0 && (
+        <div
+          className="absolute left-0 top-[22px] w-3"
+          style={{ borderTop: "1.5px solid var(--m-rule)" }}
+        />
+      )}
+
+      {/* Card */}
       <div
-        className="rounded-xl p-4 transition-all duration-200"
+        className="group flex min-h-[44px] cursor-default items-center gap-2.5 rounded-xl px-3 py-2 transition-all duration-150"
         style={{
-          background: isExtinct ? "var(--m-base)" : "var(--m-base-light)",
+          background: isExtinct
+            ? "transparent"
+            : needsCheckin
+              ? "color-mix(in srgb, #facc15 6%, var(--m-base-light))"
+              : "var(--m-base-light)",
           border: needsCheckin
-            ? "1px solid #facc15"
+            ? "1px solid rgba(250,204,21,0.5)"
             : "1px solid var(--m-rule)",
-          borderLeft: needsCheckin
-            ? "4px solid #facc15"
-            : depth > 0
-              ? "1px solid var(--m-rule)"
-              : "1px solid var(--m-rule)",
+          borderLeft: needsCheckin ? "3px solid #facc15" : "1px solid var(--m-rule)",
           boxShadow: isExtinct ? "none" : "var(--m-shadow-out)",
-          opacity: isExtinct ? 0.4 : 1,
-          filter: isExtinct ? "grayscale(1)" : "none",
+          opacity: isExtinct ? 0.45 : 1,
+          filter: isExtinct ? "grayscale(0.8)" : "none",
         }}
       >
-        {/* Top row: badges */}
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          {isExtinct ? (
+        {/* Status dot */}
+        <StatusDot isExtinct={isExtinct} todayCheckin={policy.todayCheckin} />
+
+        {/* Title + description */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
             <span
-              className="rounded-full px-2 py-0.5 text-xs"
-              style={{ background: "var(--m-rule)", color: "var(--m-ink3)" }}
+              className="truncate text-sm font-medium leading-5"
+              style={{
+                color: "var(--m-ink)",
+                textDecoration: isExtinct ? "line-through" : "none",
+              }}
             >
-              已熄灭
+              {policy.title}
             </span>
-          ) : (
-            <>
-              <StreakBadge streak={policy.streak ?? 0} />
-              <CheckinBadge status={policy.todayCheckin} />
-            </>
-          )}
+            {isExtinct && (
+              <span
+                className="flex-shrink-0 rounded-full px-1.5 py-0.5 text-[10px]"
+                style={{ background: "var(--m-rule)", color: "var(--m-ink3)" }}
+              >
+                已熄灭
+              </span>
+            )}
+          </div>
+          {policy.description ? (
+            <p className="truncate text-[11px] leading-4 mt-0.5" style={{ color: "var(--m-ink3)" }}>
+              {policy.description}
+            </p>
+          ) : null}
         </div>
 
-        {/* Title */}
-        <h4
-          className="text-sm font-semibold leading-snug"
-          style={{
-            color: "var(--m-ink)",
-            textDecoration: isExtinct ? "line-through" : "none",
-          }}
-        >
-          {policy.title}
-        </h4>
+        {/* Streak badge */}
+        <StreakBadge streak={policy.streak ?? 0} />
 
-        {/* Description */}
-        {policy.description ? (
-          <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink2)" }}>
-            {policy.description}
-          </p>
-        ) : null}
+        {/* Today's checkin status icon */}
+        {!isExtinct && policy.todayCheckin === "success" && (
+          <CheckCircle2 className="flex-shrink-0" size={13} style={{ color: "#22c55e" }} />
+        )}
+        {!isExtinct && policy.todayCheckin === "fail" && (
+          <XCircle className="flex-shrink-0" size={13} style={{ color: "#ef4444" }} />
+        )}
 
-        {/* Action buttons */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        {/* Hover-reveal action buttons */}
+        <div className="flex flex-shrink-0 items-center gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
           {!isExtinct && (
             <>
-              <Button
+              <ActionBtn
+                icon={<CheckCircle2 size={13} />}
                 onClick={() => onCheckin(policy.id)}
-                size="sm"
-                variant="secondary"
-              >
-                <CheckCircle2 className="mr-1" size={13} />
-                打卡
-              </Button>
-
-              <Button
+                title="打卡"
+              />
+              <ActionBtn
+                icon={<Plus size={13} />}
                 onClick={() => onAddChild(policy.id)}
-                size="sm"
-                variant="ghost"
-              >
-                <Plus className="mr-1" size={13} />
-                子策略
-              </Button>
-
-              <Button
+                title="添加子策略"
+              />
+              <ActionBtn
+                icon={<Zap size={13} />}
                 onClick={() => onExtinguish(policy)}
-                size="sm"
-                variant="ghost"
-              >
-                <Zap className="mr-1" size={13} />
-                熄灭
-              </Button>
+                title="熄灭"
+              />
             </>
           )}
-
-          <Button
+          <ActionBtn
+            danger
+            icon={<Trash2 size={13} />}
             onClick={() => onDelete(policy.id)}
-            size="sm"
-            variant="ghost"
-          >
-            <Trash2 className="mr-1" size={13} />
-            删除
-          </Button>
-
-          {hasChildren && (
-            <button
-              className="ml-auto flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
-              onClick={() => setCollapsed((c) => !c)}
-              style={{ color: "var(--m-ink3)" }}
-              type="button"
-            >
-              {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-              {collapsed ? "展开" : "收起"} {policy.children!.length} 个子策略
-            </button>
-          )}
+            title="删除"
+          />
         </div>
+
+        {/* Collapse toggle */}
+        {hasChildren && (
+          <button
+            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-all duration-150 hover:opacity-70"
+            onClick={() => setCollapsed((c) => !c)}
+            style={{
+              background: "var(--m-base)",
+              border: "1px solid var(--m-rule)",
+              color: "var(--m-ink3)",
+            }}
+            title={collapsed ? "展开" : "收起"}
+            type="button"
+          >
+            {collapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+          </button>
+        )}
       </div>
 
-      {/* Children */}
+      {/* Children with tree lines */}
       {!collapsed && hasChildren && (
-        <div className="mt-2 space-y-2">
-          {policy.children!.map((child) => (
+        <div
+          className="relative ml-4 mt-1 space-y-1 pb-1 pl-3"
+          style={{ borderLeft: "1.5px solid var(--m-rule)" }}
+        >
+          {children.map((child, i) => (
             <PolicyNode
               depth={depth + 1}
+              isLast={i === children.length - 1}
               key={child.id}
               onAddChild={onAddChild}
               onCheckin={onCheckin}

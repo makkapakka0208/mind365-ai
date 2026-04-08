@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Plus, TreePine } from "lucide-react";
+import { Loader2, Plus, RefreshCw, TreePine } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import { PolicyNode } from "@/components/policies/policy-node";
@@ -175,21 +175,27 @@ export default function PoliciesPage() {
 
       {/* Summary bar */}
       {!loading && !error && tree.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          <Panel className="px-4 py-3 text-sm" inset>
-            <span style={{ color: "var(--m-ink3)" }}>活跃节点</span>
-            <span className="ml-2 font-semibold" style={{ color: "var(--m-ink)" }}>
-              {activeCount}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-4 rounded-xl px-4 py-2.5 text-sm" style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}>
+            <span>
+              <span style={{ color: "var(--m-ink3)" }}>活跃  </span>
+              <span className="font-semibold" style={{ color: "var(--m-ink)" }}>{activeCount}</span>
             </span>
-          </Panel>
-          {uncheckedToday > 0 && (
-            <Panel className="px-4 py-3 text-sm" inset>
-              <span style={{ color: "#a16207" }}>今日待打卡</span>
-              <span className="ml-2 font-semibold" style={{ color: "#a16207" }}>
-                {uncheckedToday}
-              </span>
-            </Panel>
-          )}
+            <span style={{ color: "var(--m-rule)" }}>|</span>
+            <span>
+              <span style={{ color: uncheckedToday > 0 ? "#a16207" : "var(--m-ink3)" }}>待打卡  </span>
+              <span className="font-semibold" style={{ color: uncheckedToday > 0 ? "#a16207" : "var(--m-ink)" }}>{uncheckedToday}</span>
+            </span>
+          </div>
+          <button
+            className="flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-xs transition-opacity hover:opacity-70"
+            onClick={() => void reload()}
+            style={{ color: "var(--m-ink3)", background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
+            type="button"
+          >
+            <RefreshCw size={12} />
+            刷新
+          </button>
         </div>
       )}
 
@@ -210,14 +216,14 @@ export default function PoliciesPage() {
         </Panel>
       ) : (
         <>
-          {/* Add root button */}
+          {/* Toolbar */}
           <div className="flex items-center gap-3">
             <Button onClick={openAddRoot} variant="primary">
-              <Plus className="mr-2" size={16} />
+              <Plus className="mr-2" size={15} />
               新增根节点
             </Button>
             {actionMsg && (
-              <span className="text-sm" style={{ color: "var(--m-danger, #dc2626)" }}>
+              <span className="text-sm" style={{ color: "#dc2626" }}>
                 {actionMsg}
               </span>
             )}
@@ -233,17 +239,46 @@ export default function PoliciesPage() {
               title="还没有国策"
             />
           ) : (
-            <Panel className="p-5 sm:p-6 space-y-3">
-              {tree.map((policy) => (
-                <PolicyNode
-                  key={policy.id}
-                  onAddChild={openAddChild}
-                  onCheckin={openCheckin}
-                  onDelete={onDelete}
-                  onExtinguish={openExtinguish}
-                  policy={policy}
-                />
-              ))}
+            <Panel className="p-4 sm:p-5">
+              {/* Legend */}
+              <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>
+                <span className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50" style={{ background: "#facc15" }} />
+                    <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#facc15" }} />
+                  </span>
+                  待打卡
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full" style={{ background: "#22c55e" }} />
+                  今日成功
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full" style={{ background: "#ef4444" }} />
+                  今日未达成
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full" style={{ background: "var(--m-rule)" }} />
+                  已熄灭
+                </span>
+                <span className="ml-auto hidden sm:block" style={{ color: "var(--m-ink3)" }}>
+                  悬停卡片查看操作
+                </span>
+              </div>
+
+              {/* Tree nodes */}
+              <div className="space-y-1.5">
+                {tree.map((policy) => (
+                  <PolicyNode
+                    key={policy.id}
+                    onAddChild={openAddChild}
+                    onCheckin={openCheckin}
+                    onDelete={onDelete}
+                    onExtinguish={openExtinguish}
+                    policy={policy}
+                  />
+                ))}
+              </div>
             </Panel>
           )}
         </>
