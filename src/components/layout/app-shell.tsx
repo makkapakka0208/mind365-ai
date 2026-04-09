@@ -47,7 +47,7 @@ export function AppShell({ children }: AppShellProps) {
             boxShadow: "var(--m-shadow-out)", // 外部浮起阴影
           }}
         >
-          <div className="flex h-full flex-col px-5 py-5">
+          <div className="flex h-full flex-col px-4 py-4">
             
             {/* 顶部品牌卡片 - 采用外凸效果 */}
             <div
@@ -67,7 +67,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
 
             {/* 导航列表 */}
-            <nav className="mt-6 space-y-2">
+            <nav className="mt-4 space-y-0.5 overflow-y-auto">
               {desktopNavItems.map((item, index) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -81,14 +81,14 @@ export function AppShell({ children }: AppShellProps) {
                   >
                     <Link
                       className={cn(
-                        "group flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300",
+                        "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300",
                       )}
                       href={item.href}
                       style={
                         active
                           ? {
                               background: "var(--m-base)",
-                              boxShadow: "var(--m-shadow-in)", // 核心：点击后内凹阴影
+                              boxShadow: "var(--m-shadow-in)",
                               color: "var(--m-accent)",
                             }
                           : {
@@ -97,12 +97,12 @@ export function AppShell({ children }: AppShellProps) {
                       }
                     >
                       <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px]"
                         style={{
                           background: active ? "rgba(139,94,60,0.05)" : "transparent",
                         }}
                       >
-                        <Icon size={18} />
+                        <Icon size={16} />
                       </span>
                       <span className="tracking-[0.01em]">{item.label}</span>
                     </Link>
