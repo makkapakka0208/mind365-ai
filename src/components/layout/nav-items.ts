@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Compass,
   Grid2x2,
   NotebookPen,
   Quote,
@@ -34,5 +35,6 @@ export const desktopNavItems: NavItem[] = [
   { label: "\u6df1\u5ea6\u601d\u8003", href: "/notes", icon: BookOpen },
   { label: "\u590d\u76d8\u62a5\u544a", href: "/review", icon: ScanSearch },
   { label: "\u56fd\u7b56\u6811", href: "/policies", icon: TreePine },
+  { label: "\u4eba\u751f\u4e3b\u7ebf", href: "/life-path", icon: Compass },
   { label: "\u8bbe\u7f6e", href: "/settings", icon: Settings2 },
 ];
