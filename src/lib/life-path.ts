@@ -11,11 +11,14 @@
  */
 
 import type {
+  AiAction,
   AlignmentResult,
   DirectionBreakdown,
+  FusedAction,
   GoalProgress,
   LifeDirection,
   LifePathLog,
+  RuleAction,
   UserGoal,
 } from "@/types/life-path";
 
@@ -218,6 +221,130 @@ export function averageAlignmentScore(
   );
 
   return Math.round(total / logs.length);
+}
+
+// ── Fusion layer (Rule + AI) ──────────────────────────────────────────────────
+
+/**
+ * Weight applied to actions detected by the deterministic rule layer.
+ * Rules are high-precision so they always count fully.
+ */
+const RULE_WEIGHT = 1.0;
+
+/**
+ * Fuse rule-layer and AI-layer outputs into a single deduplicated stream.
+ *
+ * Merge rules
+ * ───────────
+ *   1. Same `type` collision  → rule wins, AI duplicate is discarded.
+ *   2. AI-only types          → kept, weight = `confidence` (0.5–0.9).
+ *   3. Rule-only types        → kept, weight = 1.0.
+ *
+ * The fusion intentionally discards AI duplicates wholesale instead of
+ * averaging confidences: a rule match means we have ground truth, and
+ * mixing in a weaker signal would only dilute it.
+ *
+ * @example
+ * const rules = [{ type: "study", category: "positive", source: "rule" }];
+ * const ai    = [
+ *   { type: "study",   category: "positive", confidence: 0.8, source: "ai" }, // dropped
+ *   { type: "lowMood", category: "negative", confidence: 0.7, source: "ai" }, // kept
+ * ];
+ * fuseActions(rules, ai);
+ * // → [
+ * //     { type: "study",   category: "positive", source: "rule", weight: 1.0 },
+ * //     { type: "lowMood", category: "negative", source: "ai",   weight: 0.7, confidence: 0.7 },
+ * //   ]
+ */
+export function fuseActions(
+  ruleActions: RuleAction[],
+  aiActions: AiAction[],
+): FusedAction[] {
+  const fused: FusedAction[] = [];
+  const seenTypes = new Set<string>();
+
+  // Rule actions first — they always win on conflicts.
+  for (const r of ruleActions) {
+    seenTypes.add(r.type);
+    fused.push({
+      type: r.type,
+      category: r.category,
+      source: "rule",
+      weight: RULE_WEIGHT,
+      ...(r.duration !== undefined ? { duration: r.duration } : {}),
+    });
+  }
+
+  // AI actions fill in the gaps.
+  for (const a of aiActions) {
+    if (seenTypes.has(a.type)) continue;
+    seenTypes.add(a.type);
+    fused.push({
+      type: a.type,
+      category: a.category,
+      source: "ai",
+      weight: a.confidence,
+      confidence: a.confidence,
+      ...(a.reason ? { reason: a.reason } : {}),
+    });
+  }
+
+  return fused;
+}
+
+// ── Weighted alignment score ──────────────────────────────────────────────────
+
+/** Result returned by `calculateAlignmentScoreWeighted()`. */
+export interface WeightedAlignmentResult {
+  /** Final score in [0, 100] using per-action weights */
+  score: number;
+
+  /** Total positive contribution (already weighted) */
+  positiveDelta: number;
+
+  /** Total negative contribution (already weighted, expressed as a positive number) */
+  negativeDelta: number;
+
+  /** All fused actions that contributed, with their categories and weights */
+  contributions: FusedAction[];
+}
+
+/**
+ * Score a day's `FusedAction[]` directly, using the source-aware weights
+ * computed by `fuseActions()`.
+ *
+ * Algorithm
+ * ─────────
+ *   score = clamp(BASE_SCORE
+ *                 + Σ (POSITIVE_WEIGHT × weight) over positive actions
+ *                 − Σ (NEGATIVE_WEIGHT × weight) over negative actions,
+ *                 [0, 100])
+ *
+ * Unlike `calculateAlignmentScore()`, this function does not depend on a
+ * user-defined `LifeDirection[]` — categories are carried on the fused
+ * actions themselves.  Use this when you have already run the
+ * Rule + AI + Fusion pipeline.
+ */
+export function calculateAlignmentScoreWeighted(
+  actions: FusedAction[],
+): WeightedAlignmentResult {
+  let positiveDelta = 0;
+  let negativeDelta = 0;
+
+  for (const a of actions) {
+    if (a.category === "positive") {
+      positiveDelta += POSITIVE_WEIGHT * a.weight;
+    } else {
+      negativeDelta += NEGATIVE_WEIGHT * a.weight;
+    }
+  }
+
+  const raw = BASE_SCORE + positiveDelta - negativeDelta;
+  const score = Math.round(
+    Math.min(SCORE_MAX, Math.max(SCORE_MIN, raw)),
+  );
+
+  return { score, positiveDelta, negativeDelta, contributions: actions };
 }
 
 /**

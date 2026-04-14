@@ -113,6 +113,84 @@ export interface AlignmentResult {
   breakdown: DirectionBreakdown[];
 }
 
+// ── Three-layer detection (Rule + AI + Fusion) ────────────────────────────────
+
+/**
+ * Whether an action moves the user toward (positive) or away from
+ * (negative) their declared life directions.
+ */
+export type ActionCategory = "positive" | "negative";
+
+/** Where a detected action came from in the three-layer pipeline. */
+export type ActionSource = "rule" | "ai";
+
+/**
+ * An action extracted by the deterministic rule layer.
+ *
+ * Rules are pattern-based (regex) and produce high-confidence,
+ * machine-verifiable signals such as "学习2小时" → study/2h.
+ */
+export interface RuleAction {
+  /** Canonical action key, e.g. "study", "scrolling" */
+  type: string;
+
+  /** Optional parsed duration in hours when the pattern captured one */
+  duration?: number;
+
+  /** Whether the rule classifies this as a positive or negative behavior */
+  category: ActionCategory;
+
+  source: "rule";
+
+  /** The raw substring that matched, useful for debugging / UI highlights */
+  rawMatch?: string;
+}
+
+/**
+ * An action extracted by the AI / NLP layer.
+ *
+ * AI results are softer signals — the model returns a confidence value
+ * in [0.5, 0.9] that the fusion layer uses as its weight.
+ */
+export interface AiAction {
+  type: string;
+
+  /** Whether the AI classifies this as positive or negative */
+  category: ActionCategory;
+
+  /** Model confidence, expected range [0.5, 0.9] */
+  confidence: number;
+
+  /** Optional human-readable explanation produced by the model */
+  reason?: string;
+
+  source: "ai";
+}
+
+/**
+ * Output of the fusion layer.
+ *
+ * `weight` collapses the source semantics into a single multiplier:
+ *   - rule actions     → 1.0
+ *   - ai   actions     → confidence (0.5–0.9)
+ *
+ * The scoring layer multiplies POSITIVE_WEIGHT / NEGATIVE_WEIGHT by
+ * this `weight` to compute the action's contribution to the day's score.
+ */
+export interface FusedAction {
+  type: string;
+  category: ActionCategory;
+  source: ActionSource;
+  weight: number;
+
+  /** Carried over from the rule layer when present */
+  duration?: number;
+
+  /** Carried over from the AI layer when present */
+  confidence?: number;
+  reason?: string;
+}
+
 /** The result returned by `calculateGoalProgress()`. */
 export interface GoalProgress {
   /** Progress as a fraction in [0, 1] */
