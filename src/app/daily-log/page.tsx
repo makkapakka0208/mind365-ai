@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, NotebookPen } from "lucide-react";
+import { CalendarDays, CheckCircle2, NotebookPen, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
@@ -15,9 +15,89 @@ import { Panel } from "@/components/ui/panel";
 import { Textarea } from "@/components/ui/textarea";
 import { sortLogsByDate } from "@/lib/analytics";
 import { formatDate, getTodayISODate } from "@/lib/date";
+import { calculateAlignmentScoreWeighted, fuseActions } from "@/lib/life-path";
+import { detectActionsByRules } from "@/lib/life-path-rules";
 import { saveDailyLog } from "@/lib/storage";
 import { useDailyLogsStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
+import type { FusedAction } from "@/types/life-path";
+
+// ── Alignment result card ─────────────────────────────────────────────────────
+
+function AlignmentCard({
+  score,
+  positiveDelta,
+  negativeDelta,
+  contributions,
+}: {
+  score: number;
+  positiveDelta: number;
+  negativeDelta: number;
+  contributions: FusedAction[];
+}) {
+  const color = score >= 60 ? "#4A9B6F" : score >= 40 ? "#D4A42A" : "#C0392B";
+  const r = 28;
+  const circ = 2 * Math.PI * r;
+  const fill = (score / 100) * circ;
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-4 rounded-xl p-4"
+      style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
+    >
+      {/* Mini ring */}
+      <svg height={68} viewBox="0 0 68 68" width={68} className="shrink-0">
+        <circle cx="34" cy="34" fill="none" r={r} stroke="var(--m-rule)" strokeWidth="7" />
+        <circle
+          cx="34" cy="34" fill="none" r={r}
+          stroke={color}
+          strokeDasharray={`${fill} ${circ}`}
+          strokeLinecap="round"
+          strokeWidth="7"
+          style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+        />
+        <text dominantBaseline="middle" fill={color} fontFamily="inherit" fontSize="13" fontWeight="700" textAnchor="middle" x="34" y="34">
+          {score}
+        </text>
+      </svg>
+
+      <div className="flex-1 space-y-2">
+        <div className="flex items-center gap-3 text-xs" style={{ color: "var(--m-ink3)" }}>
+          <span>今日对齐分</span>
+          <span style={{ color: "#4A9B6F" }}>
+            <TrendingUp className="mr-0.5 inline" size={11} />+{positiveDelta.toFixed(0)}
+          </span>
+          <span style={{ color: "#C0392B" }}>
+            <TrendingDown className="mr-0.5 inline" size={11} />−{negativeDelta.toFixed(0)}
+          </span>
+        </div>
+
+        {contributions.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {contributions.map((a) => (
+              <span
+                className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                key={a.type}
+                style={{
+                  background: a.category === "positive" ? "rgba(74,155,111,0.1)" : "rgba(192,57,43,0.1)",
+                  color: a.category === "positive" ? "#4A9B6F" : "#C0392B",
+                }}
+              >
+                {a.type}{a.duration !== undefined ? ` ${a.duration}h` : ""}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
+            未检测到已知行为，在「人生主线」中配置人生方向后分数会更准确。
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DailyLogPage() {
   const [date, setDate] = useState(getTodayISODate());
@@ -28,6 +108,12 @@ export default function DailyLogPage() {
   const [images, setImages] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [alignment, setAlignment] = useState<{
+    score: number;
+    positiveDelta: number;
+    negativeDelta: number;
+    contributions: FusedAction[];
+  } | null>(null);
 
   const logs = sortLogsByDate(useDailyLogsStore(), "desc");
   const recentLogs = logs.slice(0, 4);
@@ -36,6 +122,7 @@ export default function DailyLogPage() {
     event.preventDefault();
     setIsSaving(true);
     setMessage("");
+    setAlignment(null);
 
     const entry: DailyLog = {
       id: crypto.randomUUID(),
@@ -53,6 +140,14 @@ export default function DailyLogPage() {
     };
 
     const result = await saveDailyLog(entry);
+
+    // Auto-generate alignment score from the journal content
+    if (thoughts.trim()) {
+      const rules = detectActionsByRules(thoughts.trim());
+      const fused = fuseActions(rules, []);
+      setAlignment(calculateAlignmentScoreWeighted(fused));
+    }
+
     setThoughts("");
     setStudyHours(0);
     setTags("");
@@ -147,13 +242,22 @@ export default function DailyLogPage() {
                   </span>
                 ) : null}
               </div>
+
+              {/* Auto-generated alignment score */}
+              {alignment && (
+                <AlignmentCard
+                  contributions={alignment.contributions}
+                  negativeDelta={alignment.negativeDelta}
+                  positiveDelta={alignment.positiveDelta}
+                  score={alignment.score}
+                />
+              )}
             </form>
           </Panel>
         </StaggerItem>
 
         <StaggerItem index={1} className="h-full">
           <div className="flex h-full flex-col gap-6">
-            {/* 上方：原有的书写提示卡片 */}
             <Panel className="flex flex-1 flex-col overflow-hidden p-6" interactive>
               <div>
                 <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
@@ -176,7 +280,6 @@ export default function DailyLogPage() {
               </div>
             </Panel>
 
-            {/* 下方：新增的灵感小卡片，属性和上方完全一致 */}
             <Panel className="p-6" interactive>
               <div className="flex items-center gap-2">
                 <span className="text-base">💡</span>
@@ -185,7 +288,7 @@ export default function DailyLogPage() {
                 </h4>
               </div>
               <p className="mt-3 text-[13.5px] leading-relaxed" style={{ color: "var(--m-ink2)" }}>
-                “无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。”
+                "无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。"
               </p>
             </Panel>
           </div>
