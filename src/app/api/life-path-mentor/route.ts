@@ -165,7 +165,7 @@ function parseRequest(raw: unknown): MentorRequest | null {
     },
     today,
     ...(typeof raw.context === "string" ? { context: raw.context } : {}),
-    ...(isRecord(raw.mentorContext) ? { mentorContext: raw.mentorContext as MentorContext } : {}),
+    ...(isRecord(raw.mentorContext) ? { mentorContext: raw.mentorContext as unknown as MentorContext } : {}),
   };
 }
 
