@@ -160,11 +160,29 @@ export interface AdjustNote {
 }
 
 /**
+ * Background context gathered from the first-use inquiry card.
+ * Feeds into all AI prompts to personalise advice.
+ */
+export interface MentorContext {
+  /** The user's biggest current obstacle */
+  challenge: string;
+  /** How much time they can invest, e.g. "1-2小时/天" */
+  timeAvailable: string;
+  /** Current energy / motivation level */
+  energyLevel: "high" | "medium" | "low";
+  /** What they most want AI help with */
+  helpFocus: string[];
+}
+
+/**
  * The full mentor state for a single UserGoal.
  * Persisted to localStorage keyed by goalId.
  */
 export interface MentorPlan {
   goalId: string;
+
+  /** Background context — gathered once from inquiry card */
+  context: MentorContext | null;
 
   /** Phase breakdown — generated once, rebuilt on "重新规划" */
   phases: GoalPhase[];
@@ -175,10 +193,7 @@ export interface MentorPlan {
   /** Current week plan — regenerated at most once per calendar week */
   weeklyPlan: WeeklyPlan | null;
 
-  /**
-   * ISO week key when weeklyPlan was generated, e.g. "2024-W16".
-   * Used to decide whether to offer regeneration.
-   */
+  /** ISO week key when weeklyPlan was generated, e.g. "2024-W16" */
   weeklyGeneratedAt: string | null;
 
   /** Today's suggestion — regenerated at most once per calendar day */

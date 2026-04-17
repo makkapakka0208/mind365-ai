@@ -6,6 +6,13 @@ export const runtime = "nodejs";
 
 export type MentorAction = "breakdown" | "weekly" | "daily" | "adjust";
 
+interface MentorContext {
+  challenge: string;
+  timeAvailable: string;
+  energyLevel: "high" | "medium" | "low";
+  helpFocus: string[];
+}
+
 interface MentorRequest {
   action: MentorAction;
   goal: {
@@ -14,7 +21,9 @@ interface MentorRequest {
     currentValue: number;
     deadline?: string;
   };
-  /** Extra context the user wants the AI to consider (for "adjust") */
+  /** Background context gathered from inquiry card */
+  mentorContext?: MentorContext;
+  /** Extra text the user wants the AI to consider (for "adjust") */
   context?: string;
   /** Today's date as yyyy-MM-dd — sent by client to avoid server TZ drift */
   today: string;
@@ -29,12 +38,25 @@ const SYSTEM = `你是一位理性、清醒、长期主义的人生导师。
 2. 根据当前进度给出适合当前阶段的建议。
 3. 输出严格为合法 JSON，不添加任何 markdown、代码块或其他文字。`;
 
+function ctxBlock(req: MentorRequest): string {
+  const c = req.mentorContext;
+  if (!c) return "";
+  const energy = { high: "冲劲十足", medium: "稳步推进", low: "感觉迷茫" }[c.energyLevel];
+  return `用户背景：
+- 最大障碍：${c.challenge || "未填写"}
+- 可用时间：${c.timeAvailable || "未填写"}
+- 当前状态：${energy}
+- 希望重点：${c.helpFocus.join("、") || "未填写"}
+`;
+}
+
 function makeBreakdownPrompt(req: MentorRequest): string {
   const { goal } = req;
   const pct = Math.round((goal.currentValue / goal.targetValue) * 100);
   return `目标：「${goal.title}」
 当前进度：${goal.currentValue.toLocaleString()} / ${goal.targetValue.toLocaleString()}（${pct}%）
 ${goal.deadline ? `截止日期：${goal.deadline}` : "无截止日期"}
+${ctxBlock(req)}
 
 请将此目标拆解为 3–5 个阶段，并标注当前阶段。
 
@@ -59,6 +81,7 @@ function makeWeeklyPrompt(req: MentorRequest): string {
   return `目标：「${goal.title}」
 当前进度：${pct}%（${goal.currentValue.toLocaleString()} / ${goal.targetValue.toLocaleString()}）
 日期：${req.today}
+${ctxBlock(req)}
 
 请生成本周行动计划。
 
@@ -76,7 +99,7 @@ function makeDailyPrompt(req: MentorRequest): string {
   return `目标：「${goal.title}」
 当前进度：${pct}%
 今日：${req.today}
-
+${ctxBlock(req)}
 请给出今天最重要的一个行动建议。
 
 输出格式（JSON，不加任何说明）：
@@ -142,6 +165,7 @@ function parseRequest(raw: unknown): MentorRequest | null {
     },
     today,
     ...(typeof raw.context === "string" ? { context: raw.context } : {}),
+    ...(isRecord(raw.mentorContext) ? { mentorContext: raw.mentorContext as MentorContext } : {}),
   };
 }
 

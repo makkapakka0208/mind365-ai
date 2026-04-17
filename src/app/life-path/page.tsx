@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, ChevronDown, ChevronUp, Compass, Loader2, Pencil, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { Bot, CalendarDays, ChevronDown, ChevronUp, Compass, Flame, Loader2, Map, Pencil, Plus, RefreshCw, Sparkles, Target, Trash2, Zap } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -213,7 +213,7 @@ function MentorSection({
   const busy = loading !== null;
 
   return (
-    <div className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: "var(--m-rule)" }}>
+    <div className="mt-5 space-y-5 border-t pt-5" style={{ borderColor: "var(--m-rule)" }}>
       <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--m-accent)" }}>
         <Bot size={13} />
         AI 导师
@@ -222,9 +222,12 @@ function MentorSection({
       {error && <p className="text-xs" style={{ color: "#dc2626" }}>{error}</p>}
 
       {/* ── Phase breakdown ── */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: "var(--m-ink3)" }}>目标阶段</span>
+          <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
+            <Map size={12} style={{ color: "var(--m-accent)" }} />
+            目标阶段
+          </span>
           <button
             className="flex items-center gap-1 text-[11px] hover:opacity-70 disabled:opacity-40"
             disabled={busy}
@@ -252,9 +255,12 @@ function MentorSection({
       </div>
 
       {/* ── Weekly plan ── */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: "var(--m-ink3)" }}>本周计划</span>
+          <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
+            <CalendarDays size={12} style={{ color: "#4A9B6F" }} />
+            本周计划
+          </span>
           <button
             className="flex items-center gap-1 text-[11px] hover:opacity-70 disabled:opacity-40"
             disabled={busy}
@@ -270,14 +276,21 @@ function MentorSection({
           </button>
         </div>
         {plan.weeklyPlan
-          ? <WeeklyCard plan={plan.weeklyPlan} />
+          ? (
+            <div className="rounded-2xl p-3" style={{ boxShadow: "var(--m-shadow-in)", background: "var(--m-base)" }}>
+              <WeeklyCard plan={plan.weeklyPlan} />
+            </div>
+          )
           : <p className="text-xs" style={{ color: "var(--m-ink3)" }}>每周一次 · 点击生成本周行动计划</p>}
       </div>
 
       {/* ── Daily suggestion ── */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: "var(--m-ink3)" }}>今日建议</span>
+          <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
+            <Zap size={12} style={{ color: "#D4A42A" }} />
+            今日建议
+          </span>
           <button
             className="flex items-center gap-1 text-[11px] hover:opacity-70 disabled:opacity-40"
             disabled={busy}
@@ -293,14 +306,21 @@ function MentorSection({
           </button>
         </div>
         {plan.dailySuggestion
-          ? <DailyCard suggestion={plan.dailySuggestion} />
+          ? (
+            <div className="rounded-2xl p-3" style={{ boxShadow: "var(--m-shadow-in)", background: "var(--m-base)" }}>
+              <DailyCard suggestion={plan.dailySuggestion} />
+            </div>
+          )
           : <p className="text-xs" style={{ color: "var(--m-ink3)" }}>每日一次 · 获取今天最重要的一个行动</p>}
       </div>
 
       {/* ── Adjust note ── */}
       {plan.adjustNote && (
-        <div className="space-y-1.5">
-          <span className="text-xs font-medium" style={{ color: "var(--m-ink3)" }}>上次调整建议</span>
+        <div className="space-y-2">
+          <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
+            <Flame size={12} style={{ color: "#C0392B" }} />
+            上次调整建议
+          </span>
           <AdjustCard note={plan.adjustNote} />
         </div>
       )}
@@ -372,13 +392,17 @@ function GoalCard({
 
   return (
     <div
-      className="rounded-2xl p-5"
-      style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
+      className="rounded-3xl p-6 transition-all duration-300"
+      style={{
+        background: "var(--m-base)",
+        border: "1px solid var(--m-rule)",
+        boxShadow: "var(--m-shadow-out)",
+      }}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-snug" style={{ color: "var(--m-ink)" }}>{goal.title}</p>
+          <p className="text-sm font-bold leading-snug tracking-tight" style={{ color: "var(--m-ink)" }}>{goal.title}</p>
           {goal.deadline && (
             <p className="mt-0.5 text-xs" style={{ color: "var(--m-ink3)" }}>
               截止 {goal.deadline}
@@ -417,18 +441,29 @@ function GoalCard({
             : null}
       </div>
 
-      <div className="mt-2.5 h-2 overflow-hidden rounded-full" style={{ background: "var(--m-rule)" }}>
-        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progress.percentage}%`, background: color }} />
+      <div
+        className="mt-3 h-2.5 overflow-hidden rounded-full"
+        style={{ boxShadow: "var(--m-shadow-in)", background: "var(--m-base)" }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{
+            width: `${progress.percentage}%`,
+            background: progress.isCompleted
+              ? "linear-gradient(90deg, #4A9B6F, #68C48A)"
+              : "linear-gradient(90deg, var(--m-accent), #C8906A)",
+          }}
+        />
       </div>
 
       {/* Expand toggle */}
       <button
-        className="mt-3 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs transition-colors hover:opacity-80"
+        className="mt-4 flex w-full items-center justify-between rounded-2xl px-3 py-2 text-xs font-medium transition-all duration-200"
         onClick={() => setExpanded((v) => !v)}
         style={{
-          background: expanded ? "rgba(139,94,60,0.05)" : "transparent",
+          boxShadow: expanded ? "var(--m-shadow-in)" : "var(--m-shadow-out)",
+          background: "var(--m-base)",
           color: "var(--m-accent)",
-          border: "1px solid rgba(139,94,60,0.12)",
         }}
         type="button"
       >
@@ -460,6 +495,7 @@ function GoalCard({
 function emptyMentorPlan(goalId: string): MentorPlan {
   return {
     goalId,
+    context: null,
     phases: [],
     phasesGeneratedAt: null,
     weeklyPlan: null,
@@ -566,15 +602,20 @@ export default function LifePathPage() {
 
       {/* Goal list */}
       {goals.length === 0 ? (
-        <Panel className="py-16 text-center">
-          <Compass className="mx-auto mb-3" size={30} style={{ color: "var(--m-ink3)" }} />
-          <p className="text-sm font-medium" style={{ color: "var(--m-ink2)" }}>还没有人生目标</p>
-          <p className="mt-1 text-xs" style={{ color: "var(--m-ink3)" }}>
+        <div
+          className="rounded-3xl py-20 text-center"
+          style={{ background: "var(--m-base)", boxShadow: "var(--m-shadow-out)", border: "1px solid var(--m-rule)" }}
+        >
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl" style={{ boxShadow: "var(--m-shadow-out)", background: "var(--m-base)" }}>
+            <Target size={28} style={{ color: "var(--m-accent)" }} />
+          </div>
+          <p className="text-sm font-bold" style={{ color: "var(--m-ink)" }}>还没有人生目标</p>
+          <p className="mt-1.5 text-xs" style={{ color: "var(--m-ink3)" }}>
             例如：存款 100 万 · 读完 50 本书 · 跑完一个马拉松
           </p>
-        </Panel>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {goals.map((g) => (
             <GoalCard
               goal={g}
