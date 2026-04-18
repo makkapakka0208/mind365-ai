@@ -58,42 +58,68 @@ async function callMentor(
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function PhaseRow({ phase }: { phase: GoalPhase }) {
+function PhaseRow({ phase, isLast }: { phase: GoalPhase; isLast: boolean }) {
   return (
-    <div
-      className="flex gap-3 rounded-xl p-3"
-      style={{
-        background: phase.isCurrent ? "rgba(139,94,60,0.06)" : "transparent",
-        border: phase.isCurrent ? "1px solid rgba(139,94,60,0.15)" : "1px solid transparent",
-      }}
-    >
+    <div className="flex gap-3">
+      {/* Stepper spine */}
+      <div className="flex flex-col items-center">
+        <div
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+          style={{
+            background: phase.isCurrent
+              ? "linear-gradient(135deg, var(--m-accent), #C8906A)"
+              : phase.index < (phase.index) ? "var(--m-rule)" : "var(--m-rule)",
+            color: phase.isCurrent ? "#fff" : "var(--m-ink3)",
+            boxShadow: phase.isCurrent ? "0 2px 6px rgba(139,94,60,0.35)" : "none",
+          }}
+        >
+          {phase.index + 1}
+        </div>
+        {!isLast && (
+          <div
+            className="mt-1 w-px flex-1"
+            style={{
+              minHeight: 20,
+              background: phase.isCurrent
+                ? "linear-gradient(to bottom, var(--m-accent), rgba(139,94,60,0.1))"
+                : "linear-gradient(to bottom, var(--m-rule), transparent)",
+            }}
+          />
+        )}
+      </div>
+
+      {/* Content */}
       <div
-        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+        className="mb-3 min-w-0 flex-1 rounded-xl p-3"
         style={{
-          background: phase.isCurrent ? "var(--m-accent)" : "var(--m-rule)",
-          color: phase.isCurrent ? "#fff" : "var(--m-ink3)",
+          background: phase.isCurrent ? "rgba(139,94,60,0.05)" : "transparent",
+          border: phase.isCurrent ? "1px solid rgba(139,94,60,0.12)" : "1px solid transparent",
         }}
       >
-        {phase.index + 1}
-      </div>
-      <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold" style={{ color: phase.isCurrent ? "var(--m-accent)" : "var(--m-ink)" }}>
+          <span
+            className="text-xs font-semibold"
+            style={{ color: phase.isCurrent ? "var(--m-accent)" : "var(--m-ink2)" }}
+          >
             {phase.title}
           </span>
           <span className="text-[10px]" style={{ color: "var(--m-ink3)" }}>{phase.progressRange}</span>
           {phase.isCurrent && (
-            <span className="rounded-full px-1.5 py-0.5 text-[9px] font-medium" style={{ background: "var(--m-accent)", color: "#fff" }}>
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+              style={{ background: "linear-gradient(135deg, var(--m-accent), #C8906A)", color: "#fff" }}
+            >
               当前
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-xs leading-5" style={{ color: "var(--m-ink2)" }}>{phase.description}</p>
+        <p className="mt-0.5 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>{phase.description}</p>
         {phase.isCurrent && phase.keyActions.length > 0 && (
-          <ul className="mt-1.5 space-y-0.5">
+          <ul className="mt-2 space-y-1">
             {phase.keyActions.map((a, i) => (
-              <li className="text-xs" key={i} style={{ color: "var(--m-ink2)" }}>
-                <span style={{ color: "var(--m-accent)" }}>· </span>{a}
+              <li className="flex items-start gap-1.5 text-xs" key={i} style={{ color: "var(--m-ink2)" }}>
+                <span className="mt-px shrink-0 text-[8px]" style={{ color: "var(--m-accent)" }}>◆</span>
+                {a}
               </li>
             ))}
           </ul>
@@ -225,7 +251,9 @@ function MentorSection({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
-            <Map size={12} style={{ color: "var(--m-accent)" }} />
+            <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(139,94,60,0.12)" }}>
+              <Map size={10} style={{ color: "var(--m-accent)" }} />
+            </span>
             目标阶段
           </span>
           <button
@@ -244,8 +272,10 @@ function MentorSection({
         </div>
 
         {plan.phases.length > 0 ? (
-          <div className="space-y-1.5">
-            {plan.phases.map((p) => <PhaseRow key={p.index} phase={p} />)}
+          <div className="pt-1">
+            {plan.phases.map((p) => (
+              <PhaseRow isLast={p.index === plan.phases.length - 1} key={p.index} phase={p} />
+            ))}
           </div>
         ) : (
           <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
@@ -258,7 +288,9 @@ function MentorSection({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
-            <CalendarDays size={12} style={{ color: "#4A9B6F" }} />
+            <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(74,155,111,0.12)" }}>
+              <CalendarDays size={10} style={{ color: "#4A9B6F" }} />
+            </span>
             本周计划
           </span>
           <button
@@ -288,7 +320,9 @@ function MentorSection({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
-            <Zap size={12} style={{ color: "#D4A42A" }} />
+            <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(212,164,42,0.12)" }}>
+              <Zap size={10} style={{ color: "#D4A42A" }} />
+            </span>
             今日建议
           </span>
           <button
@@ -318,7 +352,9 @@ function MentorSection({
       {plan.adjustNote && (
         <div className="space-y-2">
           <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
-            <Flame size={12} style={{ color: "#C0392B" }} />
+            <span className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(192,57,43,0.10)" }}>
+              <Flame size={10} style={{ color: "#C0392B" }} />
+            </span>
             上次调整建议
           </span>
           <AdjustCard note={plan.adjustNote} />
@@ -392,66 +428,94 @@ function GoalCard({
 
   return (
     <div
-      className="rounded-3xl p-6 transition-all duration-300"
+      className="rounded-3xl p-6 transition-all duration-300 hover:-translate-y-0.5"
       style={{
-        background: "var(--m-base)",
-        border: "1px solid var(--m-rule)",
-        boxShadow: "var(--m-shadow-out)",
+        background: "rgba(255,255,255,0.92)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        border: "1px solid rgba(255,255,255,0.6)",
+        boxShadow: "0 4px 24px rgba(139,94,60,0.10), 0 1px 4px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
       }}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold leading-snug tracking-tight" style={{ color: "var(--m-ink)" }}>{goal.title}</p>
+          <p className="font-serif text-base font-bold leading-snug tracking-tight" style={{ color: "var(--m-ink)" }}>
+            {goal.title}
+          </p>
           {goal.deadline && (
-            <p className="mt-0.5 text-xs" style={{ color: "var(--m-ink3)" }}>
-              截止 {goal.deadline}
+            <p className="mt-1 text-[11px]" style={{ color: "var(--m-ink3)" }}>
+              📅 截止 {goal.deadline}
               {progress.daysLeft !== null && (
-                <span className="ml-1.5">
+                <span className="ml-1">
                   {progress.daysLeft >= 0 ? `（剩 ${progress.daysLeft} 天）` : "（已逾期）"}
                 </span>
               )}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1">
-          <button className="rounded-lg p-1 hover:opacity-60 transition-opacity" onClick={onEdit} title="更新进度" type="button">
-            <Pencil size={13} style={{ color: "var(--m-ink3)" }} />
+        <div className="flex items-center gap-0.5">
+          <button
+            className="rounded-xl p-1.5 transition-all hover:opacity-70"
+            onClick={onEdit}
+            title="更新进度"
+            type="button"
+            style={{ background: "rgba(139,94,60,0.06)" }}
+          >
+            <Pencil size={12} style={{ color: "var(--m-accent)" }} />
           </button>
-          <button className="rounded-lg p-1 hover:opacity-60 transition-opacity" onClick={onDelete} title="删除目标" type="button">
-            <Trash2 size={13} style={{ color: "var(--m-ink3)" }} />
+          <button
+            className="rounded-xl p-1.5 transition-all hover:opacity-70"
+            onClick={onDelete}
+            title="删除目标"
+            type="button"
+            style={{ background: "rgba(192,57,43,0.05)" }}
+          >
+            <Trash2 size={12} style={{ color: "#C0392B" }} />
           </button>
         </div>
       </div>
 
-      {/* Progress */}
-      <div className="mt-3 flex items-end justify-between">
-        <div>
-          <span className="text-2xl font-bold" style={{ color }}>
+      {/* Progress numbers */}
+      <div className="mt-4 flex items-end justify-between">
+        <div className="flex items-baseline gap-2">
+          <span
+            className="font-sans text-4xl font-black leading-none"
+            style={{ color, letterSpacing: "-0.03em" }}
+          >
             {progress.percentage}%
           </span>
-          <span className="ml-2 text-xs" style={{ color: "var(--m-ink3)" }}>
+          <span className="font-sans text-[11px]" style={{ color: "var(--m-ink3)" }}>
             {goal.currentValue.toLocaleString()} / {goal.targetValue.toLocaleString()}
           </span>
         </div>
-        {progress.isCompleted
-          ? <span className="text-xs font-medium" style={{ color: "#4A9B6F" }}>已完成 ✓</span>
-          : progress.remaining > 0
-            ? <span className="text-xs" style={{ color: "var(--m-ink3)" }}>还差 {progress.remaining.toLocaleString()}</span>
-            : null}
+        {progress.isCompleted ? (
+          <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: "rgba(74,155,111,0.1)", color: "#4A9B6F" }}>
+            已完成 ✓
+          </span>
+        ) : progress.remaining > 0 ? (
+          <span className="font-sans text-[11px]" style={{ color: "var(--m-ink3)" }}>
+            还差 <span style={{ color: "var(--m-ink2)", fontWeight: 600 }}>{progress.remaining.toLocaleString()}</span>
+          </span>
+        ) : null}
       </div>
 
+      {/* Progress bar — thick capsule */}
       <div
-        className="mt-3 h-2.5 overflow-hidden rounded-full"
-        style={{ boxShadow: "var(--m-shadow-in)", background: "var(--m-base)" }}
+        className="mt-3 h-4 overflow-hidden rounded-full"
+        style={{
+          background: "rgba(139,94,60,0.08)",
+          boxShadow: "inset 0 2px 4px rgba(0,0,0,0.08)",
+        }}
       >
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{
             width: `${progress.percentage}%`,
             background: progress.isCompleted
-              ? "linear-gradient(90deg, #4A9B6F, #68C48A)"
-              : "linear-gradient(90deg, var(--m-accent), #C8906A)",
+              ? "linear-gradient(90deg, #3D8B63, #68C48A)"
+              : "linear-gradient(90deg, #8B5E3C, #C8906A, #D4A87A)",
+            boxShadow: "inset 0 1px 2px rgba(255,255,255,0.3)",
           }}
         />
       </div>
@@ -589,7 +653,11 @@ export default function LifePathPage() {
 
       {/* Toolbar */}
       <div className="flex items-center gap-3">
-        <Button onClick={openAdd} variant="primary">
+        <Button
+          onClick={openAdd}
+          variant="primary"
+          style={{ boxShadow: "var(--m-shadow-out), inset 0 1px 6px rgba(255,255,255,0.22)" }}
+        >
           <Plus className="mr-2" size={14} />
           新增目标
         </Button>
@@ -615,7 +683,7 @@ export default function LifePathPage() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-5xl gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {goals.map((g) => (
             <GoalCard
               goal={g}
