@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+:root {
+  --m-base: #f0e6d3;
+  --m-base-light: #fdf6eb;
+  --m-ink: #2c1a0e;
+  --m-ink2: #6b4c2a;
+  --m-ink3: #a07850;
+  --m-accent: #8b5e3c;
+  --m-rule: #ddd0bc;
+  --m-shadow-out: 4px 4px 10px rgba(180, 150, 110, 0.45),
+    -2px -2px 6px rgba(255, 250, 240, 0.9);
+  --m-shadow-in: inset 2px 2px 6px rgba(180, 150, 110, 0.45),
+    inset -2px -2px 5px rgba(255, 250, 240, 0.9);
+  --m-success: #5a8a3c;
+  --m-danger: #b04040;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(255, 248, 235, 0.92), transparent 38%),
+    linear-gradient(180deg, #f8efe0 0%, var(--m-base) 42%, #eadfc8 100%);
+  color: var(--m-ink);
+  font-family: "Noto Serif SC", serif;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(139, 94, 60, 0.25);
+  color: var(--m-ink);
+}
+
+.m-tab-bar {
+  position: fixed;
+  right: 14px;
+  bottom: 12px;
+  left: 14px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  border: 1px solid rgba(139, 94, 60, 0.12);
+  border-radius: 30px;
+  background: rgba(252, 244, 232, 0.94);
+  box-shadow: 0 18px 40px rgba(180, 150, 110, 0.26);
+  backdrop-filter: blur(14px);
+  font-family: inherit;
+}
+
+@media (min-width: 769px) {
+  .m-tab-bar {
+    display: none !important;
+  }
+}
+
+.m-tab-bar a {
+  display: flex;
+  min-width: 58px;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--m-ink3);
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.m-tab-bar a:active {
+  transform: translateY(1px);
+}
+
+.m-tab-icon {
+  display: flex;
+  height: 38px;
+  width: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.m-tab-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.m-tab-bar a.active {
+  color: var(--m-accent);
+}
+
+.m-tab-bar a.active .m-tab-icon {
+  background: var(--m-accent);
+  color: #fff7ee;
+  box-shadow: 0 10px 20px rgba(139, 94, 60, 0.25);
+}
+
+.m-greeting {
+  font-family: "Noto Serif SC", serif;
+  color: var(--m-ink);
+  padding: 16px 0 8px;
+}
+
+.m-greeting h1 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.m-greeting p {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--m-ink2);
+}
+
+@keyframes m-slide-left {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes m-slide-right {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.m-slide-left {
+  animation: m-slide-left 0.3s ease-out;
+}
+
+.m-slide-right {
+  animation: m-slide-right 0.3s ease-out;
+}
+
+.m-scroll-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.m-scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
