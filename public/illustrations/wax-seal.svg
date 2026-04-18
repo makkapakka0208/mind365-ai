@@ -1,0 +1,31 @@
+<svg width="140" height="140" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="steelRing" x1="37" y1="31" x2="103" y2="109" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1ECE5" stop-opacity="0.72"/>
+      <stop offset="0.22" stop-color="#D6CEC5" stop-opacity="0.86"/>
+      <stop offset="0.52" stop-color="#ABA29A" stop-opacity="0.9"/>
+      <stop offset="0.8" stop-color="#E6E0D9" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#A49A91" stop-opacity="0.82"/>
+    </linearGradient>
+    <linearGradient id="steelLine" x1="46" y1="46" x2="94" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFEAE4" stop-opacity="0.64"/>
+      <stop offset="0.55" stop-color="#AAA099" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#E6E0D8" stop-opacity="0.58"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="70" cy="70" r="39" stroke="url(#steelRing)" stroke-width="1.9"/>
+  <circle cx="70" cy="70" r="34" stroke="#9C938B" stroke-opacity="0.36" stroke-width="0.95"/>
+  <circle cx="70" cy="70" r="28.5" stroke="#F4F0EB" stroke-opacity="0.22" stroke-width="0.85"/>
+
+  <path d="M41 70C41 54.011 54.011 41 70 41C85.989 41 99 54.011 99 70C99 85.989 85.989 99 70 99C59.392 99 50.116 93.28 45.015 84.769" stroke="url(#steelLine)" stroke-opacity="0.5" stroke-width="1.05" stroke-linecap="round"/>
+  <path d="M50 50.7C55.544 46.654 62.369 44.25 69.735 44.25" stroke="#F2EEE8" stroke-opacity="0.34" stroke-width="0.92" stroke-linecap="round"/>
+  <path d="M97.6 63.4C98.46 65.89 98.925 68.559 98.925 71.336" stroke="#8F867E" stroke-opacity="0.28" stroke-width="0.92" stroke-linecap="round"/>
+
+  <path d="M52 61H88" stroke="#9E958D" stroke-opacity="0.26" stroke-width="0.8"/>
+  <path d="M52 82H88" stroke="#F1ECE6" stroke-opacity="0.22" stroke-width="0.8"/>
+
+  <text x="70" y="56" text-anchor="middle" fill="#A39A92" fill-opacity="0.62" font-family="Georgia, 'Times New Roman', serif" font-size="7.8" letter-spacing="2.2">EX LIBRIS</text>
+  <text x="70" y="96" text-anchor="middle" fill="#9F958C" fill-opacity="0.56" font-family="Georgia, 'Times New Roman', serif" font-size="6.7" letter-spacing="1.6">PERSONAL COPY</text>
+  <text x="70" y="79" text-anchor="middle" fill="#8D847C" fill-opacity="0.52" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-style="italic">365</text>
+</svg>
