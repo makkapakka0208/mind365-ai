@@ -81,13 +81,34 @@ export function FeaturedBookPreview({ entry }: { entry: DailyLog }) {
             boxShadow: "0 22px 40px rgba(164, 137, 104, 0.12)",
           }}
         >
+          {/* Paper grain — multi-layer noise at varying pitches */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.028]"
+            className="pointer-events-none absolute inset-0"
             style={{
-              backgroundImage:
-                "radial-gradient(circle at 18% 24%, rgba(84,59,40,0.9) 0.7px, transparent 0.9px), radial-gradient(circle at 74% 32%, rgba(84,59,40,0.78) 0.7px, transparent 0.95px), radial-gradient(circle at 36% 74%, rgba(84,59,40,0.85) 0.65px, transparent 0.9px)",
-              backgroundSize: "18px 18px, 24px 24px, 30px 30px",
+              opacity: 0.048,
+              backgroundImage: [
+                "radial-gradient(circle at 12% 18%, rgba(84,59,40,0.95) 0.55px, transparent 0.75px)",
+                "radial-gradient(circle at 67% 38%, rgba(84,59,40,0.8)  0.6px,  transparent 0.8px)",
+                "radial-gradient(circle at 34% 72%, rgba(84,59,40,0.9)  0.5px,  transparent 0.7px)",
+                "radial-gradient(circle at 89% 62%, rgba(84,59,40,0.75) 0.6px,  transparent 0.82px)",
+                "radial-gradient(circle at 45% 14%, rgba(84,59,40,0.85) 0.45px, transparent 0.65px)",
+                "radial-gradient(circle at 78% 85%, rgba(84,59,40,0.88) 0.55px, transparent 0.75px)",
+                "radial-gradient(circle at 22% 54%, rgba(84,59,40,0.7)  0.5px,  transparent 0.7px)",
+                "radial-gradient(circle at 55% 47%, rgba(84,59,40,0.82) 0.45px, transparent 0.65px)",
+              ].join(", "),
+              backgroundSize: "14px 14px, 21px 21px, 27px 27px, 17px 17px, 33px 33px, 19px 19px, 25px 25px, 30px 30px",
+              mixBlendMode: "multiply",
+            }}
+          />
+          {/* Horizontal paper-fibre lines */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              opacity: 0.018,
+              backgroundImage: "repeating-linear-gradient(180deg, transparent 0px, transparent 3px, rgba(84,59,40,0.6) 3px, rgba(84,59,40,0.6) 3.4px)",
+              mixBlendMode: "multiply",
             }}
           />
           <div
@@ -193,44 +214,79 @@ export function FeaturedBookPreview({ entry }: { entry: DailyLog }) {
                 </div>
               </div>
 
-              <div className="flex justify-start">
-  <div
-    className="relative max-w-[240px] overflow-hidden rounded-[20px] border px-5 py-5 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
-    style={{
-      borderColor: "rgba(139,94,60,0.12)",
-      // 微微的暖色纸张渐变
-      background: "linear-gradient(135deg, rgba(253,250,245,0.95) 0%, rgba(240,235,225,0.85) 100%)",
-      // 增加白色内发光，模拟厚纸板的边缘光泽
-      boxShadow: "0 10px 24px rgba(122,79,43,0.06), inset 0 2px 0 rgba(255,255,255,0.7)",
-    }}
-  >
-  
+              {/* Stamp + wax-seal bookmark */}
+              <div className="flex items-stretch gap-3 transition-all duration-300 hover:-translate-y-0.5">
+                {/* Postage-stamp body */}
+                <div
+                  className="relative flex-1 px-4 py-4"
+                  style={{
+                    background: "linear-gradient(155deg, rgba(254,250,244,0.99) 0%, rgba(241,231,216,0.96) 100%)",
+                    borderRadius: "5px",
+                    border: "1px solid rgba(139,94,60,0.16)",
+                    outline: "1.5px dashed rgba(139,94,60,0.22)",
+                    outlineOffset: "3px",
+                    boxShadow: "0 3px 10px rgba(122,79,43,0.09), inset 0 1px 0 rgba(255,255,255,0.65)",
+                  }}
+                >
+                  {/* BOOKMARK label row */}
+                  <div
+                    className="flex items-center gap-1.5 text-[9px] tracking-[0.3em]"
+                    style={{ color: "rgba(139,94,60,0.45)" }}
+                  >
+                    <svg fill="currentColor" height="9" viewBox="0 0 8 10" width="8">
+                      <path d="M0 0H8V10L4 7.5L0 10V0Z" />
+                    </svg>
+                    BOOKMARK
+                  </div>
 
-    <div className="flex items-center gap-1.5 text-[10px] tracking-[0.28em]" style={{ color: "rgba(139,94,60,0.6)" }}>
-      {/* 纯代码画的一个迷你书签丝带小图标，增加精致感 */}
-      <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" className="opacity-80">
-        <path d="M0 0H8V10L4 7.5L0 10V0Z" />
-      </svg>
-      BOOKMARK
-    </div>
+                  {/* Main tag */}
+                  <p
+                    className="mt-2.5 text-[14px] font-semibold leading-snug"
+                    style={{
+                      color: "var(--m-ink)",
+                      fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
+                    }}
+                  >
+                    {getBookmarkText(entry)}
+                  </p>
 
-    <div className="mt-3.5">
-      <p 
-        className="text-[15px] font-medium leading-tight" 
-        style={{ color: "var(--m-ink)" }}
-      >
-        {getBookmarkText(entry)}
-      </p>
-      
-      <p 
-        className="mt-2 text-[12.5px] leading-relaxed tracking-wide" 
-        style={{ color: "rgba(139,94,60,0.65)" }}
-      >
-        {getBookmarkSubline(entry)}
-      </p>
-    </div>
-  </div>
-</div>
+                  {/* Subline */}
+                  <p
+                    className="mt-1.5 text-[11px] leading-relaxed"
+                    style={{ color: "rgba(139,94,60,0.60)" }}
+                  >
+                    {getBookmarkSubline(entry)}
+                  </p>
+                </div>
+
+                {/* Wax seal — 印章 */}
+                <div className="flex shrink-0 flex-col items-center justify-center gap-1">
+                  <div
+                    className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
+                    style={{
+                      background: "radial-gradient(circle at 36% 30%, #D4A875 0%, #9B6840 48%, #6E3F1E 100%)",
+                      boxShadow: "0 4px 12px rgba(122,79,43,0.42), inset 0 1.5px 3px rgba(230,180,120,0.24), inset 0 -1px 2px rgba(0,0,0,0.18)",
+                    }}
+                  >
+                    <span
+                      className="text-[11px] font-bold"
+                      style={{
+                        color: "rgba(255,245,228,0.92)",
+                        textShadow: "0 1px 2px rgba(0,0,0,0.22)",
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {entry.mood}/10
+                    </span>
+                  </div>
+                  <p
+                    className="text-[9px] uppercase tracking-[0.12em]"
+                    style={{ color: "rgba(139,94,60,0.38)" }}
+                  >
+                    mood
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div
