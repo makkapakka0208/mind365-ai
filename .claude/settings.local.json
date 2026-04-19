@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(python -c \"import PIL; print\\(PIL.__version__\\)\")",
+      "Bash(pip install *)",
+      "Bash(python generate_kraft_texture.py)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
