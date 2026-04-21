@@ -5,7 +5,10 @@
       "Bash(python -c \"import PIL; print\\(PIL.__version__\\)\")",
       "Bash(pip install *)",
       "Bash(python generate_kraft_texture.py)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(netstat -ano)",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(findstr \":3000\\\\|:3001\\\\|:3002\\\\|:3003\")"
     ]
   }
 }

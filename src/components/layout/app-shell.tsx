@@ -21,7 +21,6 @@ const PATH_GROUPS: Record<string, string[]> = {
   "/notes": ["/notes"],
   "/review": ["/review", "/weekly-review", "/monthly-review", "/yearly-review", "/review-history"],
   "/analytics": ["/analytics"],
-  "/policies": ["/policies"],
   "/life-path": ["/life-path"],
   "/settings": ["/settings", "/me"],
 };
@@ -133,7 +132,16 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* ── Main Content Area ── */}
         <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden md:py-5">
-          <main className="m-scroll-hidden h-full flex-1 overflow-y-auto rounded-2xl bg-white/50 p-4 pb-28 sm:p-6 md:p-8">
+          <main
+            className="m-scroll-hidden h-full flex-1 overflow-y-auto rounded-2xl p-4 pb-28 sm:p-6 md:p-8"
+            style={{
+              background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
+              backgroundImage: [
+                "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
+                "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E\")",
+              ].join(", "),
+            }}
+          >
             {children}
           </main>
         </div>
