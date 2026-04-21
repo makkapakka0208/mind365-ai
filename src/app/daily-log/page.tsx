@@ -1,9 +1,10 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, NotebookPen, TrendingDown, TrendingUp } from "lucide-react";
+import { CalendarDays, CheckCircle2, NotebookPen, Pencil, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
+import { MonthCalendarThumb } from "@/components/daily-log/month-calendar-thumb";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Illustration } from "@/components/ui/illustration";
@@ -17,7 +18,7 @@ import { sortLogsByDate } from "@/lib/analytics";
 import { formatDate, getTodayISODate } from "@/lib/date";
 import { calculateAlignmentScoreWeighted, fuseActions } from "@/lib/life-path";
 import { detectActionsByRules } from "@/lib/life-path-rules";
-import { saveDailyLog } from "@/lib/storage";
+import { saveDailyLog, updateDailyLog } from "@/lib/storage";
 import { useDailyLogsStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
 import type { FusedAction } from "@/types/life-path";
@@ -45,7 +46,6 @@ function AlignmentCard({
       className="flex flex-wrap items-center gap-4 rounded-xl p-4"
       style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
     >
-      {/* Mini ring */}
       <svg height={68} viewBox="0 0 68 68" width={68} className="shrink-0">
         <circle cx="34" cy="34" fill="none" r={r} stroke="var(--m-rule)" strokeWidth="7" />
         <circle
@@ -100,7 +100,10 @@ function AlignmentCard({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DailyLogPage() {
-  const [date, setDate] = useState(getTodayISODate());
+  const todayIso = getTodayISODate();
+  const [viewingDate, setViewingDate] = useState(todayIso);
+  const [editMode, setEditMode] = useState(true);
+
   const [mood, setMood] = useState(7);
   const [thoughts, setThoughts] = useState("");
   const [studyHours, setStudyHours] = useState(0);
@@ -115,148 +118,303 @@ export default function DailyLogPage() {
     contributions: FusedAction[];
   } | null>(null);
 
-  const logs = sortLogsByDate(useDailyLogsStore(), "desc");
+  const allLogs = useDailyLogsStore();
+  const logs = sortLogsByDate(allLogs, "desc");
   const recentLogs = logs.slice(0, 4);
+
+  const existingLog = useMemo(
+    () => allLogs.find((l) => l.date === viewingDate) ?? null,
+    [allLogs, viewingDate],
+  );
+
+  const isToday = viewingDate === todayIso;
+  const isFuture = viewingDate > todayIso;
+
+  // Mode: today-edit | past-view | past-empty | edit (existing past entering edit mode)
+  const mode: "edit" | "view" | "empty" | "future" = isFuture
+    ? "future"
+    : isToday
+      ? "edit"
+      : existingLog
+        ? editMode
+          ? "edit"
+          : "view"
+        : "empty";
+
+  // Repopulate form when switching date; reset edit flag.
+  useEffect(() => {
+    setMessage("");
+    setAlignment(null);
+    if (existingLog) {
+      setMood(existingLog.mood);
+      setThoughts(existingLog.thoughts);
+      setStudyHours(existingLog.studyHours);
+      setTags(existingLog.tags.join(", "));
+      setImages(existingLog.images ?? []);
+    } else {
+      setMood(7);
+      setThoughts("");
+      setStudyHours(0);
+      setTags("");
+      setImages([]);
+    }
+    setEditMode(viewingDate === todayIso);
+  }, [viewingDate, existingLog]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isFuture) return;
     setIsSaving(true);
     setMessage("");
     setAlignment(null);
 
-    const entry: DailyLog = {
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      date,
+    const parsedTags = tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    const baseFields = {
+      date: viewingDate,
       mood,
       thoughts: thoughts.trim(),
-      reading: "",
+      reading: existingLog?.reading ?? "",
       studyHours: Number.isFinite(studyHours) ? Math.max(0, studyHours) : 0,
-      tags: tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
+      tags: parsedTags,
       images,
     };
 
-    const result = await saveDailyLog(entry);
+    let result;
+    if (existingLog) {
+      result = await updateDailyLog({
+        ...existingLog,
+        ...baseFields,
+      });
+    } else {
+      const entry: DailyLog = {
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        ...baseFields,
+      };
+      result = await saveDailyLog(entry);
+    }
 
-    // Auto-generate alignment score from the journal content
     if (thoughts.trim()) {
       const rules = detectActionsByRules(thoughts.trim());
       const fused = fuseActions(rules, []);
       setAlignment(calculateAlignmentScoreWeighted(fused));
     }
 
-    setThoughts("");
-    setStudyHours(0);
-    setTags("");
-    setImages([]);
     setMessage(result.synced ? "已保存，并同步到云端。" : "已保存到本地缓存，云端同步稍后重试。");
     setIsSaving(false);
+
+    // After saving a past date, drop back to view mode.
+    if (!isToday) setEditMode(false);
   };
+
+  const pageTitle = isToday
+    ? "写日记"
+    : isFuture
+      ? "未来的日子"
+      : existingLog
+        ? formatDate(viewingDate)
+        : `补写 ${formatDate(viewingDate)}`;
+
+  const pageDesc = isToday
+    ? "用最短的路径记录今天的心境、思考和学习投入。"
+    : isFuture
+      ? "还没到那一天，让生活自己翻开它。"
+      : existingLog
+        ? (editMode ? "正在编辑这一天的日记。" : "翻看过去写下的字句。")
+        : "这一天你还没写日记，现在补上也不迟。";
 
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="用最短的路径记录今天的心境、思考和学习投入。阅读积累现在统一记录到金句页。"
-        eyebrow="写日记"
+        description={pageDesc}
+        eyebrow="心境随笔"
         icon={NotebookPen}
-        title="写日记"
+        title={pageTitle}
       />
 
+      {/* 月历缩略图 */}
+      <StaggerItem index={0}>
+        <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
+      </StaggerItem>
+
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-        <StaggerItem index={0}>
+        <StaggerItem index={1}>
           <Panel className="p-5 sm:p-6 lg:p-7" interactive>
-            <form className="grid gap-5" onSubmit={onSubmit}>
-              <div className="grid gap-5 lg:grid-cols-2">
-                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  日期
-                  <Input onChange={(event) => setDate(event.target.value)} type="date" value={date} />
-                </label>
-
-                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  学习时长
-                  <Input
-                    min={0}
-                    onChange={(event) => setStudyHours(Number(event.target.value))}
-                    step={0.5}
-                    type="number"
-                    value={studyHours}
-                  />
-                </label>
+            {mode === "future" ? (
+              <div className="py-16 text-center text-sm leading-7" style={{ color: "var(--m-ink3)" }}>
+                未来的日子还没有到来。
+                <br />
+                回到 <button className="underline" onClick={() => setViewingDate(todayIso)} style={{ color: "var(--m-accent)" }} type="button">今天</button> 继续书写吧。
               </div>
-
-              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                情绪分数 ({mood}/10)
-                <input
-                  className="h-2 w-full cursor-pointer appearance-none rounded-full"
-                  max={10}
-                  min={1}
-                  onChange={(event) => setMood(Number(event.target.value))}
+            ) : mode === "empty" ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
+                <CalendarDays size={36} style={{ color: "var(--m-ink3)" }} />
+                <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+                  这一天你没有写日记。
+                  <br />
+                  若还记得那天发生了什么，也可以现在补上。
+                </p>
+                <Button onClick={() => setEditMode(true)} size="lg" type="button" variant="primary">
+                  补写这一天
+                </Button>
+              </div>
+            ) : mode === "view" && existingLog ? (
+              <div className="grid gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm" style={{ color: "var(--m-ink3)" }}>
+                    {formatDate(existingLog.date)} · 情绪 {existingLog.mood}/10 · 学习 {existingLog.studyHours.toFixed(1)} 小时
+                  </div>
+                  <Button onClick={() => setEditMode(true)} size="sm" type="button" variant="ghost">
+                    <Pencil className="mr-1.5 inline" size={14} />
+                    编辑
+                  </Button>
+                </div>
+                <div
+                  className="whitespace-pre-wrap rounded-xl p-4 text-[15px] leading-8"
                   style={{
                     background: "var(--m-base)",
                     border: "1px solid var(--m-rule)",
-                    accentColor: "var(--m-accent)",
+                    color: "var(--m-ink)",
+                    fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
                   }}
-                  type="range"
-                  value={mood}
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                今日日记
-                <Textarea
-                  onChange={(event) => setThoughts(event.target.value)}
-                  placeholder="写下今天最值得记住的一刻..."
-                  value={thoughts}
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                标签（逗号分隔）
-                <Input
-                  onChange={(event) => setTags(event.target.value)}
-                  placeholder="专注, 成长, 平静"
-                  type="text"
-                  value={tags}
-                />
-              </label>
-
-              <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                插入图片
-                <ImageUploader images={images} onChange={setImages} />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <Button disabled={isSaving} size="lg" type="submit" variant="primary">
-                  {isSaving ? "保存中..." : "保存"}
-                </Button>
-                <Link className="text-sm" href="/library" style={{ color: "var(--m-accent)" }}>
-                  去记录书籍摘抄
-                </Link>
-                {message ? (
-                  <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--m-success)" }}>
-                    <CheckCircle2 size={16} />
-                    {message}
-                  </span>
+                >
+                  {existingLog.thoughts || "（这一天只留下了一段安静的空白）"}
+                </div>
+                {existingLog.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {existingLog.tags.map((tag) => (
+                      <span
+                        className="rounded-full px-2.5 py-0.5 text-xs"
+                        key={tag}
+                        style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink2)" }}
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                {existingLog.images && existingLog.images.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {existingLog.images.map((src, i) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img alt="" className="aspect-square w-full rounded-lg object-cover" key={i} src={src} />
+                    ))}
+                  </div>
                 ) : null}
               </div>
+            ) : (
+              <form className="grid gap-5" onSubmit={onSubmit}>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                    日期
+                    <div
+                      className="rounded-lg px-3 py-2 text-sm"
+                      style={{
+                        background: "var(--m-base)",
+                        border: "1px solid var(--m-rule)",
+                        color: "var(--m-ink2)",
+                      }}
+                    >
+                      {formatDate(viewingDate)}
+                    </div>
+                  </div>
 
-              {/* Auto-generated alignment score */}
-              {alignment && (
-                <AlignmentCard
-                  contributions={alignment.contributions}
-                  negativeDelta={alignment.negativeDelta}
-                  positiveDelta={alignment.positiveDelta}
-                  score={alignment.score}
-                />
-              )}
-            </form>
+                  <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                    学习时长
+                    <Input
+                      min={0}
+                      onChange={(event) => setStudyHours(Number(event.target.value))}
+                      step={0.5}
+                      type="number"
+                      value={studyHours}
+                    />
+                  </label>
+                </div>
+
+                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                  情绪分数 ({mood}/10)
+                  <input
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full"
+                    max={10}
+                    min={1}
+                    onChange={(event) => setMood(Number(event.target.value))}
+                    style={{
+                      background: "var(--m-base)",
+                      border: "1px solid var(--m-rule)",
+                      accentColor: "var(--m-accent)",
+                    }}
+                    type="range"
+                    value={mood}
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                  今日日记
+                  <Textarea
+                    onChange={(event) => setThoughts(event.target.value)}
+                    placeholder="写下今天最值得记住的一刻..."
+                    value={thoughts}
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                  标签（逗号分隔）
+                  <Input
+                    onChange={(event) => setTags(event.target.value)}
+                    placeholder="专注, 成长, 平静"
+                    type="text"
+                    value={tags}
+                  />
+                </label>
+
+                <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                  插入图片
+                  <ImageUploader images={images} onChange={setImages} />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button disabled={isSaving} size="lg" type="submit" variant="primary">
+                    {isSaving ? "保存中..." : existingLog ? "更新" : "保存"}
+                  </Button>
+                  {!isToday && existingLog ? (
+                    <button
+                      className="text-sm"
+                      onClick={() => setEditMode(false)}
+                      style={{ color: "var(--m-ink3)" }}
+                      type="button"
+                    >
+                      取消
+                    </button>
+                  ) : null}
+                  <Link className="text-sm" href="/library" style={{ color: "var(--m-accent)" }}>
+                    去记录书籍摘抄
+                  </Link>
+                  {message ? (
+                    <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--m-success)" }}>
+                      <CheckCircle2 size={16} />
+                      {message}
+                    </span>
+                  ) : null}
+                </div>
+
+                {alignment && (
+                  <AlignmentCard
+                    contributions={alignment.contributions}
+                    negativeDelta={alignment.negativeDelta}
+                    positiveDelta={alignment.positiveDelta}
+                    score={alignment.score}
+                  />
+                )}
+              </form>
+            )}
           </Panel>
         </StaggerItem>
 
-        <StaggerItem index={1} className="h-full">
+        <StaggerItem index={2} className="h-full">
           <div className="flex h-full flex-col gap-6">
             <Panel className="flex flex-1 flex-col overflow-hidden p-6" interactive>
               <div>
@@ -295,7 +453,7 @@ export default function DailyLogPage() {
         </StaggerItem>
       </div>
 
-      <StaggerItem index={2}>
+      <StaggerItem index={3}>
         <Panel className="p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
@@ -318,7 +476,11 @@ export default function DailyLogPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {recentLogs.map((log, index) => (
                 <StaggerItem className="h-full" index={index} key={log.id}>
-                  <Link className="block h-full" href={`/journal?id=${log.id}`}>
+                  <button
+                    className="block h-full w-full text-left"
+                    onClick={() => setViewingDate(log.date)}
+                    type="button"
+                  >
                     <div
                       className="h-full rounded-2xl p-4 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
                       style={{
@@ -337,7 +499,7 @@ export default function DailyLogPage() {
                         学习 {log.studyHours.toFixed(1)} 小时
                       </p>
                     </div>
-                  </Link>
+                  </button>
                 </StaggerItem>
               ))}
             </div>
