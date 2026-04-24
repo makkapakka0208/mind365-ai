@@ -677,6 +677,81 @@ export default function HomePage() {
               <MobileYearWidget />
             </div>
           </div>
+
+          {/* 4 stat cards — mirrors the desktop dashboard row, stacked 2×2 on mobile */}
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <DashboardCard
+              action={
+                streak === 0 ? (
+                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
+                    从今天开始点亮热力图
+                  </Link>
+                ) : null
+              }
+              description="日子被点亮的瞬间，都藏在这些深浅不一的色块里。"
+              eyebrow="STREAK"
+              icon={Flame}
+              title="连续记录"
+              unit="天"
+              value={String(streak)}
+            >
+              <HeatmapMini logs={logs} />
+            </DashboardCard>
+
+            <DashboardCard
+              action={
+                weeklySummary.entries === 0 ? (
+                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
+                    写下今天的情绪切片
+                  </Link>
+                ) : null
+              }
+              description="感知心里的天气。无论晴雨，每一个瞬间的感受都值得被珍藏。"
+              eyebrow="MOOD"
+              icon={Sparkles}
+              title="本周情绪"
+              unit="/10"
+              value={weeklySummary.entries ? weeklySummary.averageMood.toFixed(1) : "--"}
+            >
+              <MoodSparkline values={moodSeries} />
+            </DashboardCard>
+
+            <DashboardCard
+              action={
+                weeklySummary.totalStudyHours === 0 ? (
+                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
+                    给今天记一点学习时间
+                  </Link>
+                ) : null
+              }
+              description="推开外界的嘈杂，在方寸之间，找回掌控生活的主动权。"
+              eyebrow="FOCUS"
+              icon={NotebookPen}
+              title="学习时长"
+              unit="h"
+              value={weeklySummary.totalStudyHours.toFixed(1)}
+            >
+              <ProgressRing current={weeklySummary.totalStudyHours} label="专注进度" target={10} />
+            </DashboardCard>
+
+            <DashboardCard
+              action={
+                weeklySummary.totalReadingHours === 0 ? (
+                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
+                    记录一次阅读片刻
+                  </Link>
+                ) : null
+              }
+              description="哪怕只是片刻的沉浸，也能在灵魂深处唤醒新的共鸣。"
+              eyebrow="READING"
+              icon={BookOpen}
+              title="阅读时长"
+              unit="h"
+              value={weeklySummary.totalReadingHours.toFixed(1)}
+            >
+              <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={7} />
+            </DashboardCard>
+          </div>
         </section>
 
         <section className="hidden md:block space-y-6">
