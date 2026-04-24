@@ -8,7 +8,9 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(netstat -ano)",
       "Bash(findstr \"LISTENING\")",
-      "Bash(findstr \":3000\\\\|:3001\\\\|:3002\\\\|:3003\")"
+      "Bash(findstr \":3000\\\\|:3001\\\\|:3002\\\\|:3003\")",
+      "Bash(xargs grep *)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }
