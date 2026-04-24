@@ -21,7 +21,7 @@ const PATH_GROUPS: Record<string, string[]> = {
   "/notes": ["/notes"],
   "/review": ["/review", "/weekly-review", "/monthly-review", "/yearly-review", "/review-history"],
   "/analytics": ["/analytics"],
-  "/life-path": ["/life-path"],
+  "/life-path": ["/life-path", "/week-plan"],
   "/settings": ["/settings", "/me"],
 };
 

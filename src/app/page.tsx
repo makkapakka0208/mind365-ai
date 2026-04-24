@@ -428,6 +428,109 @@ function BookPreview({ entry }: { entry: DailyLog }) {
   );
 }
 
+const SERIF = '"Noto Serif SC", "Songti SC", serif';
+
+function useYearProgress() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const tomorrow = new Date(now);
+    tomorrow.setHours(24, 0, 5, 0);
+    const ms = tomorrow.getTime() - Date.now();
+    const t = setTimeout(() => setNow(new Date()), Math.max(1000, ms));
+    return () => clearTimeout(t);
+  }, [now]);
+  const year = now.getFullYear();
+  const start = new Date(year, 0, 1);
+  const nextStart = new Date(year + 1, 0, 1);
+  const DAY = 86400000;
+  const daysInYear = Math.round((nextStart.getTime() - start.getTime()) / DAY);
+  const daysPassed = Math.max(0, Math.min(daysInYear, Math.floor((now.getTime() - start.getTime()) / DAY) + 1));
+  const daysRemaining = Math.max(0, daysInYear - daysPassed);
+  const pct = Math.round((daysPassed / daysInYear) * 100);
+  return { year, daysPassed, daysRemaining, pct };
+}
+
+function MobileYearWidget() {
+  const { year, daysPassed, daysRemaining, pct } = useYearProgress();
+
+  // Arc: semicircle left→top→right, dot at pct position
+  const cx = 52, cy = 52, r = 38;
+  const angleDeg = 180 + (pct / 100) * 180;
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const dotX = cx + r * Math.cos(angleRad);
+  const dotY = cy + r * Math.sin(angleRad);
+  const lx = cx - r, ly = cy, rx = cx + r, ry = cy;
+  const largeArc = pct > 50 ? 1 : 0;
+
+  return (
+    <div
+      className="rounded-[24px] p-5"
+      style={{
+        background: "linear-gradient(180deg, rgba(255,250,242,0.96), rgba(240,230,211,0.88))",
+        border: "1px solid rgba(139,94,60,0.1)",
+        boxShadow: "0 8px 24px rgba(180,150,110,0.12)",
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        {/* Left: numbers */}
+        <div className="flex-1">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[2.2rem] font-semibold leading-none tracking-tight" style={{ color: "var(--m-ink)", fontFamily: SERIF }}>
+              {year}
+            </span>
+            <span className="text-sm" style={{ color: "var(--m-ink3)" }}>年</span>
+          </div>
+          <div className="mt-3 flex items-center gap-4">
+            <div>
+              <span className="block text-xl font-semibold" style={{ color: "var(--m-accent)", fontFamily: SERIF }}>{daysPassed}</span>
+              <span className="mt-0.5 block text-[11px]" style={{ color: "var(--m-ink3)" }}>天已过</span>
+            </div>
+            <div className="h-6 w-px" style={{ background: "rgba(139,94,60,0.14)" }} />
+            <div>
+              <span className="block text-xl font-light" style={{ color: "var(--m-ink)", fontFamily: SERIF }}>{daysRemaining}</span>
+              <span className="mt-0.5 block text-[11px]" style={{ color: "var(--m-ink3)" }}>天未至</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: arc SVG */}
+        <svg aria-hidden fill="none" style={{ width: 88, flexShrink: 0 }} viewBox="8 12 88 46" xmlns="http://www.w3.org/2000/svg">
+          <path d={`M ${lx},${ly} A ${r},${r} 0 0 0 ${rx},${ry}`}
+            stroke="rgba(139,94,60,0.12)" strokeLinecap="round" strokeWidth="2.5" />
+          {pct > 1 && (
+            <path d={`M ${lx},${ly} A ${r},${r} 0 ${largeArc} 0 ${dotX},${dotY}`}
+              stroke="rgba(139,94,60,0.5)" strokeLinecap="round" strokeWidth="2.5" />
+          )}
+          <circle cx={dotX} cy={dotY} fill="var(--m-accent)" opacity="0.8" r="5" />
+          <circle cx={dotX} cy={dotY} fill="rgba(255,250,242,0.9)" r="2.2" />
+          <text dominantBaseline="middle" fill="rgba(139,94,60,0.45)" fontFamily="system-ui"
+            fontSize="10" textAnchor="middle" x={cx} y={cy - r + 16}>{pct}%</text>
+        </svg>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mt-4">
+        <div className="h-px w-full overflow-hidden" style={{ background: "rgba(139,94,60,0.1)" }}>
+          <div className="h-full transition-all duration-1000"
+            style={{ width: `${pct}%`, background: "rgba(139,94,60,0.5)" }} />
+        </div>
+        <div className="mt-1.5 flex justify-between">
+          <span className="text-[10px]" style={{ color: "rgba(139,94,60,0.4)" }}>1 月</span>
+          <span className="text-[10px]" style={{ color: "rgba(139,94,60,0.4)" }}>已走完 {pct}%</span>
+          <span className="text-[10px]" style={{ color: "rgba(139,94,60,0.4)" }}>12 月</span>
+        </div>
+      </div>
+
+      {/* Link */}
+      <div className="mt-4 border-t border-dashed pt-3" style={{ borderColor: "rgba(139,94,60,0.1)" }}>
+        <Link className="text-xs" href="/timeline" style={{ color: "var(--m-accent)" }}>
+          翻开旧日记忆 →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const logs = useDailyLogsStore();
   const quotes = useQuotesStore();
@@ -557,127 +660,21 @@ export default function HomePage() {
               </div>
             </Link>
 
-            <div className="mt-5 flex items-center justify-between gap-3">
-              <div className="inline-flex items-center gap-2 text-sm sm:text-base" style={{ color: "var(--m-accent)" }}>
-                <Flame size={18} />
-                <span>已连续记录 {streak} 天</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {recentLogs.length === 0 ? (
-                  <span className="text-xs" style={{ color: "var(--m-ink3)" }}>
-                    等待第一条记录
-                  </span>
-                ) : (
-                  recentLogs.map((log, index) => (
-                    <button
-                      aria-label={`翻到 ${log.date}`}
-                      className="h-2.5 rounded-full transition-all"
-                      key={log.id}
-                      onClick={() => setActiveIndex(index)}
-                      style={{
-                        width: index === safeIndex ? 18 : 8,
-                        background: index === safeIndex ? "var(--m-accent)" : "rgba(139,94,60,0.28)",
-                      }}
-                      type="button"
-                    />
-                  ))
-                )}
-              </div>
+            <div className="mt-5 flex items-center gap-2" style={{ color: "var(--m-accent)" }}>
+              <Flame size={18} />
+              <span className="text-sm sm:text-base">已连续记录 {streak} 天</span>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-5">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-sm font-semibold tracking-[0.12em]" style={{ color: "var(--m-ink2)" }}>
-                  历史翻阅
+                  时间摆
                 </div>
-                {activeEntry ? (
-                  <div className="text-xs" style={{ color: "var(--m-ink3)" }}>
-                    点击书页查看详情
-                  </div>
-                ) : null}
+                <Link className="text-xs" href="/timeline" style={{ color: "var(--m-ink3)" }}>
+                  去年今日 →
+                </Link>
               </div>
-
-              <div
-                className="relative rounded-[30px] px-4 py-4"
-                style={{
-                  background: "linear-gradient(180deg, rgba(255,250,242,0.96), rgba(240,230,211,0.88))",
-                  border: "1px solid rgba(139,94,60,0.1)",
-                  boxShadow: "0 20px 36px rgba(180,150,110,0.16)",
-                }}
-              >
-                {activeEntry ? (
-                  <>
-                    <button
-                      aria-label="上一页"
-                      className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full"
-                      onClick={() => turnPage("prev")}
-                      style={{
-                        background: "rgba(255,248,238,0.92)",
-                        border: "1px solid rgba(139,94,60,0.12)",
-                        boxShadow: "var(--m-shadow-out)",
-                      }}
-                      type="button"
-                    >
-                      <ChevronLeft size={18} style={{ color: "var(--m-accent)" }} />
-                    </button>
-
-                    <button
-                      aria-label="下一页"
-                      className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full"
-                      onClick={() => turnPage("next")}
-                      style={{
-                        background: "rgba(255,248,238,0.92)",
-                        border: "1px solid rgba(139,94,60,0.12)",
-                        boxShadow: "var(--m-shadow-out)",
-                      }}
-                      type="button"
-                    >
-                      <ChevronRight size={18} style={{ color: "var(--m-accent)" }} />
-                    </button>
-
-                    <FeaturedBookPreview entry={activeEntry} />
-
-                    <div className="mt-3 flex items-center justify-center gap-2">
-                      {recentLogs.map((log, index) => (
-                        <button
-                          aria-label={`底部分页 ${log.date}`}
-                          className="h-2 rounded-full transition-all"
-                          key={`${log.id}-bottom`}
-                          onClick={() => setActiveIndex(index)}
-                          style={{
-                            width: index === safeIndex ? 22 : 8,
-                            background: index === safeIndex ? "var(--m-accent)" : "rgba(139,94,60,0.2)",
-                          }}
-                          type="button"
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="rounded-[26px] border border-[rgba(139,94,60,0.1)] bg-[rgba(255,250,242,0.82)] px-6 py-10 text-center">
-                    <div
-                      className="mx-auto flex h-14 w-14 items-center justify-center rounded-[18px]"
-                      style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
-                    >
-                      <NotebookPen size={24} />
-                    </div>
-                    <div className="mt-4 text-xl font-semibold" style={{ color: "var(--m-ink)" }}>
-                      你的翻书区还空着
-                    </div>
-                    <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                      写下第一条记录后，这里会自动生成可以翻阅的历史书页。
-                    </p>
-                    <Link
-                      className="mt-5 inline-flex items-center rounded-full px-4 py-2 text-sm"
-                      href="/record"
-                      style={{ background: "var(--m-accent)", color: "#fff7ee" }}
-                    >
-                      现在去记录
-                    </Link>
-                  </div>
-                )}
-              </div>
+              <MobileYearWidget />
             </div>
           </div>
         </section>
@@ -912,13 +909,13 @@ export default function HomePage() {
             <div className="flex flex-wrap items-end justify-between gap-4 border-b border-dashed pb-5" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
               <div className="max-w-3xl">
                 <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                  TRENDS 路 长期趋势
+                  TRENDS · 长期趋势
                 </p>
                 <h3 className="mt-2 text-2xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>
-                  成长概览里的趋势视图
+                  长期趋势概览
                 </h3>
                 <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                  原来数据看板里的长期折线图和趋势图已经并入这里，打开成长概览就能同时看到记录节奏、情绪变化和投入曲线。
+                  将情绪波动、专注投入与阅读节奏整合为连续曲线，帮助你在时间跨度中发现规律、识别转折，看见真实的成长轨迹。
                 </p>
               </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Bot, CalendarDays, ChevronDown, ChevronUp, Compass, Flame, Loader2, Map, Pencil, Plus, RefreshCw, Sparkles, Target, Trash2, Zap } from "lucide-react";
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -99,29 +100,6 @@ function PhaseRow({ phase }: { phase: GoalPhase }) {
           </ul>
         )}
       </div>
-    </div>
-  );
-}
-
-function WeeklyCard({ plan }: { plan: WeeklyPlan }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-start gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--m-ink3)" }}>本周重点</span>
-        <span className="text-xs font-medium" style={{ color: "var(--m-ink)" }}>{plan.focus}</span>
-      </div>
-      <ul className="space-y-1">
-        {plan.actions.map((a, i) => (
-          <li className="flex gap-1.5 text-xs" key={i} style={{ color: "var(--m-ink2)" }}>
-            <span style={{ color: "var(--m-accent)" }}>{i + 1}.</span>{a}
-          </li>
-        ))}
-      </ul>
-      {plan.reminder && (
-        <p className="rounded-lg px-2.5 py-1.5 text-xs italic" style={{ background: "rgba(212,164,42,0.08)", color: "#7A5F00" }}>
-          ⚠ {plan.reminder}
-        </p>
-      )}
     </div>
   );
 }
@@ -254,34 +232,30 @@ function MentorSection({
         )}
       </div>
 
-      {/* ── Weekly plan ── */}
+      {/* ── Weekly plan → dedicated page ── */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--m-ink2)" }}>
             <CalendarDays size={12} style={{ color: "#4A9B6F" }} />
             本周计划
           </span>
-          <button
-            className="flex items-center gap-1 text-[11px] hover:opacity-70 disabled:opacity-40"
-            disabled={busy}
-            onClick={() => void act("weekly")}
-            type="button"
-            style={{ color: weeklyStale ? "var(--m-accent)" : "var(--m-ink3)" }}
+          <Link
+            className="flex items-center gap-1 text-[11px] hover:opacity-70"
+            href="/week-plan"
+            style={{ color: "var(--m-accent)" }}
           >
-            {isLoading("weekly")
-              ? <><Loader2 className="animate-spin" size={11} />生成中...</>
-              : plan.weeklyPlan
-                ? <><RefreshCw size={11} />更新</>
-                : <><Sparkles size={11} />生成周计划</>}
-          </button>
+            <Sparkles size={11} />
+            打开周计划
+          </Link>
         </div>
-        {plan.weeklyPlan
-          ? (
-            <div className="rounded-2xl p-3" style={{ boxShadow: "var(--m-shadow-in)", background: "var(--m-base)" }}>
-              <WeeklyCard plan={plan.weeklyPlan} />
-            </div>
-          )
-          : <p className="text-xs" style={{ color: "var(--m-ink3)" }}>每周一次 · 点击生成本周行动计划</p>}
+        <Link
+          className="block rounded-2xl px-3 py-2.5 text-xs transition-colors hover:bg-black/5"
+          href="/week-plan"
+          style={{ boxShadow: "var(--m-shadow-in)", background: "var(--m-base)", color: "var(--m-ink2)" }}
+        >
+          <span style={{ color: "var(--m-accent)" }}>→ </span>
+          周计划已升级为独立的待办管理页面，支持按目标分组、AI 生成行动清单、逐条勾选。
+        </Link>
       </div>
 
       {/* ── Daily suggestion ── */}
