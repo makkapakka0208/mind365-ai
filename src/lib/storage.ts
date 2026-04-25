@@ -153,6 +153,11 @@ function parseQuote(value: unknown): Quote | null {
       ? Math.max(0, value.readingHours)
       : 0;
 
+  const themeCategory =
+    typeof value.themeCategory === "string" && value.themeCategory.trim()
+      ? value.themeCategory.trim()
+      : undefined;
+
   return {
     id: value.id,
     createdAt,
@@ -161,6 +166,7 @@ function parseQuote(value: unknown): Quote | null {
     book: value.book,
     readingHours,
     tags: value.tags,
+    themeCategory,
   };
 }
 
@@ -551,6 +557,20 @@ export async function saveQuote(quote: Quote): Promise<Quote[]> {
     return getQuotes();
   }
   const updated = normalizeQuotes([normalized, ...getQuotes()]);
+  setQuotes(updated);
+  try { await upsertRemoteQuotes([normalized], getSettingsForSync()); } catch {}
+  return updated;
+}
+
+/** Update an existing quote in place, preserving createdAt order. */
+export async function updateQuote(quote: Quote): Promise<Quote[]> {
+  const normalized = parseQuote(quote);
+  if (!normalized) {
+    return getQuotes();
+  }
+  const updated = normalizeQuotes(
+    getQuotes().map((q) => (q.id === normalized.id ? normalized : q)),
+  );
   setQuotes(updated);
   try { await upsertRemoteQuotes([normalized], getSettingsForSync()); } catch {}
   return updated;

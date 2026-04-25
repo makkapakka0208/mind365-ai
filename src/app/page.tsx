@@ -12,15 +12,12 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { BarChartCard } from "@/components/charts/bar-chart-card";
-import { LineChartCard } from "@/components/charts/line-chart-card";
+import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
 import { Button } from "@/components/ui/button";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import {
-  buildChartSeries,
-  buildReadingChartSeries,
   computeSummary,
   getCurrentMonthLogs,
   getCurrentMonthQuotes,
@@ -30,6 +27,15 @@ import {
   sortLogsByDate,
 } from "@/lib/analytics";
 import { getTodayISODate, parseISODate, toISODate } from "@/lib/date";
+import {
+  getAllTimeBestStreak,
+  getFocusInsight,
+  getMonthEndPrompt,
+  getMoodInsight,
+  getReadingInsight,
+  getReviewBadge,
+  getStreakInsight,
+} from "@/lib/home-insights";
 import { useDailyLogsStore, useQuotesStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
 
@@ -552,9 +558,15 @@ export default function HomePage() {
   const monthlySummary = useMemo(() => computeSummary(monthLogs, monthQuotes), [monthLogs, monthQuotes]);
   const streak = useMemo(() => getConsecutiveStreak(logs), [logs]);
   const moodSeries = useMemo(() => buildMoodSeries(weeklyLogs), [weeklyLogs]);
-  const moodTrendSeries = useMemo(() => buildChartSeries(logs, (log) => log.mood), [logs]);
-  const studyTrendSeries = useMemo(() => buildChartSeries(logs, (log) => log.studyHours), [logs]);
-  const readingTrendSeries = useMemo(() => buildReadingChartSeries(logs, quotes), [logs, quotes]);
+
+  // ── Smart factual insights replacing the previous poetic descriptions
+  const allTimeBest = useMemo(() => getAllTimeBestStreak(logs), [logs]);
+  const streakInsight = useMemo(() => getStreakInsight(logs, streak, allTimeBest), [logs, streak, allTimeBest]);
+  const moodInsight = useMemo(() => getMoodInsight(logs), [logs]);
+  const focusInsight = useMemo(() => getFocusInsight(logs), [logs]);
+  const readingInsight = useMemo(() => getReadingInsight(logs, quotes), [logs, quotes]);
+  const reviewBadge = useMemo(() => getReviewBadge(now), [now]);
+  const monthEndPrompt = useMemo(() => getMonthEndPrompt(logs, 20, now), [logs, now]);
   const safeIndex = recentLogs.length === 0 ? 0 : Math.min(activeIndex, recentLogs.length - 1);
   const activeEntry = recentLogs[safeIndex] ?? null;
 
@@ -688,7 +700,7 @@ export default function HomePage() {
                   </Link>
                 ) : null
               }
-              description="日子被点亮的瞬间，都藏在这些深浅不一的色块里。"
+              description={streakInsight}
               eyebrow="STREAK"
               icon={Flame}
               title="连续记录"
@@ -706,7 +718,7 @@ export default function HomePage() {
                   </Link>
                 ) : null
               }
-              description="感知心里的天气。无论晴雨，每一个瞬间的感受都值得被珍藏。"
+              description={moodInsight}
               eyebrow="MOOD"
               icon={Sparkles}
               title="本周情绪"
@@ -724,7 +736,7 @@ export default function HomePage() {
                   </Link>
                 ) : null
               }
-              description="推开外界的嘈杂，在方寸之间，找回掌控生活的主动权。"
+              description={focusInsight}
               eyebrow="FOCUS"
               icon={NotebookPen}
               title="学习时长"
@@ -742,7 +754,7 @@ export default function HomePage() {
                   </Link>
                 ) : null
               }
-              description="哪怕只是片刻的沉浸，也能在灵魂深处唤醒新的共鸣。"
+              description={readingInsight}
               eyebrow="READING"
               icon={BookOpen}
               title="阅读时长"
@@ -769,13 +781,29 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div
-                className="flex h-14 w-14 items-center justify-center rounded-[16px]"
+              <Link
+                aria-label="查看本周长期趋势"
+                className="flex h-14 w-14 items-center justify-center rounded-[16px] transition-transform hover:-translate-y-0.5"
+                href="#trends"
                 style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                title="查看本周长期趋势"
               >
                 <TrendingUp size={22} />
-              </div>
+              </Link>
             </div>
+
+            {monthEndPrompt && (
+              <div
+                className="mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
+                style={{
+                  background: "rgba(212,164,42,0.08)",
+                  color: "#7A5F00",
+                  border: "1px solid rgba(212,164,42,0.25)",
+                }}
+              >
+                <span>📌 {monthEndPrompt}</span>
+              </div>
+            )}
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link href="/record">
@@ -783,14 +811,20 @@ export default function HomePage() {
                   写一条新记录
                 </Button>
               </Link>
-              <Link href="/review">
+              <Link className="relative" href="/review">
                 <Button size="lg" variant="ghost">
                   进入周 / 月复盘
+                  {reviewBadge && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: "#C0392B", color: "#fff" }}>
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
+                      {reviewBadge}
+                    </span>
+                  )}
                 </Button>
               </Link>
-              <Link href="/timeline">
+              <Link href="/week-plan">
                 <Button size="lg" variant="ghost">
-                  浏览所有日记
+                  本周主线
                 </Button>
               </Link>
 
@@ -814,7 +848,7 @@ export default function HomePage() {
                   </Link>
                 ) : null
               }
-              description="日子被点亮的瞬间，都藏在这些深浅不一的色块里。"
+              description={streakInsight}
               eyebrow="STREAK"
               icon={Flame}
               title="连续记录"
@@ -832,7 +866,7 @@ export default function HomePage() {
                   </Link>
                 ) : null
               }
-              description="感知心里的天气。无论晴雨，每一个瞬间的感受都值得被珍藏。"
+              description={moodInsight}
               eyebrow="MOOD"
               icon={Sparkles}
               title="本周情绪"
@@ -850,7 +884,7 @@ export default function HomePage() {
                   </Link>
                 ) : null
               }
-              description="推开外界的嘈杂，在方寸之间，找回掌控生活的主动权。"
+              description={focusInsight}
               eyebrow="FOCUS"
               icon={NotebookPen}
               title="学习时长"
@@ -868,7 +902,7 @@ export default function HomePage() {
                   </Link>
                 ) : null
               }
-              description="哪怕只是片刻的沉浸，也能在灵魂深处唤醒新的共鸣。"
+              description={readingInsight}
               eyebrow="READING"
               icon={BookOpen}
               title="阅读时长"
@@ -980,7 +1014,7 @@ export default function HomePage() {
             </div>
           </Panel>
 
-          <Panel className="p-7 lg:p-8">
+          <Panel className="p-7 lg:p-8" id="trends">
             <div className="flex flex-wrap items-end justify-between gap-4 border-b border-dashed pb-5" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
               <div className="max-w-3xl">
                 <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
@@ -1009,31 +1043,8 @@ export default function HomePage() {
                 </Link>
               </div>
             ) : (
-              <div className="mt-6 space-y-6">
-                <div className="grid gap-6 xl:grid-cols-2">
-                  <LineChartCard
-                    data={moodTrendSeries.data}
-                    datasetLabel="情绪"
-                    description="把每天的心情连成一条线，更容易看见起伏和回稳。"
-                    labels={moodTrendSeries.labels}
-                    title="情绪趋势"
-                  />
-                  <BarChartCard
-                    data={studyTrendSeries.data}
-                    datasetLabel="学习"
-                    description="观察每一段专注投入是怎样累积起来的。"
-                    labels={studyTrendSeries.labels}
-                    title="学习时长趋势"
-                  />
-                </div>
-
-                <LineChartCard
-                  data={readingTrendSeries.data}
-                  datasetLabel="阅读"
-                  description="把阅读习惯留在成长概览里，方便一起对照你的长期节奏。"
-                  labels={readingTrendSeries.labels}
-                  title="阅读趋势"
-                />
+              <div className="mt-6">
+                <CombinedTrendChart logs={logs} quotes={quotes} />
               </div>
             )}
           </Panel>

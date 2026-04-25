@@ -67,11 +67,30 @@ export function deleteMentorPlan(goalId: string): void {
   localStorage.setItem(MENTOR_KEY, JSON.stringify(all));
 }
 
-/** ISO week key, e.g. "2024-W16" */
-export function currentWeekKey(): string {
-  const d = new Date();
-  const jan1 = new Date(d.getFullYear(), 0, 1);
-  const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86_400_000 + jan1.getDay() + 1) / 7);
+/**
+ * Returns the ISO 8601 week key for the given date, e.g. "2026-W17".
+ *
+ * ISO weeks start on Monday and week 1 is the week containing the
+ * year's first Thursday — which means the calendar year of the week
+ * key may differ from the date's calendar year near year boundaries.
+ *
+ * The previous implementation used `ceil` on a raw ms-difference and
+ * therefore flipped to the next week number at any time after 00:00
+ * on the last day of the week, e.g. Saturday afternoon would render
+ * as the upcoming week. This implementation uses integer day math
+ * and the canonical ISO formula instead.
+ */
+export function currentWeekKey(reference: Date = new Date()): string {
+  // Strip time-of-day so we work in pure calendar days.
+  const d = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate());
+  // Shift to the Thursday of this ISO week.
+  // ISO day numbers: Mon=1 ... Sun=7. JS getDay(): Sun=0 ... Sat=6 → remap.
+  const dayNum = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - dayNum);
+  // Week 1 contains the year's first Thursday → the week of `d` shares its year.
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const days = Math.floor((d.getTime() - yearStart.getTime()) / 86_400_000);
+  const week = Math.floor(days / 7) + 1;
   return `${d.getFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
@@ -80,19 +99,29 @@ export function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Shift an ISO week key by `delta` weeks (delta can be negative). */
-export function shiftWeekKey(weekKey: string, delta: number): string {
+/** Returns the Monday (00:00) that opens the given ISO week key. */
+function isoWeekMonday(weekKey: string): Date | null {
   const m = weekKey.match(/^(\d{4})-W(\d{2})$/);
-  if (!m) return weekKey;
+  if (!m) return null;
   const year = Number(m[1]);
   const week = Number(m[2]);
-  // Approximate: use the first day of the target year, add (week-1)*7 days, then shift
-  const jan1 = new Date(year, 0, 1);
-  const approx = new Date(jan1.getTime() + (week - 1 + delta) * 7 * 86_400_000);
-  const y = approx.getFullYear();
-  const newJan1 = new Date(y, 0, 1);
-  const w = Math.ceil(((approx.getTime() - newJan1.getTime()) / 86_400_000 + newJan1.getDay() + 1) / 7);
-  return `${y}-W${String(w).padStart(2, "0")}`;
+  // Jan 4 is always in ISO week 1.
+  const jan4 = new Date(year, 0, 4);
+  const jan4DayNum = jan4.getDay() || 7;
+  const w1Monday = new Date(jan4);
+  w1Monday.setDate(jan4.getDate() - (jan4DayNum - 1));
+  const monday = new Date(w1Monday);
+  monday.setDate(w1Monday.getDate() + (week - 1) * 7);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+/** Shift an ISO week key by `delta` weeks (delta can be negative). */
+export function shiftWeekKey(weekKey: string, delta: number): string {
+  const monday = isoWeekMonday(weekKey);
+  if (!monday) return weekKey;
+  monday.setDate(monday.getDate() + delta * 7);
+  return currentWeekKey(monday);
 }
 
 /** Format a week key as a human-readable label, e.g. "本周" or "2024 第 16 周". */
