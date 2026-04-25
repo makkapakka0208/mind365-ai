@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { desktopNavItems } from "@/components/layout/nav-items";
+import { SmartActionCard } from "@/components/layout/smart-action-card";
 import { cn } from "@/lib/cn";
 
 interface AppShellProps {
@@ -111,22 +112,8 @@ export function AppShell({ children }: AppShellProps) {
               })}
             </nav>
 
-            {/* 底部提醒卡片 - 采用内凹效果，增加“线索”感 */}
-            <div
-              className="mt-auto rounded-[20px] p-4"
-              style={{
-                background: "var(--m-base)",
-                border: "1px solid var(--m-rule)",
-                boxShadow: "var(--m-shadow-in)", // 内凹效果
-              }}
-            >
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: "var(--m-ink3)" }}>
-                今日提醒
-              </p>
-              <p className="mt-2 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
-                你今天认真写下的一小段话，正在替未来的自己留下清晰的线索。
-              </p>
-            </div>
+            {/* 底部"下一步"卡片 - 智能给出当前最该做的一个行动 */}
+            <SmartActionCard />
           </div>
         </aside>
 

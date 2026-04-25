@@ -18,6 +18,12 @@ export interface Quote {
   book: string;
   readingHours: number;
   tags: string[];
+  /**
+   * The user's "认知体系" theme this quote belongs to, e.g. "成长" / "赚钱".
+   * Optional — when missing, the archive view falls back to keyword-based
+   * auto classification.
+   */
+  themeCategory?: string;
 }
 
 export interface Note {
