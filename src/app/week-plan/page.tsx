@@ -29,6 +29,7 @@ import {
   loadGoals,
   loadMentorPlans,
   loadWeekPlan,
+  refreshLifePathState,
   removeWeekTask,
   saveWeekPlan,
   shiftWeekKey,
@@ -522,12 +523,18 @@ export default function WeekPlanPage() {
   const [generating, setGenerating] = useState<string | null>(null); // goalId or "all"
   const [error, setError] = useState("");
 
-  // Initial load
+  // Initial load — pull cloud state first so a fresh device sees prior data,
+  // then hydrate from localStorage (which refresh just updated).
   useEffect(() => {
     const wk = currentWeekKey();
     setWeekKey(wk);
     setGoals(loadGoals());
     setMentorPlans(loadMentorPlans());
+    void refreshLifePathState().then(() => {
+      setGoals(loadGoals());
+      setMentorPlans(loadMentorPlans());
+      setPlan(ensureWeekPlan(wk));
+    });
   }, []);
 
   // Load plan whenever weekKey changes

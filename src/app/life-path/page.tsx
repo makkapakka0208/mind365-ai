@@ -17,6 +17,7 @@ import {
   deleteMentorPlan,
   loadGoals,
   loadMentorPlans,
+  refreshLifePathState,
   saveGoals,
   saveMentorPlan,
   todayKey,
@@ -498,6 +499,11 @@ export default function LifePathPage() {
   useEffect(() => {
     setGoals(loadGoals());
     setMentorPlans(loadMentorPlans());
+    // Pull cloud state on mount so a freshly logged-in device backfills.
+    void refreshLifePathState().then(() => {
+      setGoals(loadGoals());
+      setMentorPlans(loadMentorPlans());
+    });
   }, []);
 
   const persist = (next: UserGoal[]) => { setGoals(next); saveGoals(next); };
