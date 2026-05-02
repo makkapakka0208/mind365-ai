@@ -30,7 +30,7 @@ const SETUP_SQL = `-- ==========================================================
 
 -- 1. 日记表
 create table if not exists public.diaries (
-  id           text        primary key,
+  id           uuid        primary key,
   user_id      uuid        not null,
   content      text        not null default '',
   ai_analysis  text,
@@ -40,7 +40,7 @@ alter table public.diaries disable row level security;
 
 -- 2. 金句表
 create table if not exists public.quotes (
-  id           text        primary key,
+  id           uuid        primary key,
   user_id      uuid        not null,
   created_at   timestamptz not null default now(),
   text         text        not null default '',
@@ -52,7 +52,7 @@ alter table public.quotes disable row level security;
 
 -- 3. 笔记表
 create table if not exists public.notes (
-  id           text        primary key,
+  id           uuid        primary key,
   user_id      uuid        not null,
   title        text        not null default '',
   content      text        not null default '',
@@ -62,7 +62,7 @@ alter table public.notes disable row level security;
 
 -- 4. 复盘报告表
 create table if not exists public.review_reports (
-  id           text        primary key,
+  id           uuid        primary key,
   user_id      uuid        not null,
   created_at   timestamptz not null default now(),
   content      text        not null default ''
@@ -93,30 +93,33 @@ async function checkAllTables(settings: Mind365Settings): Promise<TableCheckResu
   if (!client || !config) return [];
 
   // 各表的测试行（最小合法 payload）
+  // 用 crypto.randomUUID() 生成合法 UUID，避免 uuid 类型列拒绝非 UUID 字符串
+  const testUuid = crypto.randomUUID();
+  const now = new Date().toISOString();
   const probes: { table: string; row: Record<string, unknown>; pkField: string }[] = [
     {
       table: "diaries",
-      row: { id: "__mind365_test__", user_id: config.userId, content: "", created_at: new Date().toISOString() },
+      row: { id: testUuid, user_id: config.userId, content: "", created_at: now },
       pkField: "id",
     },
     {
       table: "quotes",
-      row: { id: "__mind365_test__", user_id: config.userId, text: "", author: "", book: "", tags: [], created_at: new Date().toISOString() },
+      row: { id: testUuid, user_id: config.userId, text: "", author: "", book: "", tags: [], created_at: now },
       pkField: "id",
     },
     {
       table: "notes",
-      row: { id: "__mind365_test__", user_id: config.userId, title: "", content: "", tags: [] },
+      row: { id: testUuid, user_id: config.userId, title: "", content: "", tags: [] },
       pkField: "id",
     },
     {
       table: "review_reports",
-      row: { id: "__mind365_test__", user_id: config.userId, content: "", created_at: new Date().toISOString() },
+      row: { id: testUuid, user_id: config.userId, content: "", created_at: now },
       pkField: "id",
     },
     {
       table: "life_path_state",
-      row: { id: `${config.userId}:__test__`, user_id: config.userId, kind: "__test__", content: "", updated_at: new Date().toISOString() },
+      row: { id: `${config.userId}:__test__`, user_id: config.userId, kind: "__test__", content: "", updated_at: now },
       pkField: "id",
     },
   ];
