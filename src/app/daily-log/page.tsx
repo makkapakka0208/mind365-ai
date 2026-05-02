@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { MonthCalendarThumb } from "@/components/daily-log/month-calendar-thumb";
+import { DiaryBookModalPortal } from "@/components/dashboard/featured-book-preview";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Illustration } from "@/components/ui/illustration";
@@ -234,16 +235,14 @@ function WriteSidebar() {
 
 // ── Recent log card ───────────────────────────────────────────────────────────
 
-function RecentLogCard({ log }: { log: DailyLog }) {
+function RecentLogCard({ log, onClick }: { log: DailyLog; onClick: () => void }) {
   const preview = log.thoughts
     ? log.thoughts.replace(/\n+/g, " ").slice(0, 60) + (log.thoughts.length > 60 ? "…" : "")
     : null;
-
-  // Polaroid thumbnail if image exists
   const thumb = log.images?.[0];
 
   return (
-    <Link href={`/journal?id=${log.id}`} className="block">
+    <button type="button" className="block w-full text-left" onClick={onClick}>
       <div
         className="rounded-2xl p-4 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md"
         style={{
@@ -255,20 +254,21 @@ function RecentLogCard({ log }: { log: DailyLog }) {
         {/* Polaroid thumbnail */}
         {thumb && (
           <div
-            className="mb-3 overflow-hidden rounded-xl"
+            className="mb-3"
             style={{
               background: "#fff",
               padding: "6px 6px 20px",
               boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
               transform: "rotate(-1.2deg)",
+              borderRadius: 4,
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               alt=""
-              className="w-full rounded-md object-cover"
+              className="w-full object-cover"
               src={thumb}
-              style={{ aspectRatio: "4/3", display: "block" }}
+              style={{ aspectRatio: "4/3", display: "block", borderRadius: 2 }}
             />
           </div>
         )}
@@ -298,7 +298,7 @@ function RecentLogCard({ log }: { log: DailyLog }) {
           </div>
         )}
       </div>
-    </Link>
+    </button>
   );
 }
 
@@ -308,6 +308,8 @@ export default function DailyLogPage() {
   const todayIso = getTodayISODate();
   const [viewingDate, setViewingDate] = useState(todayIso);
   const [editMode, setEditMode] = useState(true);
+
+  const [modalEntry, setModalEntry] = useState<DailyLog | null>(null);
 
   const [mood, setMood] = useState(7);
   const [thoughts, setThoughts] = useState("");
@@ -482,17 +484,18 @@ export default function DailyLogPage() {
                     {formatDate(existingLog.date)} · 情绪 {existingLog.mood}/10
                   </div>
                   <div className="flex items-center gap-2">
-                    <Link
-                      href={`/journal?id=${existingLog.id}`}
+                    <button
+                      type="button"
                       className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
                       style={{
                         background: "rgba(139,94,60,0.08)",
                         color: "var(--m-accent)",
                         border: "1px solid var(--m-rule)",
                       }}
+                      onClick={() => setModalEntry(existingLog)}
                     >
-                      全屏阅读
-                    </Link>
+                      📖 打开日记本
+                    </button>
                     <Button onClick={() => setEditMode(true)} size="sm" type="button" variant="ghost">
                       <Pencil className="mr-1.5 inline" size={14} />
                       编辑
@@ -685,6 +688,9 @@ export default function DailyLogPage() {
       {/* 浮动灯泡（仅沉浸阅读模式） */}
       <AnimatePresence>{isImmersive && <FloatingTips />}</AnimatePresence>
 
+      {/* 日记本弹窗 */}
+      <DiaryBookModalPortal entry={modalEntry} onClose={() => setModalEntry(null)} />
+
       {/* 最近记录 */}
       <StaggerItem index={3}>
         <Panel className="p-6">
@@ -709,7 +715,7 @@ export default function DailyLogPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {recentLogs.map((log, index) => (
                 <StaggerItem index={index} key={log.id}>
-                  <RecentLogCard log={log} />
+                  <RecentLogCard log={log} onClick={() => setModalEntry(log)} />
                 </StaggerItem>
               ))}
             </div>
