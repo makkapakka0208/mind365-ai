@@ -30,8 +30,7 @@
  * localStorage so a fresh device boots up with the cloud copy.
  */
 
-import { createMind365SupabaseClient, getSupabaseConfig } from "@/lib/supabase";
-import { getSettings } from "@/lib/storage";
+import { createMind365SupabaseClient, getSupabaseConfig, normalizeMind365Settings } from "@/lib/supabase";
 import type { Mind365Settings } from "@/types";
 import type { LifeDirection, MentorPlan, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
 
@@ -100,8 +99,17 @@ function localKeyFor(kind: Kind): string {
   }
 }
 
+/** Read settings directly from localStorage — avoids circular dep with storage.ts. */
 function getSettingsSafe(): Mind365Settings {
-  try { return getSettings(); } catch { return { enableSupabaseSync: false, supabaseUrl: "", supabaseAnonKey: "", supabaseUserId: "" }; }
+  if (typeof window === "undefined") {
+    return { enableSupabaseSync: false, supabaseUrl: "", supabaseAnonKey: "", supabaseUserId: "" };
+  }
+  try {
+    const raw = localStorage.getItem("settings");
+    return normalizeMind365Settings(raw ? (JSON.parse(raw) as unknown) : {});
+  } catch {
+    return { enableSupabaseSync: false, supabaseUrl: "", supabaseAnonKey: "", supabaseUserId: "" };
+  }
 }
 
 // ── Remote upsert (fire-and-forget) ───────────────────────────────────────────
@@ -187,7 +195,7 @@ export async function refreshLifePathState(): Promise<void> {
       // Nothing in cloud yet — push local up if we have anything.
       const localRaw = localStorage.getItem(localKeyFor(kind));
       if (localRaw) {
-        try { pushAsync(kind, JSON.parse(localRaw)); } catch {}
+        try { await pushRemote(kind, JSON.parse(localRaw) as unknown); } catch {}
       }
       continue;
     }
@@ -205,7 +213,7 @@ export async function refreshLifePathState(): Promise<void> {
       // Local is newer — push back up.
       const localRaw = localStorage.getItem(localKeyFor(kind));
       if (localRaw) {
-        try { pushAsync(kind, JSON.parse(localRaw)); } catch {}
+        try { await pushRemote(kind, JSON.parse(localRaw) as unknown); } catch {}
       }
     }
   }
@@ -371,6 +379,20 @@ export function ensureWeekPlan(weekKey: string): WeekPlan {
   };
   saveWeekPlan(fresh);
   return fresh;
+}
+
+/**
+ * Force-upload all local life-path data to Supabase, regardless of timestamps.
+ * Use this to recover from situations where previous pushes silently failed.
+ */
+export async function forceUploadAllLifePathData(): Promise<void> {
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans"];
+  for (const kind of kinds) {
+    const localRaw = typeof window !== "undefined" ? localStorage.getItem(localKeyFor(kind)) : null;
+    if (localRaw) {
+      try { await pushRemote(kind, JSON.parse(localRaw) as unknown); } catch {}
+    }
+  }
 }
 
 export function getLifePathBackupData(): LifePathBackupData {
