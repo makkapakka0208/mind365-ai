@@ -1,7 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarDays, Clock3, Loader2, PencilLine, Save } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Clock3,
+  Loader2,
+  PencilLine,
+  Save,
+  Smile,
+  Tag,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 
@@ -25,11 +34,7 @@ interface EditState {
 
 function formatTimestamp(value: string) {
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
+  if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "2-digit",
@@ -49,6 +54,55 @@ function toEditState(entry: DailyLog): EditState {
   };
 }
 
+// Mood → washi-paper tint + label
+function moodMeta(score: number): { label: string; color: string; bg: string } {
+  if (score >= 8) return { label: "心情很好", color: "#4A9B6F", bg: "rgba(74,155,111,0.08)" };
+  if (score >= 6) return { label: "状态平稳", color: "#D4A42A", bg: "rgba(212,164,42,0.08)" };
+  if (score >= 4) return { label: "有些疲惫", color: "#C07A3A", bg: "rgba(192,122,58,0.08)" };
+  return { label: "心情低落", color: "#C0392B", bg: "rgba(192,57,43,0.08)" };
+}
+
+// ── Polaroid image ────────────────────────────────────────────────────────────
+
+function PolaroidImage({ src, index, alt }: { src: string; index: number; alt: string }) {
+  const angle = index % 3 === 0 ? -2.2 : index % 3 === 1 ? 1.8 : -0.8;
+  return (
+    <motion.a
+      href={src}
+      rel="noopener noreferrer"
+      target="_blank"
+      className="block"
+      style={{ transform: `rotate(${angle}deg)`, transformOrigin: "center bottom" }}
+      whileHover={{ scale: 1.04, rotate: 0, transition: { duration: 0.2 } }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          padding: "9px 9px 32px",
+          borderRadius: 4,
+          boxShadow: "0 6px 24px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.07)",
+          width: 160,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          alt={alt}
+          src={src}
+          style={{
+            display: "block",
+            width: "100%",
+            aspectRatio: "1",
+            objectFit: "cover",
+            borderRadius: 2,
+          }}
+        />
+      </div>
+    </motion.a>
+  );
+}
+
+// ── Main inner component ──────────────────────────────────────────────────────
+
 function JournalDetailPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,28 +120,22 @@ function JournalDetailPageInner() {
   useEffect(() => {
     if (hasSynced.current) return;
     hasSynced.current = true;
-
-    void refreshDailyLogs({ force: true }).finally(() => {
-      setIsSyncing(false);
-    });
+    void refreshDailyLogs({ force: true }).finally(() => setIsSyncing(false));
   }, []);
 
   const entry = useMemo(() => logs.find((log) => log.id === id), [logs, id]);
 
   const goBack = () => {
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-
-    router.push("/timeline");
+    if (window.history.length > 1) { router.back(); return; }
+    router.push("/daily-log");
   };
 
+  // ── Loading ──────────────────────────────────────────────────────────────────
   if (isSyncing && !entry) {
     return (
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        className="mx-auto w-full max-w-[720px]"
+        className="mx-auto w-full max-w-[680px]"
         initial={{ opacity: 0, y: 10 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
@@ -99,11 +147,12 @@ function JournalDetailPageInner() {
     );
   }
 
+  // ── Not found ────────────────────────────────────────────────────────────────
   if (!entry) {
     return (
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        className="mx-auto w-full max-w-[720px]"
+        className="mx-auto w-full max-w-[680px]"
         initial={{ opacity: 0, y: 10 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
@@ -128,15 +177,11 @@ function JournalDetailPageInner() {
     );
   }
 
+  // ── Save handler ─────────────────────────────────────────────────────────────
   const onSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!form) {
-      return;
-    }
-
+    if (!form) return;
     setIsSaving(true);
-
     const nextLog: DailyLog = {
       ...entry,
       date: form.date,
@@ -144,40 +189,34 @@ function JournalDetailPageInner() {
       studyHours: entry.studyHours,
       reading: entry.reading,
       thoughts: form.thoughts.trim(),
-      tags: form.tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
+      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       images: form.images,
     };
-
     const result = await updateDailyLog(nextLog);
     setMessage(result.synced ? "修改已保存，并同步到云端。" : "修改已保存到本地缓存，云端同步稍后重试。");
     setIsSaving(false);
     setIsEditing(false);
   };
 
+  const mood = moodMeta(entry.mood);
+  const hasImages = entry.images && entry.images.length > 0;
+
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto w-full max-w-[720px] space-y-5"
-      initial={{ opacity: 0, y: 10 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="mx-auto w-full max-w-[680px] space-y-5"
+      initial={{ opacity: 0, y: 12 }}
+      transition={{ duration: 0.38, ease: "easeOut" }}
     >
+      {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button onClick={goBack} variant="ghost">
           <ArrowLeft className="mr-2" size={16} />
           返回
         </Button>
-
         <Button
           onClick={() => {
-            if (isEditing) {
-              setIsEditing(false);
-              setMessage("");
-              return;
-            }
-
+            if (isEditing) { setIsEditing(false); setMessage(""); return; }
             setForm(toEditState(entry));
             setIsEditing(true);
           }}
@@ -188,196 +227,168 @@ function JournalDetailPageInner() {
         </Button>
       </div>
 
-      <Panel className="p-6 sm:p-8 md:p-9">
-        {isEditing && form ? (
+      {/* ── Edit form ── */}
+      {isEditing && form ? (
+        <Panel className="p-6 sm:p-8">
           <form className="space-y-5" onSubmit={onSave}>
-            <h1 className="text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>
-              编辑日记
-            </h1>
-
+            <h1 className="text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>编辑日记</h1>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 日期
-                <Input
-                  onChange={(event) => setForm({ ...form, date: event.target.value })}
-                  type="date"
-                  value={form.date}
-                />
+                <Input onChange={(e) => setForm({ ...form, date: e.target.value })} type="date" value={form.date} />
               </label>
-
               <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 情绪分数（1-10）
                 <Input
-                  max={10}
-                  min={1}
-                  onChange={(event) => setForm({ ...form, mood: Number(event.target.value) || 1 })}
+                  max={10} min={1}
+                  onChange={(e) => setForm({ ...form, mood: Number(e.target.value) || 1 })}
                   type="number"
                   value={form.mood}
                 />
               </label>
-
               <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 标签
-                <Input
-                  onChange={(event) => setForm({ ...form, tags: event.target.value })}
-                  type="text"
-                  value={form.tags}
-                />
+                <Input onChange={(e) => setForm({ ...form, tags: e.target.value })} type="text" value={form.tags} />
               </label>
             </div>
-
             <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               完整日记内容
-              <Textarea
-                className="min-h-44"
-                onChange={(event) => setForm({ ...form, thoughts: event.target.value })}
-                value={form.thoughts}
-              />
+              <Textarea className="min-h-44" onChange={(e) => setForm({ ...form, thoughts: e.target.value })} value={form.thoughts} />
             </label>
-
             <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
               图片
               <ImageUploader images={form.images} onChange={(imgs) => setForm({ ...form, images: imgs })} />
             </div>
-
             <div className="flex items-center gap-3">
               <Button disabled={isSaving} type="submit" variant="primary">
                 <Save className="mr-2" size={16} />
                 {isSaving ? "保存中..." : "保存修改"}
               </Button>
-              {message ? (
-                <span className="text-sm" style={{ color: "var(--m-success)" }}>
-                  {message}
-                </span>
-              ) : null}
+              {message && <span className="text-sm" style={{ color: "var(--m-success)" }}>{message}</span>}
             </div>
           </form>
-        ) : (
-          <div className="space-y-7">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>
-                日记详情
+        </Panel>
+      ) : (
+        /* ── Immersive read view ── */
+        <Panel className="overflow-hidden p-0">
+          {/* Header band */}
+          <div
+            className="flex flex-wrap items-start justify-between gap-4 px-6 py-5 sm:px-8"
+            style={{ borderBottom: "1px solid var(--m-rule)" }}
+          >
+            <div className="space-y-1">
+              <h1
+                className="text-2xl font-semibold tracking-tight"
+                style={{ color: "var(--m-ink)" }}
+              >
+                {formatDate(entry.date)}
               </h1>
-              <p className="mt-2 inline-flex items-center gap-2 text-sm" style={{ color: "var(--m-ink2)" }}>
-                <Clock3 size={14} />
+              <p
+                className="inline-flex items-center gap-2 text-xs"
+                style={{ color: "var(--m-ink3)" }}
+              >
+                <Clock3 size={13} />
                 {formatTimestamp(entry.createdAt)}
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div
-                className="rounded-xl p-4"
-                style={{
-                  background: "var(--m-base)",
-                  border: "1px solid var(--m-rule)",
-                  boxShadow: "var(--m-shadow-in)",
-                }}
-              >
-                <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>
-                  <CalendarDays size={14} />
-                  日期
-                </p>
-                <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>
-                  {formatDate(entry.date)}
-                </p>
-              </div>
-
-              <div
-                className="rounded-xl p-4"
-                style={{
-                  background: "var(--m-base)",
-                  border: "1px solid var(--m-rule)",
-                  boxShadow: "var(--m-shadow-in)",
-                }}
-              >
-                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>
-                  情绪分数
-                </p>
-                <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>
-                  {entry.mood}/10
-                </p>
-              </div>
-
-              <div
-                className="rounded-xl p-4"
-                style={{
-                  background: "var(--m-base)",
-                  border: "1px solid var(--m-rule)",
-                  boxShadow: "var(--m-shadow-in)",
-                }}
-              >
-                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>
-                  阅读统计
-                </p>
-                <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>
-                  请到灵感书库记录阅读时长
-                </p>
-              </div>
-            </div>
-
+            {/* Mood badge */}
             <div
-              className="rounded-xl p-5"
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium"
+              style={{ background: mood.bg, color: mood.color }}
+            >
+              <Smile size={15} />
+              {entry.mood}/10 · {mood.label}
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="space-y-7 px-6 py-7 sm:px-8 sm:py-8">
+            {/* Prose */}
+            <p
+              className="whitespace-pre-wrap text-[16px] leading-[2.05]"
               style={{
-                background: "var(--m-base)",
-                border: "1px solid var(--m-rule)",
-                boxShadow: "var(--m-shadow-in)",
+                color: "var(--m-ink)",
+                fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
+                minHeight: 80,
               }}
             >
-              <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>
-                完整日记内容
-              </p>
-              <p className="mt-3 whitespace-pre-wrap text-[15px] leading-8" style={{ color: "var(--m-ink)" }}>
-                {entry.thoughts || "这一天还没有写下具体内容。"}
-              </p>
-            </div>
+              {entry.thoughts || (
+                <span style={{ color: "var(--m-ink3)" }}>
+                  （这一天只留下了一段安静的空白）
+                </span>
+              )}
+            </p>
 
-            {entry.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+            {/* Tags */}
+            {entry.tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Tag size={13} style={{ color: "var(--m-ink3)" }} />
                 {entry.tags.map((tag) => (
                   <span
-                    className="rounded-full px-3 py-1 text-xs"
                     key={`${entry.id}-${tag}`}
-                    style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
+                    className="rounded-full px-3 py-0.5 text-xs"
+                    style={{
+                      background: "rgba(139,94,60,0.08)",
+                      border: "1px solid var(--m-rule)",
+                      color: "var(--m-ink2)",
+                    }}
                   >
                     #{tag}
                   </span>
                 ))}
               </div>
-            ) : null}
+            )}
 
-            {entry.images && entry.images.length > 0 ? (
+            {/* Polaroid images */}
+            {hasImages && (
               <div>
-                <p className="mb-3 text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>
-                  图片
+                <p
+                  className="mb-4 flex items-center gap-2 text-xs uppercase tracking-[0.12em]"
+                  style={{ color: "var(--m-ink3)" }}
+                >
+                  <CalendarDays size={13} />
+                  那天的影像
                 </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {entry.images.map((src, i) => (
-                    <a href={src} key={i} rel="noopener noreferrer" target="_blank">
-                      <div className="overflow-hidden rounded-xl" style={{ aspectRatio: "1" }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          alt={`日记图片 ${i + 1}`}
-                          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                          src={src}
-                        />
-                      </div>
-                    </a>
+                <div className="flex flex-wrap gap-6">
+                  {entry.images!.map((src, i) => (
+                    <PolaroidImage
+                      key={i}
+                      alt={`日记图片 ${i + 1}`}
+                      index={i}
+                      src={src}
+                    />
                   ))}
                 </div>
               </div>
-            ) : null}
+            )}
+
+            {/* Footer meta */}
+            <div
+              className="rounded-xl px-4 py-3 text-xs"
+              style={{
+                background: "var(--m-base)",
+                border: "1px solid var(--m-rule)",
+                color: "var(--m-ink3)",
+              }}
+            >
+              {formatDate(entry.date)} · 情绪 {entry.mood}/10
+              {entry.studyHours > 0 && ` · 学习 ${entry.studyHours}h`}
+            </div>
           </div>
-        )}
-      </Panel>
+        </Panel>
+      )}
     </motion.div>
   );
 }
+
+// ── Fallback ──────────────────────────────────────────────────────────────────
 
 function JournalPageFallback() {
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
-      className="mx-auto w-full max-w-[720px]"
+      className="mx-auto w-full max-w-[680px]"
       initial={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
     >
