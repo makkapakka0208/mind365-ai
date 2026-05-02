@@ -48,7 +48,7 @@ function getBookmarkSubline(entry: DailyLog) {
  * Split at sentence boundaries near every `charsPerPage` characters.
  * 130 chars ≈ ~10 lines at 18 px / 1.9 lh in a ~300 px wide column.
  */
-function splitIntoPages(text: string, charsPerPage = 130): string[] {
+function splitIntoPages(text: string, charsPerPage = 150): string[] {
   const raw = text.trim();
   if (!raw) return [""];
   if (raw.length <= charsPerPage) return [raw];
@@ -85,7 +85,7 @@ function LeftPage({ entry, userImage }: { entry: DailyLog; userImage?: string | 
 
   return (
     /* overflow-hidden keeps everything inside the SVG frame */
-    <div className="relative flex h-full flex-col overflow-hidden px-5 py-4 md:pl-7 md:pr-8 md:py-5">
+    <div className="relative flex h-full flex-col overflow-hidden px-5 py-5 md:pl-7 md:pr-8 md:py-6">
 
       {/* ① 时间戳行 */}
       <div
@@ -127,7 +127,7 @@ function LeftPage({ entry, userImage }: { entry: DailyLog; userImage?: string | 
               borderRadius: 3,
               boxShadow: "0 4px 18px rgba(0,0,0,0.12)",
               transform: "rotate(-1.8deg)",
-              maxWidth: 150,
+              maxWidth: 170,
               width: "100%",
               flexShrink: 0,
             }}
@@ -143,7 +143,7 @@ function LeftPage({ entry, userImage }: { entry: DailyLog; userImage?: string | 
           <Image
             alt="handbook illustration"
             className="h-auto w-full rotate-[-2deg] opacity-95 drop-shadow-[0_12px_22px_rgba(110,78,51,0.13)]"
-            style={{ maxWidth: 160 }}
+            style={{ maxWidth: 180 }}
             height={200}
             src="/illustrations/personal-notebook.svg"
             width={200}
@@ -154,12 +154,12 @@ function LeftPage({ entry, userImage }: { entry: DailyLog; userImage?: string | 
       {/* ④ Bookmark — shrink-0 保持底部对齐 */}
       <div className="relative shrink-0">
         {/* bookmark label SVG */}
-        <div className="relative" style={{ width: 200 }}>
+        <div className="relative" style={{ width: 220 }}>
           <Image
             alt="" aria-hidden
             className="pointer-events-none select-none"
             src="/illustrations/bookmark-label.svg"
-            width={200} height={102}
+            width={220} height={112}
             style={{ width: "100%", height: "auto" }}
           />
           <div className="absolute inset-x-0 top-0 px-6 pb-3 pt-4">
@@ -397,7 +397,7 @@ export function DiaryBookModal({ entry, onClose }: { entry: DailyLog; onClose: (
                   固定高度：确保内容不溢出 SVG 书页框
                   移动端单列各自固定高度，桌面双列共用同一高度
                 */}
-                <div className="grid grid-cols-1 md:grid-cols-2" style={{ height: 480 }}>
+                <div className="grid grid-cols-1 md:grid-cols-2" style={{ height: 560 }}>
                   <LeftPage entry={entry} userImage={userImage} />
                   <RightPage
                     pages={pages}
