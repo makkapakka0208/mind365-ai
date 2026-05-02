@@ -23,7 +23,12 @@ import type { Mind365Settings } from "@/types";
 
 // ── 建表 SQL ──────────────────────────────────────────────────────────────────
 
-const SETUP_SQL = `-- 1. 日记表
+const SETUP_SQL = `-- ============================================================
+-- Mind365 数据库初始化脚本
+-- 在 Supabase SQL Editor 中一次性运行即可
+-- ============================================================
+
+-- 1. 日记表
 create table if not exists public.diaries (
   id           text        primary key,
   user_id      uuid        not null,
@@ -31,6 +36,7 @@ create table if not exists public.diaries (
   ai_analysis  text,
   created_at   timestamptz not null default now()
 );
+alter table public.diaries disable row level security;
 
 -- 2. 金句表
 create table if not exists public.quotes (
@@ -42,6 +48,7 @@ create table if not exists public.quotes (
   book         text        not null default '',
   tags         text[]      not null default '{}'
 );
+alter table public.quotes disable row level security;
 
 -- 3. 笔记表
 create table if not exists public.notes (
@@ -51,6 +58,7 @@ create table if not exists public.notes (
   content      text        not null default '',
   tags         text[]      not null default '{}'
 );
+alter table public.notes disable row level security;
 
 -- 4. 复盘报告表
 create table if not exists public.review_reports (
@@ -59,6 +67,7 @@ create table if not exists public.review_reports (
   created_at   timestamptz not null default now(),
   content      text        not null default ''
 );
+alter table public.review_reports disable row level security;
 
 -- 5. 人生主线状态表（目标 / 方向 / 导师计划 / 周计划）
 create table if not exists public.life_path_state (
@@ -67,23 +76,61 @@ create table if not exists public.life_path_state (
   kind         text        not null,      -- directions | goals | mentor_plans | week_plans
   content      text        not null default '',
   updated_at   timestamptz not null default now()
-);`;
+);
+alter table public.life_path_state disable row level security;`;
 
-// ── 连接检测 ──────────────────────────────────────────────────────────────────
+// ── 连接检测（读 + 写双重验证）─────────────────────────────────────────────────
 
 type TableCheckResult = { table: string; ok: boolean; error?: string };
 
+/**
+ * 对每张表执行一次 upsert 测试行 → 读回 → 删除，确认读写权限均正常。
+ * SELECT 返回空行不代表有写权限（RLS 对 SELECT 静默过滤但对写操作报错）。
+ */
 async function checkAllTables(settings: Mind365Settings): Promise<TableCheckResult[]> {
   const client = createMind365SupabaseClient(settings);
   const config = getSupabaseConfig(settings);
   if (!client || !config) return [];
 
-  const tables = ["diaries", "quotes", "notes", "review_reports", "life_path_state"];
+  // 各表的测试行（最小合法 payload）
+  const probes: { table: string; row: Record<string, unknown>; pkField: string }[] = [
+    {
+      table: "diaries",
+      row: { id: "__mind365_test__", user_id: config.userId, content: "", created_at: new Date().toISOString() },
+      pkField: "id",
+    },
+    {
+      table: "quotes",
+      row: { id: "__mind365_test__", user_id: config.userId, text: "", author: "", book: "", tags: [], created_at: new Date().toISOString() },
+      pkField: "id",
+    },
+    {
+      table: "notes",
+      row: { id: "__mind365_test__", user_id: config.userId, title: "", content: "", tags: [] },
+      pkField: "id",
+    },
+    {
+      table: "review_reports",
+      row: { id: "__mind365_test__", user_id: config.userId, content: "", created_at: new Date().toISOString() },
+      pkField: "id",
+    },
+    {
+      table: "life_path_state",
+      row: { id: `${config.userId}:__test__`, user_id: config.userId, kind: "__test__", content: "", updated_at: new Date().toISOString() },
+      pkField: "id",
+    },
+  ];
+
   return Promise.all(
-    tables.map(async (table): Promise<TableCheckResult> => {
+    probes.map(async ({ table, row, pkField }): Promise<TableCheckResult> => {
       try {
-        const { error } = await client.from(table).select("id").eq("user_id", config.userId).limit(1);
-        if (error) return { table, ok: false, error: error.message };
+        // 1. 写入测试行
+        const { error: upsertErr } = await client.from(table).upsert(row, { onConflict: pkField });
+        if (upsertErr) return { table, ok: false, error: `写入失败: ${upsertErr.message}` };
+
+        // 2. 清理测试行
+        await client.from(table).delete().eq(pkField, row[pkField] as string);
+
         return { table, ok: true };
       } catch (e) {
         return { table, ok: false, error: e instanceof Error ? e.message : "未知错误" };
