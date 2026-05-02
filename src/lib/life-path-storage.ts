@@ -43,6 +43,20 @@ const WEEK_PLANS_KEY = "mind365_week_plans";
 const REMOTE_TABLE = "life_path_state";
 type Kind = "directions" | "goals" | "mentor_plans" | "week_plans";
 
+export interface LifePathBackupData {
+  directions: LifeDirection[];
+  goals: UserGoal[];
+  mentor_plans: Record<string, MentorPlan>;
+  week_plans: Record<string, WeekPlan>;
+}
+
+export interface LifePathBackupImportResult {
+  directions: number;
+  goals: number;
+  mentorPlans: number;
+  weekPlans: number;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function tryParse<T>(key: string, fallback: T): T {
@@ -357,4 +371,54 @@ export function ensureWeekPlan(weekKey: string): WeekPlan {
   };
   saveWeekPlan(fresh);
   return fresh;
+}
+
+export function getLifePathBackupData(): LifePathBackupData {
+  return {
+    directions: loadDirections(),
+    goals: loadGoals(),
+    mentor_plans: loadMentorPlans(),
+    week_plans: loadWeekPlans(),
+  };
+}
+
+export function importLifePathBackupData(value: unknown): LifePathBackupImportResult {
+  if (typeof window === "undefined") {
+    return { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0 };
+  }
+
+  const data = value && typeof value === "object" ? value as Partial<LifePathBackupData> : {};
+  const directions = Array.isArray(data.directions) ? data.directions : [];
+  const goals = Array.isArray(data.goals) ? data.goals : [];
+  const mentorPlans =
+    data.mentor_plans && typeof data.mentor_plans === "object" && !Array.isArray(data.mentor_plans)
+      ? data.mentor_plans as Record<string, MentorPlan>
+      : {};
+  const weekPlans =
+    data.week_plans && typeof data.week_plans === "object" && !Array.isArray(data.week_plans)
+      ? data.week_plans as Record<string, WeekPlan>
+      : {};
+
+  const now = new Date().toISOString();
+  localStorage.setItem(DIRECTIONS_KEY, JSON.stringify(directions));
+  localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
+  localStorage.setItem(MENTOR_KEY, JSON.stringify(mentorPlans));
+  localStorage.setItem(WEEK_PLANS_KEY, JSON.stringify(weekPlans));
+
+  setMeta("directions", now);
+  setMeta("goals", now);
+  setMeta("mentor_plans", now);
+  setMeta("week_plans", now);
+
+  pushAsync("directions", directions);
+  pushAsync("goals", goals);
+  pushAsync("mentor_plans", mentorPlans);
+  pushAsync("week_plans", weekPlans);
+
+  return {
+    directions: directions.length,
+    goals: goals.length,
+    mentorPlans: Object.keys(mentorPlans).length,
+    weekPlans: Object.keys(weekPlans).length,
+  };
 }

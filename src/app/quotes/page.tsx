@@ -70,7 +70,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
   const tabs: { id: Tab; label: string; Icon: typeof Lightbulb }[] = [
     { id: "archive", label: "收藏归档", Icon: FolderOpen },
     { id: "quotes", label: "书海拾金", Icon: Lightbulb },
-    { id: "notes", label: "深度思考", Icon: Brain },
+    { id: "notes", label: "阅读笔记", Icon: Brain },
   ];
 
   return (
@@ -218,12 +218,6 @@ function QuoteCard({ quote }: { quote: Quote }) {
           <p className="mt-3 text-sm" style={{ color: "var(--m-ink2)" }}>
             {quote.author || "佚名"}{quote.book ? ` · ${quote.book}` : ""}
           </p>
-          {quote.readingHours > 0 && (
-            <p className="mt-2 text-xs" style={{ color: "var(--m-ink3)" }}>
-              阅读 {quote.readingHours.toFixed(1)} h
-            </p>
-          )}
-
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {/* Theme chip */}
             <span
@@ -468,7 +462,7 @@ function ArchiveSection({
         <Input
           className="pl-9 pr-9"
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜索金句、深度思考、标签..."
+          placeholder="搜索金句、阅读笔记、标签..."
           value={query}
         />
         {query && (
@@ -530,7 +524,7 @@ function ArchiveSection({
           {matchingNotes.length > 0 && (
             <div>
               <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                深度思考 · {matchingNotes.length}
+                阅读笔记 · {matchingNotes.length}
               </p>
               <div className="space-y-3">
                 {matchingNotes.map((n) => (
@@ -621,7 +615,6 @@ function QuotesSection({ scrollToId }: { scrollToId: string | null }) {
   const [text, setText] = useState("");
   const [author, setAuthor] = useState("");
   const [book, setBook] = useState("");
-  const [readingHours, setReadingHours] = useState(0);
   const [tags, setTags] = useState("");
   const [message, setMessage] = useState("");
 
@@ -645,11 +638,11 @@ function QuotesSection({ scrollToId }: { scrollToId: string | null }) {
       text: text.trim(),
       author: author.trim(),
       book: book.trim(),
-      readingHours: Number.isFinite(readingHours) ? Math.max(0, readingHours) : 0,
+      readingHours: 0,
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
     };
     await saveQuote(quote);
-    setText(""); setAuthor(""); setBook(""); setReadingHours(0); setTags("");
+    setText(""); setAuthor(""); setBook(""); setTags("");
     setMessage("已保存到你的灵感书库。");
   };
 
@@ -674,7 +667,6 @@ function QuotesSection({ scrollToId }: { scrollToId: string | null }) {
                   <p className="mt-3 text-sm italic" style={{ color: "var(--m-ink2)" }}>
                     {dailyQuote.author || "佚名"}
                     {dailyQuote.book ? ` · ${dailyQuote.book}` : ""}
-                    {dailyQuote.readingHours > 0 ? ` · 阅读 ${dailyQuote.readingHours.toFixed(1)}h` : ""}
                   </p>
                 </>
               ) : (
@@ -712,7 +704,7 @@ function QuotesSection({ scrollToId }: { scrollToId: string | null }) {
                 value={text}
               />
             </label>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 作者
                 <Input onChange={(e) => setAuthor(e.target.value)} placeholder="作者姓名" type="text" value={author} />
@@ -720,10 +712,6 @@ function QuotesSection({ scrollToId }: { scrollToId: string | null }) {
               <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                 书名 / 来源
                 <Input onChange={(e) => setBook(e.target.value)} placeholder="书籍、影视或文章来源" type="text" value={book} />
-              </label>
-              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                阅读时长
-                <Input min={0} onChange={(e) => setReadingHours(Number(e.target.value) || 0)} placeholder="0.5" step={0.5} type="number" value={readingHours} />
               </label>
             </div>
             <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
@@ -797,12 +785,12 @@ function NotesSection() {
       {/* Add note form */}
       <Panel className="p-6 md:p-7">
         <div className="border-b border-dashed pb-5" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
-          <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>NEW ESSAY</p>
+          <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>NEW NOTE</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>
-            写下一段值得沉淀的思考
+            写下一则阅读笔记
           </h2>
           <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-            不用急着把问题一次想清楚。先把判断、疑问和线索放下来，它们会在复盘里慢慢长出结构。
+            慢一点，把读到的线索、疑问和触动写下来，它们会在复盘里慢慢长出结构。
           </p>
         </div>
         <form className="mt-6 grid gap-4" onSubmit={onSubmit}>
@@ -815,7 +803,7 @@ function NotesSection() {
             <Textarea
               className="min-h-56"
               onChange={(e) => setContent(e.target.value)}
-              placeholder="把你的长段思考、书评或者随笔写下来..."
+              placeholder="把你的书评、摘录理解或者阅读后的想法写下来..."
               required
               value={content}
             />
@@ -825,7 +813,7 @@ function NotesSection() {
             <Input onChange={(e) => setTags(e.target.value)} placeholder="结构化, 反思, 阅读" type="text" value={tags} />
           </label>
           <div className="flex flex-wrap items-center gap-3">
-            <Button size="lg" type="submit" variant="secondary">保存文章</Button>
+            <Button size="lg" type="submit" variant="secondary">保存笔记</Button>
             {message && <span className="text-sm" style={{ color: "var(--m-success)" }}>{message}</span>}
           </div>
         </form>
@@ -834,11 +822,11 @@ function NotesSection() {
       {/* Notes list */}
       {sortedNotes.length === 0 ? (
         <EmptyState
-          description="你的长篇想法会在这里慢慢沉淀成一条个人专栏。写下第一篇后，阅读流就会开始形成。"
+          description="你的阅读笔记会在这里慢慢沉淀成一条个人专栏。写下第一篇后，阅读流就会开始形成。"
           icon={Sparkles}
           illustrationAlt="thinking notebook illustration"
           illustrationSrc="/illustrations/reading-time.svg"
-          title="还没有深度文章"
+          title="还没有阅读笔记"
         />
       ) : (
         <div className="space-y-4">
@@ -906,7 +894,7 @@ export default function LibraryPage() {
   return (
     <PageTransition className="space-y-6">
       <PageTitle
-        description="把值得反复回看的句子和长篇思考，收进同一座灵感书库里。"
+        description="把值得反复回看的句子和阅读笔记，收进同一座灵感书库里。"
         eyebrow="灵感书库"
         icon={Lightbulb}
         title="灵感书库"

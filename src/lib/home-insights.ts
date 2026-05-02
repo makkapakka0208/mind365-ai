@@ -11,11 +11,12 @@ import {
   getCurrentMonthLogs,
   getCurrentWeekLogs,
   getCurrentWeekQuotes,
+  getCurrentWeekTimeEntries,
   parseReadingHours,
   sortLogsByDate,
 } from "@/lib/analytics";
 import { getTodayISODate, parseISODate, toISODate } from "@/lib/date";
-import type { DailyLog, Quote } from "@/types";
+import type { DailyLog, Quote, TimeEntry } from "@/types";
 
 export const STUDY_WEEKLY_TARGET = 10;
 export const READING_WEEKLY_TARGET = 7;
@@ -110,9 +111,12 @@ export function getMoodInsight(logs: DailyLog[]): string {
 
 const WEEKDAY_CN = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
-export function getFocusInsight(logs: DailyLog[]): string {
+export function getFocusInsight(logs: DailyLog[], timeEntries: TimeEntry[] = []): string {
   const thisWeek = getCurrentWeekLogs(logs);
-  const total = thisWeek.reduce((s, l) => s + l.studyHours, 0);
+  const weekTimeEntries = getCurrentWeekTimeEntries(timeEntries);
+  const total =
+    thisWeek.reduce((s, l) => s + l.studyHours, 0) +
+    weekTimeEntries.filter((entry) => entry.type === "study").reduce((s, entry) => s + entry.hours, 0);
   if (total === 0) return "本周还未投入学习时长";
 
   if (total >= STUDY_WEEKLY_TARGET) return `已超过本周目标 ${STUDY_WEEKLY_TARGET}h`;
@@ -121,6 +125,9 @@ export function getFocusInsight(logs: DailyLog[]): string {
   const byDay = new Map<string, number>();
   for (const log of thisWeek) {
     byDay.set(log.date, (byDay.get(log.date) ?? 0) + log.studyHours);
+  }
+  for (const entry of weekTimeEntries.filter((item) => item.type === "study")) {
+    byDay.set(entry.date, (byDay.get(entry.date) ?? 0) + entry.hours);
   }
   let peakDate = "";
   let peakValue = 0;
@@ -139,10 +146,11 @@ export function getFocusInsight(logs: DailyLog[]): string {
 
 // ── Reading insight ──────────────────────────────────────────────────────────
 
-export function getReadingInsight(logs: DailyLog[], quotes: Quote[]): string {
+export function getReadingInsight(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[] = []): string {
   const weekLogs = getCurrentWeekLogs(logs);
   const weekQuotes = getCurrentWeekQuotes(quotes);
-  const summary = computeSummary(weekLogs, weekQuotes);
+  const weekTimeEntries = getCurrentWeekTimeEntries(timeEntries);
+  const summary = computeSummary(weekLogs, weekQuotes, weekTimeEntries);
   const total = summary.totalReadingHours;
 
   if (total === 0) return "本周还未开始阅读";
@@ -204,7 +212,7 @@ export interface NextAction {
  *   4. Reading target far behind      → 进入书库
  *   5. Default                        → 写一条新记录
  */
-export function getNextAction(logs: DailyLog[], quotes: Quote[], reference: Date = new Date()): NextAction {
+export function getNextAction(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[] = [], reference: Date = new Date()): NextAction {
   const todayIso = getTodayISODate();
   const todayLog = logs.find((l) => l.date === todayIso);
   const gap = daysSinceLastLog(logs);
@@ -257,9 +265,12 @@ export function getNextAction(logs: DailyLog[], quotes: Quote[], reference: Date
 
   // 3. Study far behind (more than 60% remaining mid/late week)
   const weekLogs = getCurrentWeekLogs(logs);
+  const weekTimeEntries = getCurrentWeekTimeEntries(timeEntries, reference);
   const weekday = reference.getDay() || 7;
   if (weekday >= 3) {
-    const studyTotal = weekLogs.reduce((s, l) => s + l.studyHours, 0);
+    const studyTotal =
+      weekLogs.reduce((s, l) => s + l.studyHours, 0) +
+      weekTimeEntries.filter((entry) => entry.type === "study").reduce((s, entry) => s + entry.hours, 0);
     const studyRemaining = STUDY_WEEKLY_TARGET - studyTotal;
     if (studyRemaining >= 6) {
       return {
@@ -274,7 +285,7 @@ export function getNextAction(logs: DailyLog[], quotes: Quote[], reference: Date
   // 4. Reading far behind
   if (weekday >= 4) {
     const weekQuotes = getCurrentWeekQuotes(quotes);
-    const summary = computeSummary(weekLogs, weekQuotes);
+    const summary = computeSummary(weekLogs, weekQuotes, weekTimeEntries);
     const readingRemaining = READING_WEEKLY_TARGET - summary.totalReadingHours;
     if (readingRemaining >= 4) {
       return {

@@ -18,7 +18,6 @@ import type { DailyLog } from "@/types";
 interface EditState {
   date: string;
   mood: number;
-  studyHours: number;
   thoughts: string;
   tags: string;
   images: string[];
@@ -44,7 +43,6 @@ function toEditState(entry: DailyLog): EditState {
   return {
     date: entry.date,
     mood: entry.mood,
-    studyHours: entry.studyHours,
     thoughts: entry.thoughts,
     tags: entry.tags.join(", "),
     images: entry.images ?? [],
@@ -143,7 +141,7 @@ function JournalDetailPageInner() {
       ...entry,
       date: form.date,
       mood: Math.min(10, Math.max(1, form.mood)),
-      studyHours: Number.isFinite(form.studyHours) ? Math.max(0, form.studyHours) : 0,
+      studyHours: entry.studyHours,
       reading: entry.reading,
       thoughts: form.thoughts.trim(),
       tags: form.tags
@@ -215,17 +213,6 @@ function JournalDetailPageInner() {
                   onChange={(event) => setForm({ ...form, mood: Number(event.target.value) || 1 })}
                   type="number"
                   value={form.mood}
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                学习时长
-                <Input
-                  min={0}
-                  onChange={(event) => setForm({ ...form, studyHours: Number(event.target.value) || 0 })}
-                  step={0.5}
-                  type="number"
-                  value={form.studyHours}
                 />
               </label>
 
@@ -308,22 +295,6 @@ function JournalDetailPageInner() {
                 </p>
                 <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>
                   {entry.mood}/10
-                </p>
-              </div>
-
-              <div
-                className="rounded-xl p-4"
-                style={{
-                  background: "var(--m-base)",
-                  border: "1px solid var(--m-rule)",
-                  boxShadow: "var(--m-shadow-in)",
-                }}
-              >
-                <p className="text-xs uppercase tracking-[0.14em]" style={{ color: "var(--m-ink3)" }}>
-                  学习时长
-                </p>
-                <p className="mt-2 text-base" style={{ color: "var(--m-ink)" }}>
-                  {entry.studyHours.toFixed(1)} 小时
                 </p>
               </div>
 

@@ -26,6 +26,15 @@ export interface Quote {
   themeCategory?: string;
 }
 
+export interface TimeEntry {
+  id: string;
+  createdAt: string;
+  date: string;
+  type: "study" | "reading";
+  hours: number;
+  note?: string;
+}
+
 export interface Note {
   id: string;
   title: string;

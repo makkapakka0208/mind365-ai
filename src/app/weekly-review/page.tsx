@@ -18,13 +18,15 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   buildChartSeries,
   buildReadingChartSeries,
+  buildStudyChartSeries,
   computeSummary,
   getCurrentWeekLogs,
   getCurrentWeekQuotes,
+  getCurrentWeekTimeEntries,
 } from "@/lib/analytics";
 import { formatDate, getWeekRange, toISODate } from "@/lib/date";
 import { saveReviewReport } from "@/lib/storage";
-import { useQuotesStore, useSyncedDailyLogs } from "@/lib/storage-store";
+import { useQuotesStore, useSyncedDailyLogs, useTimeEntriesStore } from "@/lib/storage-store";
 import type { ReviewReport } from "@/types";
 
 function buildWeekTitle(range: { start: Date; end: Date }): string {
@@ -40,12 +42,14 @@ function buildWeekTitle(range: { start: Date; end: Date }): string {
 export default function WeeklyReviewPage() {
   const { logs: allLogs, isSyncing } = useSyncedDailyLogs();
   const allQuotes = useQuotesStore();
+  const allTimeEntries = useTimeEntriesStore();
   const weekLogs = getCurrentWeekLogs(allLogs);
   const weekQuotes = getCurrentWeekQuotes(allQuotes);
-  const metrics = computeSummary(weekLogs, weekQuotes);
+  const weekTimeEntries = getCurrentWeekTimeEntries(allTimeEntries);
+  const metrics = computeSummary(weekLogs, weekQuotes, weekTimeEntries);
   const moodSeries = buildChartSeries(weekLogs, (log) => log.mood);
-  const studySeries = buildChartSeries(weekLogs, (log) => log.studyHours);
-  const readingSeries = buildReadingChartSeries(weekLogs, weekQuotes);
+  const studySeries = buildStudyChartSeries(weekLogs, weekTimeEntries);
+  const readingSeries = buildReadingChartSeries(weekLogs, weekQuotes, weekTimeEntries);
   const range = getWeekRange();
 
   const [notes, setNotes] = useState("");

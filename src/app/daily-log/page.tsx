@@ -106,7 +106,6 @@ export default function DailyLogPage() {
 
   const [mood, setMood] = useState(7);
   const [thoughts, setThoughts] = useState("");
-  const [studyHours, setStudyHours] = useState(0);
   const [tags, setTags] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [message, setMessage] = useState("");
@@ -148,13 +147,11 @@ export default function DailyLogPage() {
     if (existingLog) {
       setMood(existingLog.mood);
       setThoughts(existingLog.thoughts);
-      setStudyHours(existingLog.studyHours);
       setTags(existingLog.tags.join(", "));
       setImages(existingLog.images ?? []);
     } else {
       setMood(7);
       setThoughts("");
-      setStudyHours(0);
       setTags("");
       setImages([]);
     }
@@ -178,7 +175,7 @@ export default function DailyLogPage() {
       mood,
       thoughts: thoughts.trim(),
       reading: existingLog?.reading ?? "",
-      studyHours: Number.isFinite(studyHours) ? Math.max(0, studyHours) : 0,
+      studyHours: existingLog?.studyHours ?? 0,
       tags: parsedTags,
       images,
     };
@@ -266,7 +263,7 @@ export default function DailyLogPage() {
               <div className="grid gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm" style={{ color: "var(--m-ink3)" }}>
-                    {formatDate(existingLog.date)} · 情绪 {existingLog.mood}/10 · 学习 {existingLog.studyHours.toFixed(1)} 小时
+                    {formatDate(existingLog.date)} · 情绪 {existingLog.mood}/10
                   </div>
                   <Button onClick={() => setEditMode(true)} size="sm" type="button" variant="ghost">
                     <Pencil className="mr-1.5 inline" size={14} />
@@ -308,31 +305,18 @@ export default function DailyLogPage() {
               </div>
             ) : (
               <form className="grid gap-5" onSubmit={onSubmit}>
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                    日期
-                    <div
-                      className="rounded-lg px-3 py-2 text-sm"
-                      style={{
-                        background: "var(--m-base)",
-                        border: "1px solid var(--m-rule)",
-                        color: "var(--m-ink2)",
-                      }}
-                    >
-                      {formatDate(viewingDate)}
-                    </div>
+                <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                  日期
+                  <div
+                    className="rounded-lg px-3 py-2 text-sm"
+                    style={{
+                      background: "var(--m-base)",
+                      border: "1px solid var(--m-rule)",
+                      color: "var(--m-ink2)",
+                    }}
+                  >
+                    {formatDate(viewingDate)}
                   </div>
-
-                  <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                    学习时长
-                    <Input
-                      min={0}
-                      onChange={(event) => setStudyHours(Number(event.target.value))}
-                      step={0.5}
-                      type="number"
-                      value={studyHours}
-                    />
-                  </label>
                 </div>
 
                 <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
@@ -494,9 +478,6 @@ export default function DailyLogPage() {
                       </p>
                       <p className="mt-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                         情绪 {log.mood}/10
-                      </p>
-                      <p className="mt-1 text-sm" style={{ color: "var(--m-ink2)" }}>
-                        学习 {log.studyHours.toFixed(1)} 小时
                       </p>
                     </div>
                   </button>
