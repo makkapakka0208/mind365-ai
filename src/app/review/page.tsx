@@ -14,14 +14,16 @@ import {
   computeSummary,
   getCurrentMonthLogs,
   getCurrentMonthQuotes,
+  getCurrentMonthTimeEntries,
   getCurrentWeekLogs,
   getCurrentWeekQuotes,
+  getCurrentWeekTimeEntries,
   getQuoteReadingHours,
   sortLogsByDate,
 } from "@/lib/analytics";
 import { getMonthRange, getWeekRange, parseISODate, toISODate } from "@/lib/date";
 import { saveReviewReport } from "@/lib/storage";
-import { useQuotesStore, useSyncedDailyLogs } from "@/lib/storage-store";
+import { useQuotesStore, useSyncedDailyLogs, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog, Quote, ReviewReport } from "@/types";
 
 type ReviewMode = "week" | "month";
@@ -203,6 +205,7 @@ function getHeatTone(log: DailyLog | null) {
 export default function ReviewHubPage() {
   const { logs: allLogs, isSyncing } = useSyncedDailyLogs();
   const allQuotes = useQuotesStore();
+  const allTimeEntries = useTimeEntriesStore();
   const [mode, setMode] = useState<ReviewMode>("month");
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -213,7 +216,11 @@ export default function ReviewHubPage() {
     () => (mode === "week" ? getCurrentWeekQuotes(allQuotes) : getCurrentMonthQuotes(allQuotes)),
     [allQuotes, mode],
   );
-  const metrics = useMemo(() => computeSummary(reviewData.logs, reviewQuotes), [reviewData.logs, reviewQuotes]);
+  const reviewTimeEntries = useMemo(
+    () => (mode === "week" ? getCurrentWeekTimeEntries(allTimeEntries) : getCurrentMonthTimeEntries(allTimeEntries)),
+    [allTimeEntries, mode],
+  );
+  const metrics = useMemo(() => computeSummary(reviewData.logs, reviewQuotes, reviewTimeEntries), [reviewData.logs, reviewQuotes, reviewTimeEntries]);
   const uniqueDays = useMemo(() => new Set(reviewData.logs.map((log) => log.date)).size, [reviewData.logs]);
   const tags = useMemo(() => getTopTags(reviewData.logs), [reviewData.logs]);
   const readingCollection = useMemo(() => getReadingCollection(reviewQuotes), [reviewQuotes]);

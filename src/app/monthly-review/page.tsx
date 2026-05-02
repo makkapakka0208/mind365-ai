@@ -15,21 +15,23 @@ import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { buildChartSeries, buildReadingChartSeries, computeSummary, getCurrentMonthLogs, getCurrentMonthQuotes } from "@/lib/analytics";
+import { buildChartSeries, buildReadingChartSeries, buildStudyChartSeries, computeSummary, getCurrentMonthLogs, getCurrentMonthQuotes, getCurrentMonthTimeEntries } from "@/lib/analytics";
 import { formatDate, getMonthRange, toISODate } from "@/lib/date";
 import { saveReviewReport } from "@/lib/storage";
-import { useQuotesStore, useSyncedDailyLogs } from "@/lib/storage-store";
+import { useQuotesStore, useSyncedDailyLogs, useTimeEntriesStore } from "@/lib/storage-store";
 import type { ReviewReport } from "@/types";
 
 export default function MonthlyReviewPage() {
   const { logs: allLogs, isSyncing } = useSyncedDailyLogs();
   const allQuotes = useQuotesStore();
+  const allTimeEntries = useTimeEntriesStore();
   const monthLogs = getCurrentMonthLogs(allLogs);
   const monthQuotes = getCurrentMonthQuotes(allQuotes);
-  const metrics = computeSummary(monthLogs, monthQuotes);
+  const monthTimeEntries = getCurrentMonthTimeEntries(allTimeEntries);
+  const metrics = computeSummary(monthLogs, monthQuotes, monthTimeEntries);
   const moodSeries = buildChartSeries(monthLogs, (log) => log.mood);
-  const studySeries = buildChartSeries(monthLogs, (log) => log.studyHours);
-  const readingSeries = buildReadingChartSeries(monthLogs, monthQuotes);
+  const studySeries = buildStudyChartSeries(monthLogs, monthTimeEntries);
+  const readingSeries = buildReadingChartSeries(monthLogs, monthQuotes, monthTimeEntries);
   const range = getMonthRange();
 
   const [notes, setNotes] = useState("");

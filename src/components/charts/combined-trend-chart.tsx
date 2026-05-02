@@ -8,7 +8,7 @@ import "@/components/charts/chart-registry";
 import { Panel } from "@/components/ui/panel";
 import { parseReadingHours } from "@/lib/analytics";
 import { parseISODate, toISODate } from "@/lib/date";
-import type { DailyLog, Quote } from "@/types";
+import type { DailyLog, Quote, TimeEntry } from "@/types";
 
 type Range = "7d" | "30d" | "all";
 
@@ -21,6 +21,7 @@ const RANGE_OPTIONS: { value: Range; label: string }[] = [
 interface CombinedTrendChartProps {
   logs: DailyLog[];
   quotes: Quote[];
+  timeEntries?: TimeEntry[];
 }
 
 interface DayPoint {
@@ -34,13 +35,14 @@ interface DayPoint {
  * Build a contiguous-date series so all three metrics share the same X axis.
  * mood is averaged per day; study and reading are summed.
  */
-function buildSeries(logs: DailyLog[], quotes: Quote[], range: Range): DayPoint[] {
-  if (logs.length === 0 && quotes.length === 0) return [];
+function buildSeries(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[], range: Range): DayPoint[] {
+  if (logs.length === 0 && quotes.length === 0 && timeEntries.length === 0) return [];
 
   const sortedLogs = [...logs].sort((a, b) => a.date.localeCompare(b.date));
   const firstLogDate = sortedLogs[0]?.date;
   const firstQuoteDate = [...quotes].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0]?.createdAt.slice(0, 10);
-  const earliest = [firstLogDate, firstQuoteDate].filter(Boolean).sort()[0]!;
+  const firstTimeEntryDate = [...timeEntries].sort((a, b) => a.date.localeCompare(b.date))[0]?.date;
+  const earliest = [firstLogDate, firstQuoteDate, firstTimeEntryDate].filter(Boolean).sort()[0]!;
 
   const today = new Date();
   let start: Date;
@@ -73,6 +75,11 @@ function buildSeries(logs: DailyLog[], quotes: Quote[], range: Range): DayPoint[
     if (date < toISODate(start)) continue;
     readingSum.set(date, (readingSum.get(date) ?? 0) + (Number.isFinite(q.readingHours) ? Math.max(0, q.readingHours) : 0));
   }
+  for (const entry of timeEntries) {
+    if (entry.date < toISODate(start)) continue;
+    const target = entry.type === "study" ? studySum : readingSum;
+    target.set(entry.date, (target.get(entry.date) ?? 0) + Math.max(0, entry.hours));
+  }
 
   // Walk every day from start → today
   const out: DayPoint[] = [];
@@ -101,10 +108,10 @@ function formatTickLabel(iso: string): string {
   return `${d.getMonth() + 1}/${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function CombinedTrendChart({ logs, quotes }: CombinedTrendChartProps) {
+export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedTrendChartProps) {
   const [range, setRange] = useState<Range>("30d");
 
-  const series = useMemo(() => buildSeries(logs, quotes, range), [logs, quotes, range]);
+  const series = useMemo(() => buildSeries(logs, quotes, timeEntries, range), [logs, quotes, timeEntries, range]);
   const labels = series.map((p) => formatTickLabel(p.date));
 
   // Tick density: cap to ~8 visible labels regardless of range size

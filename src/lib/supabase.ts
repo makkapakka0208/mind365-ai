@@ -70,7 +70,7 @@ export function getSupabaseConfig(settings: Mind365Settings): SupabaseConfig | n
   const anonKey = settings.supabaseAnonKey || envAnonKey;
   const rawUserId = settings.supabaseUserId || envUserId;
   const userId = isUuid(rawUserId) ? rawUserId : "";
-  const syncEnabled = settings.enableSupabaseSync || Boolean(envUrl && envAnonKey);
+  const syncEnabled = settings.enableSupabaseSync;
 
   if (!syncEnabled || !url || !anonKey || !userId) {
     return null;
@@ -102,4 +102,3 @@ export function createMind365SupabaseClient(settings: Mind365Settings): Supabase
 
   return cachedClient;
 }
-

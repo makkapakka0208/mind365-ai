@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { getNextAction } from "@/lib/home-insights";
-import { useDailyLogsStore, useQuotesStore } from "@/lib/storage-store";
+import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/storage-store";
 
 const TONE_STYLES: Record<"warm" | "alert" | "info", { bg: string; ring: string; ink: string; cta: string }> = {
   warm: {
@@ -31,7 +31,8 @@ const TONE_STYLES: Record<"warm" | "alert" | "info", { bg: string; ring: string;
 export function SmartActionCard() {
   const logs = useDailyLogsStore();
   const quotes = useQuotesStore();
-  const action = useMemo(() => getNextAction(logs, quotes), [logs, quotes]);
+  const timeEntries = useTimeEntriesStore();
+  const action = useMemo(() => getNextAction(logs, quotes, timeEntries), [logs, quotes, timeEntries]);
   const tone = TONE_STYLES[action.tone];
 
   return (

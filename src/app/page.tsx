@@ -10,19 +10,23 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import {
   computeSummary,
   getCurrentMonthLogs,
   getCurrentMonthQuotes,
+  getCurrentMonthTimeEntries,
   getCurrentWeekLogs,
   getCurrentWeekQuotes,
+  getCurrentWeekTimeEntries,
   parseReadingHours,
   sortLogsByDate,
 } from "@/lib/analytics";
@@ -36,8 +40,9 @@ import {
   getReviewBadge,
   getStreakInsight,
 } from "@/lib/home-insights";
-import { useDailyLogsStore, useQuotesStore } from "@/lib/storage-store";
-import type { DailyLog } from "@/types";
+import { saveTimeEntry } from "@/lib/storage";
+import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/storage-store";
+import type { DailyLog, TimeEntry } from "@/types";
 
 function getGreeting(date: Date) {
   const hour = date.getHours();
@@ -334,6 +339,88 @@ function DashboardCard({
   );
 }
 
+function TimeEntryDialog({
+  type,
+  onClose,
+}: {
+  type: TimeEntry["type"];
+  onClose: () => void;
+}) {
+  const [hours, setHours] = useState("");
+  const [note, setNote] = useState("");
+  const title = type === "study" ? "给今天记一点学习时间" : "记录一次阅读片刻";
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = Number(hours);
+    if (!Number.isFinite(value) || value <= 0) return;
+    saveTimeEntry({
+      date: getTodayISODate(),
+      type,
+      hours: value,
+      note,
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog onClose={onClose} open title={title}>
+      <form className="grid gap-4" onSubmit={onSubmit}>
+        <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+          时长
+          <Input
+            autoFocus
+            min={0}
+            onChange={(event) => setHours(event.target.value)}
+            placeholder="0.5"
+            step={0.5}
+            type="number"
+            value={hours}
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+          一句话备注
+          <Input
+            onChange={(event) => setNote(event.target.value)}
+            placeholder={type === "study" ? "今天学了什么？" : "今天读到了什么？"}
+            type="text"
+            value={note}
+          />
+        </label>
+        <div className="flex items-center justify-end gap-3">
+          <Button onClick={onClose} type="button" variant="ghost">
+            取消
+          </Button>
+          <Button disabled={!Number.isFinite(Number(hours)) || Number(hours) <= 0} type="submit" variant="primary">
+            写下来
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function TimeTextButton({
+  done,
+  children,
+  onClick,
+}: {
+  done: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="text-left text-sm font-medium transition-opacity hover:opacity-75"
+      onClick={onClick}
+      style={{ color: done ? "var(--m-ink3)" : "var(--m-accent)" }}
+      type="button"
+    >
+      {done ? "今日已达标" : children}
+    </button>
+  );
+}
+
 function BookPreview({ entry }: { entry: DailyLog }) {
   const readingHours = parseReadingHours(entry.reading);
   const thoughts = splitThoughts(entry.thoughts);
@@ -540,8 +627,10 @@ function MobileYearWidget() {
 export default function HomePage() {
   const logs = useDailyLogsStore();
   const quotes = useQuotesStore();
+  const timeEntries = useTimeEntriesStore();
   const [now, setNow] = useState(() => new Date());
   const [activeIndex, setActiveIndex] = useState(0);
+  const [timeDialogType, setTimeDialogType] = useState<TimeEntry["type"] | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60000);
@@ -551,11 +640,21 @@ export default function HomePage() {
   const recentLogs = useMemo(() => sortLogsByDate(logs, "desc").slice(0, 6), [logs]);
   const monthLogs = useMemo(() => sortLogsByDate(getCurrentMonthLogs(logs), "desc"), [logs]);
   const monthQuotes = useMemo(() => getCurrentMonthQuotes(quotes), [quotes]);
+  const monthTimeEntries = useMemo(() => getCurrentMonthTimeEntries(timeEntries), [timeEntries]);
   const todayLog = useMemo(() => recentLogs.find((log) => log.date === getTodayISODate()) ?? null, [recentLogs]);
   const weeklyLogs = useMemo(() => getCurrentWeekLogs(logs), [logs]);
   const weeklyQuotes = useMemo(() => getCurrentWeekQuotes(quotes), [quotes]);
-  const weeklySummary = useMemo(() => computeSummary(weeklyLogs, weeklyQuotes), [weeklyLogs, weeklyQuotes]);
-  const monthlySummary = useMemo(() => computeSummary(monthLogs, monthQuotes), [monthLogs, monthQuotes]);
+  const weeklyTimeEntries = useMemo(() => getCurrentWeekTimeEntries(timeEntries), [timeEntries]);
+  const weeklySummary = useMemo(() => computeSummary(weeklyLogs, weeklyQuotes, weeklyTimeEntries), [weeklyLogs, weeklyQuotes, weeklyTimeEntries]);
+  const monthlySummary = useMemo(() => computeSummary(monthLogs, monthQuotes, monthTimeEntries), [monthLogs, monthQuotes, monthTimeEntries]);
+  const todayStudyHours = useMemo(
+    () => timeEntries.filter((entry) => entry.date === getTodayISODate() && entry.type === "study").reduce((sum, entry) => sum + entry.hours, 0),
+    [timeEntries],
+  );
+  const todayReadingHours = useMemo(
+    () => timeEntries.filter((entry) => entry.date === getTodayISODate() && entry.type === "reading").reduce((sum, entry) => sum + entry.hours, 0),
+    [timeEntries],
+  );
   const streak = useMemo(() => getConsecutiveStreak(logs), [logs]);
   const moodSeries = useMemo(() => buildMoodSeries(weeklyLogs), [weeklyLogs]);
 
@@ -563,8 +662,8 @@ export default function HomePage() {
   const allTimeBest = useMemo(() => getAllTimeBestStreak(logs), [logs]);
   const streakInsight = useMemo(() => getStreakInsight(logs, streak, allTimeBest), [logs, streak, allTimeBest]);
   const moodInsight = useMemo(() => getMoodInsight(logs), [logs]);
-  const focusInsight = useMemo(() => getFocusInsight(logs), [logs]);
-  const readingInsight = useMemo(() => getReadingInsight(logs, quotes), [logs, quotes]);
+  const focusInsight = useMemo(() => getFocusInsight(logs, timeEntries), [logs, timeEntries]);
+  const readingInsight = useMemo(() => getReadingInsight(logs, quotes, timeEntries), [logs, quotes, timeEntries]);
   const reviewBadge = useMemo(() => getReviewBadge(now), [now]);
   const monthEndPrompt = useMemo(() => getMonthEndPrompt(logs, 20, now), [logs, now]);
   const safeIndex = recentLogs.length === 0 ? 0 : Math.min(activeIndex, recentLogs.length - 1);
@@ -597,6 +696,12 @@ export default function HomePage() {
 
   return (
     <PageTransition>
+      {timeDialogType ? (
+        <TimeEntryDialog
+          onClose={() => setTimeDialogType(null)}
+          type={timeDialogType}
+        />
+      ) : null}
       <div className="w-full">
         <section className="md:hidden">
           <div
@@ -730,11 +835,9 @@ export default function HomePage() {
 
             <DashboardCard
               action={
-                weeklySummary.totalStudyHours === 0 ? (
-                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
-                    给今天记一点学习时间
-                  </Link>
-                ) : null
+                <TimeTextButton done={todayStudyHours > 0} onClick={() => setTimeDialogType("study")}>
+                  给今天记一点学习时间
+                </TimeTextButton>
               }
               description={focusInsight}
               eyebrow="FOCUS"
@@ -748,11 +851,9 @@ export default function HomePage() {
 
             <DashboardCard
               action={
-                weeklySummary.totalReadingHours === 0 ? (
-                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
-                    记录一次阅读片刻
-                  </Link>
-                ) : null
+                <TimeTextButton done={todayReadingHours > 0} onClick={() => setTimeDialogType("reading")}>
+                  记录一次阅读片刻
+                </TimeTextButton>
               }
               description={readingInsight}
               eyebrow="READING"
@@ -878,11 +979,9 @@ export default function HomePage() {
 
             <DashboardCard
               action={
-                weeklySummary.totalStudyHours === 0 ? (
-                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
-                    给今天记一点学习时间
-                  </Link>
-                ) : null
+                <TimeTextButton done={todayStudyHours > 0} onClick={() => setTimeDialogType("study")}>
+                  给今天记一点学习时间
+                </TimeTextButton>
               }
               description={focusInsight}
               eyebrow="FOCUS"
@@ -896,11 +995,9 @@ export default function HomePage() {
 
             <DashboardCard
               action={
-                weeklySummary.totalReadingHours === 0 ? (
-                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
-                    记录一次阅读片刻
-                  </Link>
-                ) : null
+                <TimeTextButton done={todayReadingHours > 0} onClick={() => setTimeDialogType("reading")}>
+                  记录一次阅读片刻
+                </TimeTextButton>
               }
               description={readingInsight}
               eyebrow="READING"
@@ -1044,7 +1141,7 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="mt-6">
-                <CombinedTrendChart logs={logs} quotes={quotes} />
+                <CombinedTrendChart logs={logs} quotes={quotes} timeEntries={timeEntries} />
               </div>
             )}
           </Panel>

@@ -5,7 +5,12 @@
   getSupabaseConfig,
   normalizeMind365Settings,
 } from "@/lib/supabase";
-import { DailyLog, Mind365Settings, Note, Quote, ReviewReport } from "@/types";
+import {
+  getLifePathBackupData,
+  importLifePathBackupData,
+  type LifePathBackupData,
+} from "@/lib/life-path-storage";
+import { DailyLog, Mind365Settings, Note, Quote, ReviewReport, TimeEntry } from "@/types";
 
 export const STORAGE_KEYS = {
   dailyLogs: "daily_logs",
@@ -13,6 +18,7 @@ export const STORAGE_KEYS = {
   notes: "notes",
   settings: "settings",
   reviewReports: "review_reports",
+  timeEntries: "time_entries",
 } as const;
 
 export const STORAGE_CHANGE_EVENT = "mind365:storage";
@@ -33,13 +39,20 @@ export interface Mind365BackupData {
   notes: Note[];
   settings: Mind365Settings;
   review_reports: ReviewReport[];
+  time_entries: TimeEntry[];
+  life_path: LifePathBackupData;
 }
 
 export interface BackupImportResult {
   dailyLogs: number;
+  directions: number;
+  goals: number;
+  mentorPlans: number;
   notes: number;
   quotes: number;
   reviewReports: number;
+  timeEntries: number;
+  weekPlans: number;
 }
 
 export interface DailyLogMutationResult {
@@ -175,6 +188,41 @@ function normalizeQuotes(values: unknown): Quote[] {
   return values
     .map(parseQuote)
     .filter((quote): quote is Quote => quote !== null)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+function parseTimeEntry(value: unknown): TimeEntry | null {
+  if (!isRecord(value)) return null;
+  if (
+    typeof value.id !== "string" ||
+    typeof value.date !== "string" ||
+    (value.type !== "study" && value.type !== "reading") ||
+    typeof value.hours !== "number" ||
+    !Number.isFinite(value.hours)
+  ) {
+    return null;
+  }
+
+  const createdAt =
+    typeof value.createdAt === "string" && Number.isFinite(Date.parse(value.createdAt))
+      ? value.createdAt
+      : new Date().toISOString();
+
+  return {
+    id: value.id,
+    createdAt,
+    date: value.date,
+    type: value.type,
+    hours: Math.max(0, value.hours),
+    note: typeof value.note === "string" ? value.note : undefined,
+  };
+}
+
+function normalizeTimeEntries(values: unknown): TimeEntry[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map(parseTimeEntry)
+    .filter((entry): entry is TimeEntry => entry !== null)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
@@ -420,10 +468,9 @@ export function saveSettings(settings: Mind365Settings): Mind365Settings {
 
 export function getCloudSyncStatus(): CloudSyncStatus {
   const settings = getSettings();
-  const envConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
   const config = getSupabaseConfig(settings);
 
-  if (!settings.enableSupabaseSync && !envConfigured) {
+  if (!settings.enableSupabaseSync) {
     return { configured: false, enabled: false, message: "云同步未启用，当前仍使用本地缓存。", userId: settings.supabaseUserId };
   }
   if (!config) {
@@ -589,6 +636,34 @@ export async function saveNote(note: Note): Promise<Note[]> {
 export function getReviewReports(): ReviewReport[] { return readCollection(STORAGE_KEYS.reviewReports, isReviewReport); }
 export function setReviewReports(reports: ReviewReport[]) { writeCollection(STORAGE_KEYS.reviewReports, reports); }
 
+export function getTimeEntries(): TimeEntry[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.localStorage.getItem(STORAGE_KEYS.timeEntries);
+  if (!raw) return [];
+  try {
+    return normalizeTimeEntries(JSON.parse(raw) as unknown);
+  } catch {
+    return [];
+  }
+}
+
+export function setTimeEntries(entries: TimeEntry[]) {
+  writeCollection(STORAGE_KEYS.timeEntries, normalizeTimeEntries(entries));
+}
+
+export function saveTimeEntry(entry: Omit<TimeEntry, "id" | "createdAt">): TimeEntry[] {
+  const normalized: TimeEntry = {
+    ...entry,
+    id: createId(),
+    createdAt: new Date().toISOString(),
+    hours: Number.isFinite(entry.hours) ? Math.max(0, entry.hours) : 0,
+    note: entry.note?.trim() || undefined,
+  };
+  const updated = normalizeTimeEntries([normalized, ...getTimeEntries()]);
+  setTimeEntries(updated);
+  return updated;
+}
+
 export async function saveReviewReport(report: ReviewReport): Promise<ReviewReport[]> {
   const reports = getReviewReports();
   const existsIdx = reports.findIndex((r) => r.rangeStart === report.rangeStart && r.period === report.period);
@@ -607,7 +682,15 @@ export async function deleteReviewReport(id: string): Promise<ReviewReport[]> {
 }
 
 export function getMind365BackupData(): Mind365BackupData {
-  return { daily_logs: getDailyLogs(), notes: getNotes(), quotes: getQuotes(), settings: getSettings(), review_reports: getReviewReports() };
+  return {
+    daily_logs: getDailyLogs(),
+    notes: getNotes(),
+    quotes: getQuotes(),
+    settings: getSettings(),
+    review_reports: getReviewReports(),
+    time_entries: getTimeEntries(),
+    life_path: getLifePathBackupData(),
+  };
 }
 
 export function downloadMind365Backup(filename = "mind365-backup.json") {
@@ -632,11 +715,16 @@ export function importMind365Backup(raw: string): BackupImportResult {
   const notes = normalizeCollection(parsed.notes, isNote);
   const settings = normalizeMind365Settings(parsed.settings);
   const reviewReports = normalizeCollection(parsed.review_reports, isReviewReport);
+  const timeEntries = normalizeTimeEntries(parsed.time_entries);
+  const lifePath = Object.prototype.hasOwnProperty.call(parsed, "life_path")
+    ? importLifePathBackupData(parsed.life_path)
+    : { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0 };
 
   window.localStorage.setItem(STORAGE_KEYS.dailyLogs, JSON.stringify(dailyLogs));
   window.localStorage.setItem(STORAGE_KEYS.quotes, JSON.stringify(quotes));
   window.localStorage.setItem(STORAGE_KEYS.notes, JSON.stringify(notes));
   window.localStorage.setItem(STORAGE_KEYS.reviewReports, JSON.stringify(reviewReports));
+  window.localStorage.setItem(STORAGE_KEYS.timeEntries, JSON.stringify(timeEntries));
   window.localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({ ...settings, supabaseUserId: settings.supabaseUserId || createDefaultSupabaseUserId() }));
 
   dispatchStorageChange();
@@ -646,5 +734,15 @@ export function importMind365Backup(raw: string): BackupImportResult {
   void upsertRemoteNotes(notes, syncSettings).catch(() => undefined);
   void upsertRemoteReviewReports(reviewReports, syncSettings).catch(() => undefined);
 
-  return { dailyLogs: dailyLogs.length, notes: notes.length, quotes: quotes.length, reviewReports: reviewReports.length };
+  return {
+    dailyLogs: dailyLogs.length,
+    directions: lifePath.directions,
+    goals: lifePath.goals,
+    mentorPlans: lifePath.mentorPlans,
+    notes: notes.length,
+    quotes: quotes.length,
+    reviewReports: reviewReports.length,
+    timeEntries: timeEntries.length,
+    weekPlans: lifePath.weekPlans,
+  };
 }

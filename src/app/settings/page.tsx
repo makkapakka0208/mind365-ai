@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
+import { refreshLifePathState } from "@/lib/life-path-storage";
 import { createDefaultSupabaseUserId } from "@/lib/supabase";
 import {
   downloadMind365Backup,
@@ -78,7 +79,7 @@ export default function SettingsPage() {
       return;
     }
 
-    const confirmed = window.confirm("导入会覆盖当前的日记、金句、笔记和设置，是否继续？");
+    const confirmed = window.confirm("导入会覆盖当前的日记、金句、笔记、复盘、Life Path 数据和设置，是否继续？");
 
     if (!confirmed) {
       event.target.value = "";
@@ -92,7 +93,7 @@ export default function SettingsPage() {
 
       setForm(nextSettings.supabaseUserId ? nextSettings : { ...nextSettings, supabaseUserId: createDefaultSupabaseUserId() });
       setStatus(getCloudSyncStatus());
-      setMessage(`导入完成：恢复 ${result.dailyLogs} 条日记、${result.quotes} 条金句、${result.notes} 条笔记。`);
+      setMessage(`导入完成：恢复 ${result.dailyLogs} 条日记、${result.quotes} 条金句、${result.notes} 条笔记、${result.reviewReports} 份复盘、${result.goals} 个目标、${result.weekPlans} 份周计划。`);
       setError("");
     } catch (importError) {
       const text = importError instanceof Error ? importError.message : "导入备份失败。";
@@ -117,10 +118,11 @@ export default function SettingsPage() {
 
       setForm(saved);
       await refreshDailyLogs({ force: true });
+      await refreshLifePathState();
 
       const nextStatus = getCloudSyncStatus();
       setStatus(nextStatus);
-      setMessage(nextStatus.configured ? "云同步设置已保存，日记已开始与 Supabase 对齐。" : "设置已保存。当前仍会优先使用本地缓存。");
+      setMessage(nextStatus.configured ? "云同步设置已保存，数据已开始与 Supabase 对齐；本地缓存仍会保留。" : "设置已保存。默认数据存储在本地缓存。");
     } catch {
       setError("保存云同步设置失败。");
     } finally {
@@ -142,7 +144,7 @@ export default function SettingsPage() {
           <div>
             <h3 className="text-lg font-semibold" style={{ color: "var(--m-ink)" }}>Supabase 云同步</h3>
             <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-              开启后，日记会优先同步到 Supabase 的 <code>diaries</code> 表，本地缓存仍会保留用于离线读取。
+              默认数据存储在本地缓存；开启后，日记和 Life Path 数据会同步到 Supabase，本地缓存仍会保留用于离线读取。
             </p>
           </div>
 
@@ -195,6 +197,7 @@ export default function SettingsPage() {
               当前状态
             </p>
             <p className="mt-2 leading-6" style={{ color: "var(--m-ink2)" }}>{status.message}</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--m-ink2)" }}>默认数据存储在本地缓存，云同步只是额外备份与跨设备同步。</p>
             <p className="mt-2 text-xs" style={{ color: "var(--m-ink2)" }}>当前同步用户 ID：{status.userId || form.supabaseUserId || "未设置"}</p>
           </div>
 
@@ -210,7 +213,7 @@ export default function SettingsPage() {
           <div>
             <h3 className="text-lg font-semibold" style={{ color: "var(--m-ink)" }}>数据备份</h3>
             <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-              导出完整 JSON 备份，或导入备份文件恢复你的日记、金句、笔记和设置。
+              导出完整 JSON 备份，或导入备份文件恢复你的日记、金句、笔记、复盘、Life Path 数据和设置。
             </p>
           </div>
 

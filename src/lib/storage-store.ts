@@ -7,6 +7,7 @@ import {
   getNotes,
   getQuotes,
   getReviewReports,
+  getTimeEntries,
   refreshDailyLogs,
   refreshNotes,
   refreshQuotes,
@@ -14,7 +15,7 @@ import {
   STORAGE_CHANGE_EVENT,
   STORAGE_KEYS,
 } from "@/lib/storage";
-import type { DailyLog, Note, Quote, ReviewReport } from "@/types";
+import type { DailyLog, Note, Quote, ReviewReport, TimeEntry } from "@/types";
 
 type StoreCallback = () => void;
 
@@ -22,6 +23,7 @@ const EMPTY_DAILY_LOGS: DailyLog[] = [];
 const EMPTY_QUOTES: Quote[] = [];
 const EMPTY_NOTES: Note[] = [];
 const EMPTY_REVIEW_REPORTS: ReviewReport[] = [];
+const EMPTY_TIME_ENTRIES: TimeEntry[] = [];
 
 let hasRequestedInitialDailySync = false;
 let hasRequestedInitialQuotesSync = false;
@@ -32,11 +34,13 @@ let dailyLogsRawCache: string | null | undefined;
 let quotesRawCache: string | null | undefined;
 let notesRawCache: string | null | undefined;
 let reviewReportsRawCache: string | null | undefined;
+let timeEntriesRawCache: string | null | undefined;
 
 let dailyLogsSnapshot: DailyLog[] = EMPTY_DAILY_LOGS;
 let quotesSnapshot: Quote[] = EMPTY_QUOTES;
 let notesSnapshot: Note[] = EMPTY_NOTES;
 let reviewReportsSnapshot: ReviewReport[] = EMPTY_REVIEW_REPORTS;
+let timeEntriesSnapshot: TimeEntry[] = EMPTY_TIME_ENTRIES;
 
 function subscribe(callback: StoreCallback) {
   if (typeof window === "undefined") return () => undefined;
@@ -85,6 +89,15 @@ function getReviewReportsSnapshot() {
   return reviewReportsSnapshot;
 }
 
+function getTimeEntriesSnapshot() {
+  if (typeof window === "undefined") return EMPTY_TIME_ENTRIES;
+  const raw = window.localStorage.getItem(STORAGE_KEYS.timeEntries);
+  if (raw === timeEntriesRawCache) return timeEntriesSnapshot;
+  timeEntriesRawCache = raw;
+  timeEntriesSnapshot = raw ? getTimeEntries() : EMPTY_TIME_ENTRIES;
+  return timeEntriesSnapshot;
+}
+
 export function useDailyLogsStore(): DailyLog[] {
   const snapshot = useSyncExternalStore(subscribe, getDailyLogsSnapshot, () => EMPTY_DAILY_LOGS);
   useEffect(() => {
@@ -123,6 +136,10 @@ export function useReviewReportsStore(): ReviewReport[] {
     void refreshReviewReports();
   }, []);
   return snapshot;
+}
+
+export function useTimeEntriesStore(): TimeEntry[] {
+  return useSyncExternalStore(subscribe, getTimeEntriesSnapshot, () => EMPTY_TIME_ENTRIES);
 }
 
 /**
