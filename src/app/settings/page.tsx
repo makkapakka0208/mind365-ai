@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertTriangle, Cloud, Download, RefreshCcw, Settings2, Upload } from "lucide-react";
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { AlertTriangle, CheckCircle2, Cloud, Copy, Database, Download, RefreshCcw, Settings2, Upload, XCircle } from "lucide-react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import { refreshLifePathState } from "@/lib/life-path-storage";
-import { createDefaultSupabaseUserId } from "@/lib/supabase";
+import { createDefaultSupabaseUserId, createMind365SupabaseClient, getSupabaseConfig } from "@/lib/supabase";
 import {
   downloadMind365Backup,
   getCloudSyncStatus,
@@ -20,6 +20,77 @@ import {
 } from "@/lib/storage";
 import type { CloudSyncStatus } from "@/lib/storage";
 import type { Mind365Settings } from "@/types";
+
+// ── 建表 SQL ──────────────────────────────────────────────────────────────────
+
+const SETUP_SQL = `-- 1. 日记表
+create table if not exists public.diaries (
+  id           text        primary key,
+  user_id      uuid        not null,
+  content      text        not null default '',
+  ai_analysis  text,
+  created_at   timestamptz not null default now()
+);
+
+-- 2. 金句表
+create table if not exists public.quotes (
+  id           text        primary key,
+  user_id      uuid        not null,
+  created_at   timestamptz not null default now(),
+  text         text        not null default '',
+  author       text        not null default '',
+  book         text        not null default '',
+  tags         text[]      not null default '{}'
+);
+
+-- 3. 笔记表
+create table if not exists public.notes (
+  id           text        primary key,
+  user_id      uuid        not null,
+  title        text        not null default '',
+  content      text        not null default '',
+  tags         text[]      not null default '{}'
+);
+
+-- 4. 复盘报告表
+create table if not exists public.review_reports (
+  id           text        primary key,
+  user_id      uuid        not null,
+  created_at   timestamptz not null default now(),
+  content      text        not null default ''
+);
+
+-- 5. 人生主线状态表（目标 / 方向 / 导师计划 / 周计划）
+create table if not exists public.life_path_state (
+  id           text        primary key,   -- "<user_id>:<kind>"
+  user_id      uuid        not null,
+  kind         text        not null,      -- directions | goals | mentor_plans | week_plans
+  content      text        not null default '',
+  updated_at   timestamptz not null default now()
+);`;
+
+// ── 连接检测 ──────────────────────────────────────────────────────────────────
+
+type TableCheckResult = { table: string; ok: boolean; error?: string };
+
+async function checkAllTables(settings: Mind365Settings): Promise<TableCheckResult[]> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+  if (!client || !config) return [];
+
+  const tables = ["diaries", "quotes", "notes", "review_reports", "life_path_state"];
+  return Promise.all(
+    tables.map(async (table): Promise<TableCheckResult> => {
+      try {
+        const { error } = await client.from(table).select("id").eq("user_id", config.userId).limit(1);
+        if (error) return { table, ok: false, error: error.message };
+        return { table, ok: true };
+      } catch (e) {
+        return { table, ok: false, error: e instanceof Error ? e.message : "未知错误" };
+      }
+    }),
+  );
+}
 
 const EMPTY_SETTINGS: Mind365Settings = {
   enableSupabaseSync: false,
@@ -40,6 +111,9 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [tableResults, setTableResults] = useState<TableCheckResult[]>([]);
+  const [sqlCopied, setSqlCopied] = useState(false);
   const [form, setForm] = useState<Mind365Settings>(EMPTY_SETTINGS);
   const [status, setStatus] = useState<CloudSyncStatus>(EMPTY_STATUS);
 
@@ -101,6 +175,34 @@ export default function SettingsPage() {
       setMessage("");
     } finally {
       event.target.value = "";
+    }
+  };
+
+  const onCopySql = useCallback(() => {
+    void navigator.clipboard.writeText(SETUP_SQL).then(() => {
+      setSqlCopied(true);
+      setTimeout(() => setSqlCopied(false), 2000);
+    });
+  }, []);
+
+  const onTestConnection = async () => {
+    setIsTesting(true);
+    setTableResults([]);
+    setMessage("");
+    setError("");
+    try {
+      const results = await checkAllTables(form);
+      setTableResults(results);
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === 0) {
+        setMessage("所有数据表均正常，云同步已就绪 ✓");
+      } else {
+        setError(`${failed.length} 张表未就绪，请先在 Supabase SQL 编辑器中运行下方建表语句。`);
+      }
+    } catch {
+      setError("连接测试失败，请检查 URL 和 Anon Key 是否正确。");
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -201,11 +303,75 @@ export default function SettingsPage() {
             <p className="mt-2 text-xs" style={{ color: "var(--m-ink2)" }}>当前同步用户 ID：{status.userId || form.supabaseUserId || "未设置"}</p>
           </div>
 
-          <Button className="justify-center" disabled={isSyncing} size="lg" type="submit" variant="primary">
-            <RefreshCcw className="mr-2" size={17} />
-            {isSyncing ? "保存中..." : "保存同步设置"}
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button className="flex-1 justify-center" disabled={isSyncing} size="lg" type="submit" variant="primary">
+              <RefreshCcw className="mr-2" size={17} />
+              {isSyncing ? "保存中..." : "保存同步设置"}
+            </Button>
+            <Button
+              className="flex-1 justify-center"
+              disabled={isTesting || !form.enableSupabaseSync || !form.supabaseUrl || !form.supabaseAnonKey}
+              size="lg"
+              type="button"
+              variant="secondary"
+              onClick={onTestConnection}
+            >
+              <Database className="mr-2" size={17} />
+              {isTesting ? "检测中..." : "测试连接"}
+            </Button>
+          </div>
+
+          {/* 逐表检测结果 */}
+          {tableResults.length > 0 && (
+            <div className="rounded-xl p-4 text-sm space-y-2" style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}>
+              {tableResults.map((r) => (
+                <div key={r.table} className="flex items-start gap-2">
+                  {r.ok
+                    ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" style={{ color: "var(--m-success)" }} />
+                    : <XCircle size={16} className="mt-0.5 shrink-0" style={{ color: "var(--m-danger)" }} />
+                  }
+                  <span style={{ color: r.ok ? "var(--m-ink)" : "var(--m-danger)" }}>
+                    <code className="font-mono text-xs">{r.table}</code>
+                    {!r.ok && r.error ? <span className="ml-2 text-xs opacity-70">{r.error}</span> : null}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </form>
+      </Panel>
+
+      {/* 建表 SQL */}
+      <Panel className="p-6 sm:p-8">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold" style={{ color: "var(--m-ink)" }}>数据库初始化 SQL</h3>
+              <p className="mt-1 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
+                首次使用云同步前，需在 Supabase 项目的 <strong>SQL 编辑器</strong> 中运行以下语句，创建全部 5 张数据表。
+              </p>
+            </div>
+            <Button
+              className="shrink-0"
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={onCopySql}
+            >
+              <Copy className="mr-1.5" size={14} />
+              {sqlCopied ? "已复制" : "复制"}
+            </Button>
+          </div>
+          <pre
+            className="overflow-x-auto rounded-xl p-4 text-xs leading-6 font-mono"
+            style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
+          >
+            {SETUP_SQL}
+          </pre>
+          <p className="text-xs" style={{ color: "var(--m-ink2)" }}>
+            提示：在 Supabase 控制台 → 项目 → SQL Editor → New Query，粘贴并点击 Run。
+          </p>
+        </div>
       </Panel>
 
       <Panel className="p-6 sm:p-8">
