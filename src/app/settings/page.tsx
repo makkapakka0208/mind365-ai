@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
-import { refreshLifePathState } from "@/lib/life-path-storage";
+import { refreshLifePathState, forceUploadAllLifePathData } from "@/lib/life-path-storage";
 import { createDefaultSupabaseUserId, createMind365SupabaseClient, getSupabaseConfig } from "@/lib/supabase";
 import {
   downloadMind365Backup,
@@ -162,6 +162,7 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
   const [tableResults, setTableResults] = useState<TableCheckResult[]>([]);
   const [sqlCopied, setSqlCopied] = useState(false);
   const [form, setForm] = useState<Mind365Settings>(EMPTY_SETTINGS);
@@ -256,6 +257,21 @@ export default function SettingsPage() {
     }
   };
 
+  const onForcePush = async () => {
+    setIsPushing(true);
+    setMessage("");
+    setError("");
+    try {
+      await forceUploadAllLifePathData();
+      await refreshDailyLogs({ force: true });
+      setMessage("本机所有数据已强制推送至 Supabase ✓");
+    } catch {
+      setError("推送失败，请检查网络和 Supabase 配置。");
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
   const onSaveSyncSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSyncing(true);
@@ -270,6 +286,9 @@ export default function SettingsPage() {
 
       setForm(saved);
       await refreshDailyLogs({ force: true });
+      // forceUpload first so existing local data reaches the cloud,
+      // then refresh to reconcile any newer remote data.
+      await forceUploadAllLifePathData();
       await refreshLifePathState();
 
       const nextStatus = getCloudSyncStatus();
@@ -370,6 +389,18 @@ export default function SettingsPage() {
               {isTesting ? "检测中..." : "测试连接"}
             </Button>
           </div>
+
+          <Button
+            className="w-full justify-center"
+            disabled={isPushing || !form.enableSupabaseSync || !form.supabaseUrl || !form.supabaseAnonKey}
+            size="lg"
+            type="button"
+            variant="secondary"
+            onClick={onForcePush}
+          >
+            <Cloud className="mr-2" size={17} />
+            {isPushing ? "推送中..." : "强制推送本机所有数据到云端"}
+          </Button>
 
           {/* 逐表检测结果 */}
           {tableResults.length > 0 && (
