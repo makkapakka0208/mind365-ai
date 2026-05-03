@@ -18,7 +18,33 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { parseISODate } from "@/lib/date";
-import type { DailyLog } from "@/types";
+import type { DailyLog, TimeEntry } from "@/types";
+
+// ── TimeEntry helpers (used in modal) ─────────────────────────────────────────
+
+function sumEntryHours(entries: TimeEntry[], date: string, type: TimeEntry["type"]) {
+  return entries
+    .filter((e) => e.date === date && e.type === type)
+    .reduce((sum, e) => sum + e.hours, 0);
+}
+
+function readingNotesForDate(entries: TimeEntry[], date: string): string[] {
+  return entries
+    .filter((e) => e.date === date && e.type === "reading" && e.note?.trim())
+    .map((e) => e.note!.trim());
+}
+
+function studyNotesForDate(entries: TimeEntry[], date: string): string[] {
+  return entries
+    .filter((e) => e.date === date && e.type === "study" && e.note?.trim())
+    .map((e) => e.note!.trim());
+}
+
+function formatHours(h: number) {
+  if (h <= 0) return "—";
+  if (h < 1) return `${Math.round(h * 60)} 分钟`;
+  return `${h % 1 === 0 ? h : h.toFixed(1)} h`;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -572,10 +598,12 @@ const slideVariants = {
 export function DiaryBookModal({
   entries,
   initialEntryId,
+  timeEntries = [],
   onClose,
 }: {
   entries: DailyLog[];
   initialEntryId: string;
+  timeEntries?: TimeEntry[];
   onClose: () => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(() =>
@@ -657,10 +685,21 @@ export function DiaryBookModal({
   const mood = getMoodMeta(entry.mood);
   const [mm, dd] = entry.date.slice(5).split("-");
   const dateDisplay = `${mm}月${dd}日`;
-  const studyLabel =
-    entry.studyHours <= 0 ? "—"
-    : entry.studyHours < 1 ? `${Math.round(entry.studyHours * 60)}分钟`
-    : `${entry.studyHours.toFixed(1)}h`;
+
+  // Aggregate TimeEntry data for this day
+  const teStudyHours = sumEntryHours(timeEntries, entry.date, "study");
+  const teReadingHours = sumEntryHours(timeEntries, entry.date, "reading");
+  const totalStudyHours = entry.studyHours + teStudyHours;
+  const totalReadingHours = teReadingHours; // TimeEntry-based reading hours
+  const studyLabel = formatHours(totalStudyHours);
+  const readingHoursLabel = formatHours(totalReadingHours);
+
+  // Reading list: TimeEntry notes + legacy DailyLog.reading string
+  const readingNotes = readingNotesForDate(timeEntries, entry.date);
+  const studyNotes = studyNotesForDate(timeEntries, entry.date);
+  const legacyReading = entry.reading?.trim();
+  const hasReadingList = readingNotes.length > 0 || !!legacyReading;
+  const hasStudyNotes = studyNotes.length > 0;
 
   return (
     <motion.div
@@ -805,9 +844,9 @@ export function DiaryBookModal({
                     <div className="flex flex-col gap-1 rounded-xl p-3.5" style={{ background: "#FAF7F0", border: "1px solid #E8DDD0" }}>
                       <BookOpen size={15} style={{ color: "#A08060" }} />
                       <div style={{ fontSize: 18, fontWeight: 700, color: "#2D1811", lineHeight: 1.2, marginTop: 4 }}>
-                        {entry.reading && entry.reading !== "0" && entry.reading !== "" ? entry.reading : "—"}
+                        {readingHoursLabel}
                       </div>
-                      <div style={{ fontSize: 11, color: "#A08060" }}>阅读进度</div>
+                      <div style={{ fontSize: 11, color: "#A08060" }}>阅读时长</div>
                     </div>
                     <div className="flex flex-col gap-1 rounded-xl p-3.5" style={{ background: "#FAF7F0", border: "1px solid #E8DDD0" }}>
                       <GraduationCap size={15} style={{ color: "#A08060" }} />
@@ -909,6 +948,7 @@ export function DiaryBookModal({
                       minHeight: 0,
                     }}
                   >
+                    {/* ── 日记正文 ── */}
                     {entry.thoughts.trim() ? (
                       <p
                         style={{
@@ -926,6 +966,66 @@ export function DiaryBookModal({
                       <p style={{ fontSize: 15, color: "#C0A882", fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif', lineHeight: 2 }}>
                         （这一天只留下了一段安静的空白）
                       </p>
+                    )}
+
+                    {/* ── 阅读书单 ── */}
+                    {hasReadingList && (
+                      <div
+                        className="mt-7 rounded-xl px-4 py-4"
+                        style={{ background: "rgba(250,245,237,0.7)", border: "1px solid #E8DDD0" }}
+                      >
+                        <p
+                          className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                          style={{ color: "#B89070" }}
+                        >
+                          <BookOpen size={12} />
+                          今日阅读
+                        </p>
+                        <ul className="space-y-2">
+                          {legacyReading && (
+                            <li className="flex items-start gap-2">
+                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#C8A07A", marginTop: 8, flexShrink: 0 }} />
+                              <span style={{ fontSize: 14, color: "rgba(45,24,17,0.80)", fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif', lineHeight: 1.8 }}>
+                                {legacyReading}
+                              </span>
+                            </li>
+                          )}
+                          {readingNotes.map((note, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#C8A07A", marginTop: 8, flexShrink: 0 }} />
+                              <span style={{ fontSize: 14, color: "rgba(45,24,17,0.80)", fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif', lineHeight: 1.8 }}>
+                                {note}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* ── 学习笔记 ── */}
+                    {hasStudyNotes && (
+                      <div
+                        className="mt-4 rounded-xl px-4 py-4"
+                        style={{ background: "rgba(245,240,250,0.6)", border: "1px solid #E0D8EC" }}
+                      >
+                        <p
+                          className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                          style={{ color: "#9078B0" }}
+                        >
+                          <GraduationCap size={12} />
+                          今日学习
+                        </p>
+                        <ul className="space-y-2">
+                          {studyNotes.map((note, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#9878C0", marginTop: 8, flexShrink: 0 }} />
+                              <span style={{ fontSize: 14, color: "rgba(45,24,17,0.80)", fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif', lineHeight: 1.8 }}>
+                                {note}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
 
@@ -980,16 +1080,18 @@ export function DiaryBookModal({
 export function DiaryBookModalPortal({
   entries,
   entryId,
+  timeEntries = [],
   onClose,
 }: {
   entries: DailyLog[];
   entryId: string | null;
+  timeEntries?: TimeEntry[];
   onClose: () => void;
 }) {
   return (
     <AnimatePresence>
       {entryId && entries.length > 0 && (
-        <DiaryBookModal entries={entries} initialEntryId={entryId} onClose={onClose} />
+        <DiaryBookModal entries={entries} initialEntryId={entryId} timeEntries={timeEntries} onClose={onClose} />
       )}
     </AnimatePresence>
   );
