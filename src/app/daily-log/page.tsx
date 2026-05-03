@@ -21,7 +21,7 @@ import { formatDate, getTodayISODate } from "@/lib/date";
 import { calculateAlignmentScoreWeighted, fuseActions } from "@/lib/life-path";
 import { detectActionsByRules } from "@/lib/life-path-rules";
 import { saveDailyLog, updateDailyLog } from "@/lib/storage";
-import { useDailyLogsStore } from "@/lib/storage-store";
+import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
 import type { FusedAction } from "@/types/life-path";
 
@@ -325,6 +325,7 @@ export default function DailyLogPage() {
   } | null>(null);
 
   const allLogs = useDailyLogsStore();
+  const timeEntries = useTimeEntriesStore();
   const logs = sortLogsByDate(allLogs, "desc");
   const recentLogs = logs.slice(0, 4);
 
@@ -689,7 +690,7 @@ export default function DailyLogPage() {
       <AnimatePresence>{isImmersive && <FloatingTips />}</AnimatePresence>
 
       {/* 日记本弹窗 */}
-      <DiaryBookModalPortal entries={logs} entryId={modalEntry?.id ?? null} onClose={() => setModalEntry(null)} />
+      <DiaryBookModalPortal entries={logs} entryId={modalEntry?.id ?? null} timeEntries={timeEntries} onClose={() => setModalEntry(null)} />
 
       {/* 最近记录 */}
       <StaggerItem index={3}>
