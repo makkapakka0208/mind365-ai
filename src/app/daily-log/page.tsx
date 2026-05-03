@@ -689,7 +689,7 @@ export default function DailyLogPage() {
       <AnimatePresence>{isImmersive && <FloatingTips />}</AnimatePresence>
 
       {/* 日记本弹窗 */}
-      <DiaryBookModalPortal entry={modalEntry} onClose={() => setModalEntry(null)} />
+      <DiaryBookModalPortal entries={logs} entryId={modalEntry?.id ?? null} onClose={() => setModalEntry(null)} />
 
       {/* 最近记录 */}
       <StaggerItem index={3}>
