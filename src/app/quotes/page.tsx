@@ -1,19 +1,23 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   Brain,
+  ChevronLeft,
   ChevronRight,
   FolderOpen,
   Lightbulb,
+  PencilLine,
   Plus,
   Quote as QuoteIcon,
+  Save,
   Search,
   Sparkles,
   Tag,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -68,9 +72,9 @@ function isInThisWeek(iso: string): boolean {
 // ── Tab segmented control ──────────────────────────────────────
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   const tabs: { id: Tab; label: string; Icon: typeof Lightbulb }[] = [
-    { id: "archive", label: "收藏归档", Icon: FolderOpen },
     { id: "quotes", label: "书海拾金", Icon: Lightbulb },
     { id: "notes", label: "阅读笔记", Icon: Brain },
+    { id: "archive", label: "收藏归档", Icon: FolderOpen },
   ];
 
   return (
@@ -194,7 +198,7 @@ function ThemePickerDialog({
 }
 
 // ── Quote card (shared by 书海拾金 and 收藏归档) ──────────────
-function QuoteCard({ quote }: { quote: Quote }) {
+function QuoteCard({ quote, onOpen }: { quote: Quote; onOpen?: () => void }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const currentTheme = classifyQuote(quote);
   const isAuto = !quote.themeCategory;
@@ -205,7 +209,12 @@ function QuoteCard({ quote }: { quote: Quote }) {
   };
 
   return (
-    <Panel className="p-5" interactive>
+    <Panel
+      className="p-5"
+      interactive
+      onClick={onOpen}
+      style={{ cursor: onOpen ? "pointer" : undefined }}
+    >
       <div className="flex items-start gap-3">
         <span
           className="mt-1 shrink-0 rounded-xl p-2"
@@ -244,7 +253,7 @@ function QuoteCard({ quote }: { quote: Quote }) {
 
           <button
             className="mt-3 inline-flex items-center gap-1 text-xs font-medium hover:opacity-80"
-            onClick={() => setPickerOpen(true)}
+            onClick={(e) => { e.stopPropagation(); setPickerOpen(true); }}
             type="button"
             style={{ color: "var(--m-accent)" }}
           >
@@ -364,18 +373,533 @@ function WeeklyCognitiveCard({ quotes }: { quotes: Quote[] }) {
   );
 }
 
+// ── Quote Stack Modal ─────────────────────────────────────────
+
+const quoteSlideVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? 320 : -320, opacity: 0, scale: 0.92 }),
+  center: { x: 0, opacity: 1, scale: 1 },
+  exit:  (dir: number) => ({ x: dir > 0 ? -320 : 320, opacity: 0, scale: 0.92 }),
+};
+
+function QuoteCardFace({
+  quote,
+  dim = false,
+}: {
+  quote: Quote;
+  dim?: boolean;
+}) {
+  const theme = classifyQuote(quote);
+  return (
+    <div
+      style={{
+        background: "#FAF7F0",
+        borderRadius: 20,
+        boxShadow: dim
+          ? "0 4px 16px rgba(0,0,0,0.12)"
+          : "0 28px 64px rgba(0,0,0,0.20), 0 6px 20px rgba(0,0,0,0.10)",
+        padding: "28px 26px 24px",
+        minHeight: 260,
+        display: "flex",
+        flexDirection: "column",
+        pointerEvents: dim ? "none" : undefined,
+      }}
+    >
+      {/* Theme badge */}
+      <span
+        style={{
+          fontSize: 11,
+          fontFamily: "ui-sans-serif,sans-serif",
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          color: "rgba(139,94,60,0.60)",
+          marginBottom: 18,
+        }}
+      >
+        {getThemeIcon(theme)} {theme}
+      </span>
+
+      {/* Quote mark + text */}
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 52, lineHeight: 0.8, color: "rgba(139,94,60,0.12)", fontFamily: "Georgia,serif", marginBottom: 4 }}>"</div>
+        <p
+          style={{
+            fontSize: 19,
+            lineHeight: 1.85,
+            color: "rgba(45,24,17,0.90)",
+            fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif',
+            letterSpacing: "0.03em",
+          }}
+        >
+          {quote.text}
+        </p>
+      </div>
+
+      {/* Author / source */}
+      <p
+        className="mt-5 text-sm"
+        style={{ color: "rgba(100,72,50,0.65)", fontFamily: "ui-sans-serif,sans-serif" }}
+      >
+        — {quote.author || "佚名"}{quote.book ? ` · ${quote.book}` : ""}
+      </p>
+
+      {/* Tags */}
+      {quote.tags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {quote.tags.map((t) => (
+            <span
+              key={t}
+              style={{
+                fontSize: 11,
+                padding: "2px 10px",
+                borderRadius: 99,
+                background: "rgba(139,94,60,0.07)",
+                border: "1px solid rgba(139,94,60,0.12)",
+                color: "rgba(100,72,50,0.70)",
+                fontFamily: "ui-sans-serif,sans-serif",
+              }}
+            >
+              #{t}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuoteStackModal({
+  allQuotes,
+  initialId,
+  onClose,
+}: {
+  allQuotes: Quote[];
+  initialId: string;
+  onClose: () => void;
+}) {
+  const themes = useMemo(() => ["全部", ...getAllThemeLabels()], []);
+  const [filterTab, setFilterTab] = useState<string>("全部");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<{ text: string; author: string; book: string; tags: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const filteredQuotes = useMemo(() => {
+    if (filterTab === "全部") return allQuotes;
+    return allQuotes.filter((q) => classifyQuote(q) === filterTab);
+  }, [allQuotes, filterTab]);
+
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const idx = allQuotes.findIndex((q) => q.id === initialId);
+    const q = idx >= 0 ? allQuotes[idx] : allQuotes[0];
+    if (!q) return 0;
+    const fi = (filterTab === "全部" ? allQuotes : allQuotes.filter((x) => classifyQuote(x) === filterTab))
+      .findIndex((x) => x.id === q.id);
+    return fi >= 0 ? fi : 0;
+  });
+
+  const currentIdRef = useRef(initialId);
+  const [slideDir, setSlideDir] = useState(0);
+
+  // Re-anchor index when filter changes
+  useEffect(() => {
+    const idx = filteredQuotes.findIndex((q) => q.id === currentIdRef.current);
+    setCurrentIndex(idx >= 0 ? idx : 0);
+  }, [filteredQuotes]);
+
+  const currentQuote = filteredQuotes[currentIndex] ?? null;
+
+  useEffect(() => {
+    if (currentQuote) currentIdRef.current = currentQuote.id;
+  }, [currentQuote]);
+
+  const canPrev = currentIndex > 0;
+  const canNext = currentIndex < filteredQuotes.length - 1;
+
+  const goNext = useCallback(() => {
+    if (canNext) { setSlideDir(1); setCurrentIndex((i) => i + 1); setIsEditing(false); }
+  }, [canNext]);
+
+  const goPrev = useCallback(() => {
+    if (canPrev) { setSlideDir(-1); setCurrentIndex((i) => i - 1); setIsEditing(false); }
+  }, [canPrev]);
+
+  // Swipe / drag
+  const dragRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    dragRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const dx = e.clientX - dragRef.current.x;
+    const dy = e.clientY - dragRef.current.y;
+    const dt = Date.now() - dragRef.current.t;
+    dragRef.current = null;
+    if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.3 && dt < 450) {
+      if (dx < 0) goNext(); else goPrev();
+    }
+  }, [goNext, goPrev]);
+  const onPointerCancel = useCallback(() => { dragRef.current = null; }, []);
+
+  // Keyboard
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { if (isEditing) setIsEditing(false); else onClose(); }
+      if (!isEditing && e.key === "ArrowLeft") goPrev();
+      if (!isEditing && e.key === "ArrowRight") goNext();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose, goPrev, goNext, isEditing]);
+
+  // Body scroll lock
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  if (!currentQuote) return null;
+
+  // Pagination dots (sliding window, max 7)
+  const total = filteredQuotes.length;
+  const DOT_MAX = 7;
+  const half = Math.floor(DOT_MAX / 2);
+  let dotStart = Math.max(0, currentIndex - half);
+  let dotEnd = Math.min(total, dotStart + DOT_MAX);
+  dotStart = Math.max(0, dotEnd - DOT_MAX);
+  const dotIndices = Array.from({ length: dotEnd - dotStart }, (_, i) => dotStart + i);
+
+  const prevQuote = filteredQuotes[currentIndex - 1];
+  const nextQuote = filteredQuotes[currentIndex + 1];
+  const currentTheme = classifyQuote(currentQuote);
+
+  const startEdit = () => {
+    setEditForm({
+      text: currentQuote.text,
+      author: currentQuote.author,
+      book: currentQuote.book,
+      tags: currentQuote.tags.join(", "),
+    });
+    setIsEditing(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editForm) return;
+    setSaving(true);
+    await updateQuote({
+      ...currentQuote,
+      text: editForm.text.trim(),
+      author: editForm.author.trim(),
+      book: editForm.book.trim(),
+      tags: editForm.tags.split(",").map((t) => t.trim()).filter(Boolean),
+    });
+    setSaving(false);
+    setIsEditing(false);
+  };
+
+  const CARD_WIDTH = "min(460px, calc(100vw - 72px))";
+
+  return (
+    <motion.div
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+      exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ background: "rgba(18,10,4,0.70)", backdropFilter: "blur(14px)" }}
+      transition={{ duration: 0.22 }}
+    >
+      <div className="flex h-full flex-col" onClick={(e) => e.stopPropagation()}>
+
+        {/* ── Top bar ── */}
+        <div className="flex shrink-0 items-center justify-between px-5 pt-5 pb-3">
+          <span style={{ fontSize: 13, color: "rgba(250,247,240,0.45)", fontFamily: "ui-sans-serif,sans-serif" }}>
+            {filteredQuotes.length > 0 ? `${currentIndex + 1} / ${filteredQuotes.length}` : ""}
+          </span>
+          <button
+            className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+            onClick={onClose}
+            type="button"
+            style={{ color: "rgba(250,247,240,0.65)" }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* ── Category tabs ── */}
+        <div className="shrink-0 overflow-x-auto pb-4 px-4" style={{ scrollbarWidth: "none" }}>
+          <div className="flex gap-2 w-max">
+            {themes.map((theme) => {
+              const isActive = filterTab === theme;
+              return (
+                <button
+                  key={theme}
+                  className="shrink-0 rounded-full px-4 py-1.5 text-sm transition-all"
+                  onClick={() => { setFilterTab(theme); setIsEditing(false); }}
+                  type="button"
+                  style={{
+                    background: isActive ? "rgba(250,247,240,0.92)" : "rgba(250,247,240,0.10)",
+                    color: isActive ? "#4A3022" : "rgba(250,247,240,0.60)",
+                    fontFamily: "ui-sans-serif,sans-serif",
+                    border: `1px solid ${isActive ? "transparent" : "rgba(250,247,240,0.10)"}`,
+                    fontWeight: isActive ? 600 : 400,
+                  }}
+                >
+                  {theme === "全部" ? "全部" : `${getThemeIcon(theme)} ${theme}`}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Card stack ── */}
+        <div
+          className="relative flex flex-1 items-center justify-center"
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          style={{ userSelect: "none", overflow: "hidden" }}
+        >
+          {/* Prev card shadow */}
+          {prevQuote && !isEditing && (
+            <div
+              className="pointer-events-none absolute"
+              style={{
+                width: CARD_WIDTH,
+                transform: "translateX(-20%) translateY(10px) rotate(-3deg) scale(0.87)",
+                opacity: 0.35,
+                transformOrigin: "bottom center",
+                zIndex: 1,
+              }}
+            >
+              <QuoteCardFace quote={prevQuote} dim />
+            </div>
+          )}
+
+          {/* Next card shadow */}
+          {nextQuote && !isEditing && (
+            <div
+              className="pointer-events-none absolute"
+              style={{
+                width: CARD_WIDTH,
+                transform: "translateX(20%) translateY(10px) rotate(3deg) scale(0.87)",
+                opacity: 0.35,
+                transformOrigin: "bottom center",
+                zIndex: 1,
+              }}
+            >
+              <QuoteCardFace quote={nextQuote} dim />
+            </div>
+          )}
+
+          {/* Current card */}
+          <div style={{ width: CARD_WIDTH, position: "relative", zIndex: 10 }}>
+            <AnimatePresence mode="wait" initial={false} custom={slideDir}>
+              <motion.div
+                key={currentQuote.id + (isEditing ? "-edit" : "")}
+                animate="center"
+                custom={slideDir}
+                exit="exit"
+                initial="enter"
+                transition={{ duration: 0.26, ease: [0.4, 0, 0.2, 1] }}
+                variants={quoteSlideVariants}
+              >
+                {isEditing && editForm ? (
+                  /* ── Edit form ── */
+                  <div
+                    style={{
+                      background: "#FAF7F0",
+                      borderRadius: 20,
+                      boxShadow: "0 28px 64px rgba(0,0,0,0.20)",
+                      padding: "26px 24px 22px",
+                    }}
+                  >
+                    <p className="mb-4 text-sm font-semibold" style={{ color: "#7A5535" }}>编辑金句</p>
+                    <div className="space-y-3">
+                      <textarea
+                        className="w-full resize-none rounded-xl px-3 py-2.5 text-sm leading-7 outline-none"
+                        onChange={(e) => setEditForm({ ...editForm, text: e.target.value })}
+                        rows={4}
+                        style={{ background: "rgba(139,94,60,0.05)", border: "1px solid rgba(139,94,60,0.15)", color: "#2D1811", fontFamily: '"Ma Shan Zheng","STKaiti",serif', fontSize: 16 }}
+                        value={editForm.text}
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          className="rounded-xl px-3 py-2 text-sm outline-none"
+                          onChange={(e) => setEditForm({ ...editForm, author: e.target.value })}
+                          placeholder="作者"
+                          style={{ background: "rgba(139,94,60,0.05)", border: "1px solid rgba(139,94,60,0.15)", color: "#2D1811", fontFamily: "ui-sans-serif" }}
+                          value={editForm.author}
+                        />
+                        <input
+                          className="rounded-xl px-3 py-2 text-sm outline-none"
+                          onChange={(e) => setEditForm({ ...editForm, book: e.target.value })}
+                          placeholder="书名 / 来源"
+                          style={{ background: "rgba(139,94,60,0.05)", border: "1px solid rgba(139,94,60,0.15)", color: "#2D1811", fontFamily: "ui-sans-serif" }}
+                          value={editForm.book}
+                        />
+                      </div>
+                      <input
+                        className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                        onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                        placeholder="标签，逗号分隔"
+                        style={{ background: "rgba(139,94,60,0.05)", border: "1px solid rgba(139,94,60,0.15)", color: "#2D1811", fontFamily: "ui-sans-serif" }}
+                        value={editForm.tags}
+                      />
+                    </div>
+                    <div className="mt-4 flex items-center gap-2">
+                      <button
+                        className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
+                        disabled={saving}
+                        onClick={saveEdit}
+                        type="button"
+                        style={{ background: "#2D1811", color: "#FAF7F0" }}
+                      >
+                        <Save size={13} />
+                        {saving ? "保存中…" : "保存"}
+                      </button>
+                      <button
+                        className="rounded-xl px-4 py-2 text-sm transition-opacity hover:opacity-70"
+                        onClick={() => setIsEditing(false)}
+                        type="button"
+                        style={{ color: "#A08060" }}
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Read view ── */
+                  <div>
+                    <QuoteCardFace quote={currentQuote} />
+                    {/* Action bar */}
+                    <div className="mt-4 flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all hover:opacity-80"
+                          onClick={() => setPickerOpen(true)}
+                          type="button"
+                          style={{
+                            background: "rgba(250,247,240,0.14)",
+                            border: "1px solid rgba(250,247,240,0.20)",
+                            color: "rgba(250,247,240,0.80)",
+                            fontFamily: "ui-sans-serif,sans-serif",
+                          }}
+                        >
+                          <Sparkles size={13} />
+                          加入认知体系
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all hover:opacity-80"
+                          onClick={startEdit}
+                          type="button"
+                          style={{
+                            background: "rgba(250,247,240,0.10)",
+                            border: "1px solid rgba(250,247,240,0.14)",
+                            color: "rgba(250,247,240,0.60)",
+                            fontFamily: "ui-sans-serif,sans-serif",
+                          }}
+                        >
+                          <PencilLine size={13} />
+                          编辑
+                        </button>
+                      </div>
+                      {/* Desktop side arrows */}
+                      <div className="hidden items-center gap-1 sm:flex">
+                        <button
+                          className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-20"
+                          disabled={!canPrev}
+                          onClick={goPrev}
+                          type="button"
+                          style={{ color: "rgba(250,247,240,0.65)" }}
+                        >
+                          <ChevronLeft size={18} />
+                        </button>
+                        <button
+                          className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-20"
+                          disabled={!canNext}
+                          onClick={goNext}
+                          type="button"
+                          style={{ color: "rgba(250,247,240,0.65)" }}
+                        >
+                          <ChevronRight size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* ── Pagination dots ── */}
+        {!isEditing && (
+          <div className="flex shrink-0 items-center justify-center gap-1.5 py-5">
+            {dotStart > 0 && (
+              <span style={{ fontSize: 10, color: "rgba(250,247,240,0.30)", fontFamily: "ui-sans-serif" }}>…</span>
+            )}
+            {dotIndices.map((i) => (
+              <button
+                key={i}
+                onClick={() => { setSlideDir(i > currentIndex ? 1 : -1); setCurrentIndex(i); }}
+                type="button"
+                style={{
+                  width: i === currentIndex ? 22 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  background: i === currentIndex ? "rgba(250,247,240,0.88)" : "rgba(250,247,240,0.25)",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  transition: "all 0.25s ease",
+                  flexShrink: 0,
+                }}
+              />
+            ))}
+            {dotEnd < total && (
+              <span style={{ fontSize: 10, color: "rgba(250,247,240,0.30)", fontFamily: "ui-sans-serif" }}>…</span>
+            )}
+          </div>
+        )}
+
+        {/* Swipe hint on mobile */}
+        {!isEditing && total > 1 && (
+          <p className="shrink-0 pb-4 text-center text-[11px] sm:hidden" style={{ color: "rgba(250,247,240,0.28)", fontFamily: "ui-sans-serif" }}>
+            ← 左右滑动切换 →
+          </p>
+        )}
+      </div>
+
+      {/* Theme picker dialog */}
+      <ThemePickerDialog
+        current={currentTheme}
+        onClose={() => setPickerOpen(false)}
+        onPick={async (label) => {
+          await updateQuote({ ...currentQuote, themeCategory: label });
+          setPickerOpen(false);
+        }}
+        open={pickerOpen}
+      />
+    </motion.div>
+  );
+}
+
 // ── Archive section (folders + search + cognitive card) ───────
 function ArchiveSection({
   quotes,
   notes,
-  onJumpToQuote,
+  onOpenQuote,
 }: {
   quotes: Quote[];
   notes: Note[];
-  onJumpToQuote: (id: string) => void;
+  onOpenQuote: (id: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
 
   const buckets = useMemo(() => groupQuotesByTheme(quotes), [quotes]);
 
@@ -407,6 +931,48 @@ function ArchiveSection({
     for (const n of notes) for (const t of n.tags) all.add(t);
     return [...all].filter((t) => t.toLowerCase().includes(searchLower));
   }, [quotes, notes, searchLower, isSearching]);
+
+  // ── Note detail view ─────────────────────────────────────────
+  if (selectedNote) {
+    return (
+      <div className="space-y-5">
+        <button
+          className="inline-flex items-center gap-1.5 text-sm font-medium hover:opacity-80"
+          onClick={() => setSelectedNote(null)}
+          type="button"
+          style={{ color: "var(--m-accent)" }}
+        >
+          <ArrowLeft size={14} />
+          返回搜索结果
+        </button>
+
+        <Panel className="p-6 md:p-7">
+          <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>
+            {selectedNote.title}
+          </h2>
+          {selectedNote.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedNote.tags.map((t) => (
+                <span
+                  className="rounded-full px-3 py-1 text-xs"
+                  key={`${selectedNote.id}-${t}`}
+                  style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
+                >
+                  #{t}
+                </span>
+              ))}
+            </div>
+          )}
+          <p
+            className="mt-5 whitespace-pre-wrap text-[15px] leading-8"
+            style={{ color: "var(--m-ink2)" }}
+          >
+            {selectedNote.content}
+          </p>
+        </Panel>
+      </div>
+    );
+  }
 
   // ── Drill-into-folder view ────────────────────────────────────
   if (openFolder) {
@@ -508,14 +1074,16 @@ function ArchiveSection({
               </p>
               <div className="grid gap-4 lg:grid-cols-2">
                 {matchingQuotes.map((q) => (
-                  <button
-                    className="text-left"
+                  <div
+                    className="cursor-pointer"
                     key={q.id}
-                    onClick={() => onJumpToQuote(q.id)}
-                    type="button"
+                    onClick={() => onOpenQuote(q.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpenQuote(q.id); }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <QuoteCard quote={q} />
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -528,25 +1096,41 @@ function ArchiveSection({
               </p>
               <div className="space-y-3">
                 {matchingNotes.map((n) => (
-                  <Panel className="p-5" interactive key={n.id}>
-                    <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
-                      {n.title}
-                    </h3>
-                    <p
-                      className="mt-2 text-sm leading-7"
-                      style={{ color: "var(--m-ink2)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 3, overflow: "hidden" }}
-                    >
-                      {formatPreview(n.content)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {n.tags.map((t) => (
-                        <span className="rounded-full px-2 py-0.5 text-[11px]" key={`${n.id}-${t}`}
-                          style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink3)" }}>
-                          #{t}
-                        </span>
-                      ))}
-                    </div>
-                  </Panel>
+                  <div
+                    className="cursor-pointer"
+                    key={n.id}
+                    onClick={() => setSelectedNote(n)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedNote(n); }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <Panel className="p-5" interactive>
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
+                          {n.title}
+                        </h3>
+                        <ChevronRight
+                          className="mt-0.5 shrink-0 transition-transform group-hover:translate-x-0.5"
+                          size={16}
+                          style={{ color: "var(--m-ink3)" }}
+                        />
+                      </div>
+                      <p
+                        className="mt-2 text-sm leading-7"
+                        style={{ color: "var(--m-ink2)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 3, overflow: "hidden" }}
+                      >
+                        {formatPreview(n.content)}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {n.tags.map((t) => (
+                          <span className="rounded-full px-2 py-0.5 text-[11px]" key={`${n.id}-${t}`}
+                            style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink3)" }}>
+                            #{t}
+                          </span>
+                        ))}
+                      </div>
+                    </Panel>
+                  </div>
                 ))}
               </div>
             </div>
@@ -611,7 +1195,7 @@ function ArchiveSection({
 }
 
 // ── Quotes section ─────────────────────────────────────────────
-function QuotesSection({ scrollToId }: { scrollToId: string | null }) {
+function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null; onOpenQuote: (id: string) => void }) {
   const [text, setText] = useState("");
   const [author, setAuthor] = useState("");
   const [book, setBook] = useState("");
@@ -740,7 +1324,7 @@ function QuotesSection({ scrollToId }: { scrollToId: string | null }) {
           {quotes.map((quote, index) => (
             <StaggerItem index={index} key={quote.id}>
               <div id={`quote-${quote.id}`}>
-                <QuoteCard quote={quote} />
+                <QuoteCard onOpen={() => onOpenQuote(quote.id)} quote={quote} />
               </div>
             </StaggerItem>
           ))}
@@ -876,8 +1460,9 @@ function NotesSection() {
 
 // ── Page ───────────────────────────────────────────────────────
 export default function LibraryPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("archive");
+  const [activeTab, setActiveTab] = useState<Tab>("quotes");
   const [scrollToId, setScrollToId] = useState<string | null>(null);
+  const [quoteModalId, setQuoteModalId] = useState<string | null>(null);
   const quotes = useQuotesStore();
   const notes = useNotesStore();
 
@@ -886,27 +1471,37 @@ export default function LibraryPage() {
     void refreshNotes();
   }, []);
 
-  const onJumpToQuote = (id: string) => {
-    setScrollToId(id);
-    setActiveTab("quotes");
-  };
+  const onOpenQuote = (id: string) => setQuoteModalId(id);
 
   return (
-    <PageTransition className="space-y-6">
-      <PageTitle
-        description="把值得反复回看的句子和阅读笔记，收进同一座灵感书库里。"
-        eyebrow="灵感书库"
-        icon={Lightbulb}
-        title="灵感书库"
-      />
+    <>
+      <PageTransition className="space-y-6">
+        <PageTitle
+          description="把值得反复回看的句子和阅读笔记，收进同一座灵感书库里。"
+          eyebrow="灵感书库"
+          icon={Lightbulb}
+          title="灵感书库"
+        />
 
-      <TabBar active={activeTab} onChange={(t) => { setActiveTab(t); setScrollToId(null); }} />
+        <TabBar active={activeTab} onChange={(t) => { setActiveTab(t); setScrollToId(null); }} />
 
-      {activeTab === "archive" && (
-        <ArchiveSection notes={notes} onJumpToQuote={onJumpToQuote} quotes={quotes} />
-      )}
-      {activeTab === "quotes" && <QuotesSection scrollToId={scrollToId} />}
-      {activeTab === "notes" && <NotesSection />}
-    </PageTransition>
+        {activeTab === "archive" && (
+          <ArchiveSection notes={notes} onOpenQuote={onOpenQuote} quotes={quotes} />
+        )}
+        {activeTab === "quotes" && <QuotesSection onOpenQuote={onOpenQuote} scrollToId={scrollToId} />}
+        {activeTab === "notes" && <NotesSection />}
+      </PageTransition>
+
+      {/* Quote stack modal */}
+      <AnimatePresence>
+        {quoteModalId && quotes.length > 0 && (
+          <QuoteStackModal
+            allQuotes={quotes}
+            initialId={quoteModalId}
+            onClose={() => setQuoteModalId(null)}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, NotebookPen, Pencil, TrendingDown, TrendingUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CalendarDays, CheckCircle2, Lightbulb, NotebookPen, Pencil, TrendingDown, TrendingUp, X } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { MonthCalendarThumb } from "@/components/daily-log/month-calendar-thumb";
+import { DiaryBookModalPortal } from "@/components/dashboard/featured-book-preview";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Illustration } from "@/components/ui/illustration";
@@ -97,12 +99,217 @@ function AlignmentCard({
   );
 }
 
+// ── Floating tips panel (immersive mode) ──────────────────────────────────────
+
+function FloatingTips() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {/* lightbulb trigger */}
+      <motion.button
+        animate={{ scale: 1, opacity: 1 }}
+        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full shadow-lg"
+        initial={{ scale: 0.8, opacity: 0 }}
+        style={{
+          background: "var(--m-accent)",
+          color: "#fff",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 24 }}
+        type="button"
+        onClick={() => setOpen(true)}
+      >
+        <Lightbulb size={20} />
+      </motion.button>
+
+      {/* overlay drawer */}
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 z-40"
+              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              style={{ background: "rgba(0,0,0,0.25)" }}
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              animate={{ x: 0, opacity: 1 }}
+              className="fixed bottom-0 right-0 top-0 z-50 flex w-80 flex-col gap-5 overflow-y-auto p-6 shadow-2xl"
+              exit={{ x: 48, opacity: 0 }}
+              initial={{ x: 48, opacity: 0 }}
+              style={{
+                background: "var(--m-base-light)",
+                borderLeft: "1px solid var(--m-rule)",
+              }}
+              transition={{ type: "spring", stiffness: 280, damping: 28 }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--m-ink)" }}>
+                  <Lightbulb size={16} style={{ color: "var(--m-accent)" }} />
+                  书写提示
+                </span>
+                <button onClick={() => setOpen(false)} type="button" style={{ color: "var(--m-ink3)" }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="text-sm leading-8" style={{ color: "var(--m-ink2)" }}>
+                1. 今天哪个瞬间最影响你的情绪？
+                <br />
+                2. 今天最值得感谢的一件小事是什么？
+                <br />
+                3. 明天最想守住的一个意图是什么？
+              </div>
+
+              <div className="flex justify-center pt-2">
+                <Illustration
+                  alt="journaling illustration"
+                  className="max-w-[180px]"
+                  src="/illustrations/personal-notebook2.svg"
+                />
+              </div>
+
+              <div
+                className="rounded-2xl p-4"
+                style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
+              >
+                <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--m-ink)" }}>
+                  💡 记录的意义
+                </p>
+                <p className="mt-2 text-[13px] leading-relaxed" style={{ color: "var(--m-ink2)" }}>
+                  "无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。"
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+// ── Sidebar (write / edit mode) ───────────────────────────────────────────────
+
+function WriteSidebar() {
+  return (
+    <div className="flex h-full flex-col gap-6">
+      <Panel className="flex flex-1 flex-col overflow-hidden p-6" interactive>
+        <div>
+          <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
+            书写提示
+          </h3>
+          <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+            1. 今天哪个瞬间最影响你的情绪？
+            <br />
+            2. 今天最值得感谢的一件小事是什么？
+            <br />
+            3. 明天最想守住的一个意图是什么？
+          </p>
+        </div>
+        <div className="mt-auto flex justify-center pt-4">
+          <Illustration
+            alt="journaling illustration"
+            className="max-w-[240px]"
+            src="/illustrations/personal-notebook2.svg"
+          />
+        </div>
+      </Panel>
+
+      <Panel className="p-6" interactive>
+        <div className="flex items-center gap-2">
+          <span className="text-base">💡</span>
+          <h4 className="text-sm font-semibold tracking-wide" style={{ color: "var(--m-ink)" }}>
+            记录的意义
+          </h4>
+        </div>
+        <p className="mt-3 text-[13.5px] leading-relaxed" style={{ color: "var(--m-ink2)" }}>
+          "无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。"
+        </p>
+      </Panel>
+    </div>
+  );
+}
+
+// ── Recent log card ───────────────────────────────────────────────────────────
+
+function RecentLogCard({ log, onClick }: { log: DailyLog; onClick: () => void }) {
+  const preview = log.thoughts
+    ? log.thoughts.replace(/\n+/g, " ").slice(0, 60) + (log.thoughts.length > 60 ? "…" : "")
+    : null;
+  const thumb = log.images?.[0];
+
+  return (
+    <button type="button" className="block w-full text-left" onClick={onClick}>
+      <div
+        className="rounded-2xl p-4 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md"
+        style={{
+          background: "var(--m-base)",
+          border: "1px solid var(--m-rule)",
+          boxShadow: "var(--m-shadow-out)",
+        }}
+      >
+        {/* Polaroid thumbnail */}
+        {thumb && (
+          <div
+            className="mb-3"
+            style={{
+              background: "#fff",
+              padding: "6px 6px 20px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
+              transform: "rotate(-1.2deg)",
+              borderRadius: 4,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt=""
+              className="w-full object-cover"
+              src={thumb}
+              style={{ aspectRatio: "4/3", display: "block", borderRadius: 2 }}
+            />
+          </div>
+        )}
+
+        <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
+          {formatDate(log.date)}
+        </p>
+        <p className="mt-1 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+          情绪 {log.mood}/10
+        </p>
+        {preview && (
+          <p className="mt-2 text-[13px] leading-6 line-clamp-2" style={{ color: "var(--m-ink2)" }}>
+            {preview}
+          </p>
+        )}
+        {log.tags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {log.tags.slice(0, 3).map((t) => (
+              <span
+                key={t}
+                className="rounded-full px-2 py-0.5 text-[11px]"
+                style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink2)" }}
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DailyLogPage() {
   const todayIso = getTodayISODate();
   const [viewingDate, setViewingDate] = useState(todayIso);
   const [editMode, setEditMode] = useState(true);
+
+  const [modalEntry, setModalEntry] = useState<DailyLog | null>(null);
 
   const [mood, setMood] = useState(7);
   const [thoughts, setThoughts] = useState("");
@@ -129,7 +336,6 @@ export default function DailyLogPage() {
   const isToday = viewingDate === todayIso;
   const isFuture = viewingDate > todayIso;
 
-  // Mode: today-edit | past-view | past-empty | edit (existing past entering edit mode)
   const mode: "edit" | "view" | "empty" | "future" = isFuture
     ? "future"
     : isToday
@@ -140,7 +346,9 @@ export default function DailyLogPage() {
           : "view"
         : "empty";
 
-  // Repopulate form when switching date; reset edit flag.
+  // 沉浸阅读模式：view 时隐藏右侧栏
+  const isImmersive = mode === "view";
+
   useEffect(() => {
     setMessage("");
     setAlignment(null);
@@ -182,10 +390,7 @@ export default function DailyLogPage() {
 
     let result;
     if (existingLog) {
-      result = await updateDailyLog({
-        ...existingLog,
-        ...baseFields,
-      });
+      result = await updateDailyLog({ ...existingLog, ...baseFields });
     } else {
       const entry: DailyLog = {
         id: crypto.randomUUID(),
@@ -203,8 +408,6 @@ export default function DailyLogPage() {
 
     setMessage(result.synced ? "已保存，并同步到云端。" : "已保存到本地缓存，云端同步稍后重试。");
     setIsSaving(false);
-
-    // After saving a past date, drop back to view mode.
     if (!isToday) setEditMode(false);
   };
 
@@ -221,7 +424,7 @@ export default function DailyLogPage() {
     : isFuture
       ? "还没到那一天，让生活自己翻开它。"
       : existingLog
-        ? (editMode ? "正在编辑这一天的日记。" : "翻看过去写下的字句。")
+        ? (editMode ? "正在编辑这一天的日记。" : "沉浸阅读模式，右下角 💡 可唤起书写提示。")
         : "这一天你还没写日记，现在补上也不迟。";
 
   return (
@@ -233,19 +436,33 @@ export default function DailyLogPage() {
         title={pageTitle}
       />
 
-      {/* 月历缩略图 */}
+      {/* 月历 */}
       <StaggerItem index={0}>
         <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
       </StaggerItem>
 
-      <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
+      {/* 主内容区：沉浸模式时单列全宽，写/编辑时双列 */}
+      <motion.div
+        layout
+        className={isImmersive ? "grid gap-6" : "grid gap-6 xl:grid-cols-[1.35fr_1fr]"}
+        transition={{ duration: 0.35, ease: "easeInOut" }}
+      >
         <StaggerItem index={1}>
           <Panel className="p-5 sm:p-6 lg:p-7" interactive>
             {mode === "future" ? (
               <div className="py-16 text-center text-sm leading-7" style={{ color: "var(--m-ink3)" }}>
                 未来的日子还没有到来。
                 <br />
-                回到 <button className="underline" onClick={() => setViewingDate(todayIso)} style={{ color: "var(--m-accent)" }} type="button">今天</button> 继续书写吧。
+                回到{" "}
+                <button
+                  className="underline"
+                  onClick={() => setViewingDate(todayIso)}
+                  style={{ color: "var(--m-accent)" }}
+                  type="button"
+                >
+                  今天
+                </button>{" "}
+                继续书写吧。
               </div>
             ) : mode === "empty" ? (
               <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
@@ -260,28 +477,54 @@ export default function DailyLogPage() {
                 </Button>
               </div>
             ) : mode === "view" && existingLog ? (
-              <div className="grid gap-4">
+              /* ── 沉浸阅读视图 ── */
+              <div className="grid gap-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm" style={{ color: "var(--m-ink3)" }}>
                     {formatDate(existingLog.date)} · 情绪 {existingLog.mood}/10
                   </div>
-                  <Button onClick={() => setEditMode(true)} size="sm" type="button" variant="ghost">
-                    <Pencil className="mr-1.5 inline" size={14} />
-                    编辑
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                      style={{
+                        background: "rgba(139,94,60,0.08)",
+                        color: "var(--m-accent)",
+                        border: "1px solid var(--m-rule)",
+                      }}
+                      onClick={() => setModalEntry(existingLog)}
+                    >
+                      📖 打开日记本
+                    </button>
+                    <Button onClick={() => setEditMode(true)} size="sm" type="button" variant="ghost">
+                      <Pencil className="mr-1.5 inline" size={14} />
+                      编辑
+                    </Button>
+                  </div>
                 </div>
+
+                {/* 正文，字体楷体，自然高度 */}
                 <div
-                  className="whitespace-pre-wrap rounded-xl p-4 text-[15px] leading-8"
+                  className="rounded-2xl p-5 sm:p-6"
                   style={{
                     background: "var(--m-base)",
                     border: "1px solid var(--m-rule)",
-                    color: "var(--m-ink)",
-                    fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
+                    boxShadow: "var(--m-shadow-in)",
                   }}
                 >
-                  {existingLog.thoughts || "（这一天只留下了一段安静的空白）"}
+                  <p
+                    className="whitespace-pre-wrap text-[15px] leading-9"
+                    style={{
+                      color: "var(--m-ink)",
+                      fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
+                    }}
+                  >
+                    {existingLog.thoughts || "（这一天只留下了一段安静的空白）"}
+                  </p>
                 </div>
-                {existingLog.tags.length > 0 ? (
+
+                {/* 标签 */}
+                {existingLog.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {existingLog.tags.map((tag) => (
                       <span
@@ -293,17 +536,44 @@ export default function DailyLogPage() {
                       </span>
                     ))}
                   </div>
-                ) : null}
-                {existingLog.images && existingLog.images.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
+                )}
+
+                {/* 拍立得图片 */}
+                {existingLog.images && existingLog.images.length > 0 && (
+                  <div className="flex flex-wrap gap-5 pt-1">
                     {existingLog.images.map((src, i) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img alt="" className="aspect-square w-full rounded-lg object-cover" key={i} src={src} />
+                      <a
+                        href={src}
+                        key={i}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        className="block transition-transform duration-300 hover:scale-[1.03] hover:rotate-0"
+                        style={{ transform: `rotate(${i % 2 === 0 ? -1.5 : 1.2}deg)` }}
+                      >
+                        <div
+                          className="overflow-hidden rounded-sm"
+                          style={{
+                            background: "#fff",
+                            padding: "8px 8px 28px",
+                            boxShadow: "0 4px 18px rgba(0,0,0,0.14)",
+                            width: 148,
+                          }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            alt={`日记图片 ${i + 1}`}
+                            className="block w-full object-cover"
+                            src={src}
+                            style={{ aspectRatio: "1", borderRadius: 2 }}
+                          />
+                        </div>
+                      </a>
                     ))}
                   </div>
-                ) : null}
+                )}
               </div>
             ) : (
+              /* ── 写 / 编辑表单 ── */
               <form className="grid gap-5" onSubmit={onSubmit}>
                 <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
                   日期
@@ -398,45 +668,30 @@ export default function DailyLogPage() {
           </Panel>
         </StaggerItem>
 
-        <StaggerItem index={2} className="h-full">
-          <div className="flex h-full flex-col gap-6">
-            <Panel className="flex flex-1 flex-col overflow-hidden p-6" interactive>
-              <div>
-                <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
-                  书写提示
-                </h3>
-                <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                  1. 今天哪个瞬间最影响你的情绪？
-                  <br />
-                  2. 今天最值得感谢的一件小事是什么？
-                  <br />
-                  3. 明天最想守住的一个意图是什么？
-                </p>
-              </div>
-              <div className="mt-auto flex justify-center pt-4">
-                <Illustration
-                  alt="journaling illustration"
-                  className="max-w-[240px]"
-                  src="/illustrations/personal-notebook2.svg"
-                />
-              </div>
-            </Panel>
+        {/* 右侧栏：沉浸模式时完全隐藏，改为浮动灯泡 */}
+        <AnimatePresence>
+          {!isImmersive && (
+            <motion.div
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 24 }}
+              initial={{ opacity: 0, x: 24 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <StaggerItem index={2} className="h-full">
+                <WriteSidebar />
+              </StaggerItem>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
-            <Panel className="p-6" interactive>
-              <div className="flex items-center gap-2">
-                <span className="text-base">💡</span>
-                <h4 className="text-sm font-semibold tracking-wide" style={{ color: "var(--m-ink)" }}>
-                  记录的意义
-                </h4>
-              </div>
-              <p className="mt-3 text-[13.5px] leading-relaxed" style={{ color: "var(--m-ink2)" }}>
-                "无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。"
-              </p>
-            </Panel>
-          </div>
-        </StaggerItem>
-      </div>
+      {/* 浮动灯泡（仅沉浸阅读模式） */}
+      <AnimatePresence>{isImmersive && <FloatingTips />}</AnimatePresence>
 
+      {/* 日记本弹窗 */}
+      <DiaryBookModalPortal entries={logs} entryId={modalEntry?.id ?? null} onClose={() => setModalEntry(null)} />
+
+      {/* 最近记录 */}
       <StaggerItem index={3}>
         <Panel className="p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -459,28 +714,8 @@ export default function DailyLogPage() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {recentLogs.map((log, index) => (
-                <StaggerItem className="h-full" index={index} key={log.id}>
-                  <button
-                    className="block h-full w-full text-left"
-                    onClick={() => setViewingDate(log.date)}
-                    type="button"
-                  >
-                    <div
-                      className="h-full rounded-2xl p-4 transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02]"
-                      style={{
-                        background: "var(--m-base)",
-                        border: "1px solid var(--m-rule)",
-                        boxShadow: "var(--m-shadow-out)",
-                      }}
-                    >
-                      <p className="text-sm" style={{ color: "var(--m-ink3)" }}>
-                        {formatDate(log.date)}
-                      </p>
-                      <p className="mt-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                        情绪 {log.mood}/10
-                      </p>
-                    </div>
-                  </button>
+                <StaggerItem index={index} key={log.id}>
+                  <RecentLogCard log={log} onClick={() => setModalEntry(log)} />
                 </StaggerItem>
               ))}
             </div>
