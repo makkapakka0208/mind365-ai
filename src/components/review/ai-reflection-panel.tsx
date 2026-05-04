@@ -3,8 +3,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  Archive,
   BookOpen,
   BrainCircuit,
+  CheckCircle2,
   ChevronDown,
   Lightbulb,
   Loader2,
@@ -18,6 +20,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import { toISODate } from "@/lib/date";
 import {
   getCurrentReviewKey,
   getSavedReview,
@@ -26,7 +29,8 @@ import {
   type ReviewPeriod,
   type ReviewSummary,
 } from "@/lib/review-reflection";
-import type { DailyLog } from "@/types";
+import { saveReviewReport } from "@/lib/storage";
+import type { DailyLog, ReviewReport } from "@/types";
 
 // ── Section parser ────────────────────────────────────────────────────────────
 
@@ -392,6 +396,8 @@ export function AiReflectionPanel({
   const [hasSavedReflection, setHasSavedReflection] = useState(false);
   const [reflection, setReflection] = useState("");
   const [message, setMessage] = useState("");
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [archived, setArchived] = useState(false);
 
   const reviewKey = getCurrentReviewKey(period);
 
@@ -440,6 +446,28 @@ export function AiReflectionPanel({
       setIsGenerating(false);
     }
   };
+
+  // Archive AI reflection into ReviewReport history
+  const onArchive = async () => {
+    if (!reflection || isArchiving) return;
+    setIsArchiving(true);
+    const report: ReviewReport = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      period,
+      rangeStart: toISODate(range.start),
+      rangeEnd: toISODate(range.end),
+      title: `${title}（AI 生成）`,
+      metrics: summary,
+      notes: reflection,
+    };
+    await saveReviewReport(report);
+    setIsArchiving(false);
+    setArchived(true);
+  };
+
+  // Reset archived state when period changes
+  useEffect(() => { setArchived(false); }, [period]);
 
   // Parse reflection into structured sections
   const sections = useMemo(() => parseReflectionSections(reflection), [reflection]);
@@ -565,6 +593,46 @@ export function AiReflectionPanel({
                 section={section}
               />
             ))}
+          </div>
+
+          {/* Archive to review history */}
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-4"
+            style={{
+              background: "var(--m-base-light)",
+              border: "1px solid var(--m-rule)",
+              boxShadow: "var(--m-shadow-out)",
+            }}
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                {archived ? "已存入复盘档案" : "是否将这份报告存入复盘档案？"}
+              </p>
+              <p className="mt-0.5 text-xs" style={{ color: "var(--m-ink3)" }}>
+                {archived
+                  ? "可在「复盘档案」页面查看和管理。"
+                  : "存档后可在复盘历史中随时回看。"}
+              </p>
+            </div>
+            {archived ? (
+              <span
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium"
+                style={{ background: "rgba(74,155,111,0.08)", color: "#4A9B6F" }}
+              >
+                <CheckCircle2 size={15} />
+                已存档
+              </span>
+            ) : (
+              <Button
+                className="shrink-0"
+                disabled={isArchiving}
+                onClick={onArchive}
+                variant="secondary"
+              >
+                <Archive className="mr-2" size={15} />
+                {isArchiving ? "存档中…" : "存入复盘档案"}
+              </Button>
+            )}
           </div>
 
           {/* Status message */}
