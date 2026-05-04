@@ -2,6 +2,7 @@
 
 import {
   BookOpen,
+  CalendarRange,
   ChevronLeft,
   ChevronRight,
   Flame,
@@ -717,6 +718,17 @@ export default function HomePage() {
                 {formatClock(now)}
               </div>
               <div className="flex items-center gap-3">
+                <Link
+                  className="flex h-12 w-12 items-center justify-center rounded-[16px]"
+                  href="/week-plan"
+                  style={{
+                    background: "rgba(255,248,238,0.9)",
+                    border: "1px solid rgba(139,94,60,0.12)",
+                    boxShadow: "var(--m-shadow-out)",
+                  }}
+                >
+                  <CalendarRange size={18} style={{ color: "var(--m-accent)" }} />
+                </Link>
                 <Link
                   className="flex h-12 w-12 items-center justify-center rounded-[16px]"
                   href="/library"
