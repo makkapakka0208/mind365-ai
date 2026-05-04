@@ -527,6 +527,9 @@ function QuoteStackModal({
   const dragRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Don't capture pointer when user taps an interactive element (button, link, input…)
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, select, [role='button']")) return;
     dragRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
