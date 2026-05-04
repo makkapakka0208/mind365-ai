@@ -603,9 +603,9 @@ function QuoteStackModal({
 
   return (
     <motion.div
-      animate={{ opacity: 1 }}
+      animate={{ opacity: 1, pointerEvents: "auto" as const }}
       className="fixed inset-0 z-50 flex flex-col overflow-hidden"
-      exit={{ opacity: 0 }}
+      exit={{ opacity: 0, pointerEvents: "none" as const }}
       initial={{ opacity: 0 }}
       onClick={onClose}
       style={{ background: "rgba(18,10,4,0.70)", backdropFilter: "blur(14px)" }}
@@ -871,18 +871,18 @@ function QuoteStackModal({
             ← 左右滑动切换 →
           </p>
         )}
-      </div>
 
-      {/* Theme picker dialog */}
-      <ThemePickerDialog
-        current={currentTheme}
-        onClose={() => setPickerOpen(false)}
-        onPick={async (label) => {
-          await updateQuote({ ...currentQuote, themeCategory: label });
-          setPickerOpen(false);
-        }}
-        open={pickerOpen}
-      />
+        {/* Theme picker dialog — inside stopPropagation div to prevent backdrop click from closing modal */}
+        <ThemePickerDialog
+          current={currentTheme}
+          onClose={() => setPickerOpen(false)}
+          onPick={async (label) => {
+            await updateQuote({ ...currentQuote, themeCategory: label });
+            setPickerOpen(false);
+          }}
+          open={pickerOpen}
+        />
+      </div>
     </motion.div>
   );
 }
@@ -1463,6 +1463,7 @@ export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<Tab>("quotes");
   const [scrollToId, setScrollToId] = useState<string | null>(null);
   const [quoteModalId, setQuoteModalId] = useState<string | null>(null);
+  const [quoteModalKey, setQuoteModalKey] = useState(0);
   const quotes = useQuotesStore();
   const notes = useNotesStore();
 
@@ -1471,7 +1472,10 @@ export default function LibraryPage() {
     void refreshNotes();
   }, []);
 
-  const onOpenQuote = (id: string) => setQuoteModalId(id);
+  const onOpenQuote = (id: string) => {
+    setQuoteModalId(id);
+    setQuoteModalKey((k) => k + 1);
+  };
 
   return (
     <>
@@ -1493,9 +1497,10 @@ export default function LibraryPage() {
       </PageTransition>
 
       {/* Quote stack modal */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {quoteModalId && quotes.length > 0 && (
           <QuoteStackModal
+            key={quoteModalKey}
             allQuotes={quotes}
             initialId={quoteModalId}
             onClose={() => setQuoteModalId(null)}
