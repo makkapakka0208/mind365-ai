@@ -437,10 +437,10 @@ export default function DailyLogPage() {
         title={pageTitle}
       />
 
-      {/* 月历 + 日记主体：桌面端左右布局 */}
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+      {/* 月历 + 日记主体：桌面端左右布局，等高对齐 */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(380px,420px)_1fr] lg:items-start">
         {/* 左：月历 */}
-        <StaggerItem index={0} className="lg:sticky lg:top-6 lg:self-start">
+        <StaggerItem index={0} className="lg:sticky lg:top-6">
           <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
         </StaggerItem>
 
@@ -480,103 +480,109 @@ export default function DailyLogPage() {
                 </Button>
               </div>
             ) : mode === "view" && existingLog ? (
-              /* ── 沉浸阅读视图 ── */
-              <div className="grid gap-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm" style={{ color: "var(--m-ink3)" }}>
-                    {formatDate(existingLog.date)} · 情绪 {existingLog.mood}/10
+              /* ── 沉浸阅读视图（紧凑卡片，点击打开日记本） ── */
+              <button
+                type="button"
+                className="w-full cursor-pointer text-left transition-shadow hover:shadow-md"
+                onClick={() => setModalEntry(existingLog)}
+              >
+                <div className="grid gap-3">
+                  {/* 头部：日期 + 操作 */}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-sm" style={{ color: "var(--m-ink3)" }}>
+                      {formatDate(existingLog.date)} · 情绪 {existingLog.mood}/10
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
+                        style={{
+                          background: "rgba(139,94,60,0.08)",
+                          color: "var(--m-accent)",
+                          border: "1px solid var(--m-rule)",
+                        }}
+                      >
+                        📖 打开日记本
+                      </span>
+                      <span
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
+                        style={{ color: "var(--m-ink3)" }}
+                        onClick={(e) => { e.stopPropagation(); setEditMode(true); }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <Pencil className="inline" size={13} />
+                        编辑
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-                      style={{
-                        background: "rgba(139,94,60,0.08)",
-                        color: "var(--m-accent)",
-                        border: "1px solid var(--m-rule)",
-                      }}
-                      onClick={() => setModalEntry(existingLog)}
-                    >
-                      📖 打开日记本
-                    </button>
-                    <Button onClick={() => setEditMode(true)} size="sm" type="button" variant="ghost">
-                      <Pencil className="mr-1.5 inline" size={14} />
-                      编辑
-                    </Button>
-                  </div>
-                </div>
 
-                {/* 正文，字体楷体，自然高度 — 点击打开日记本 */}
-                <button
-                  type="button"
-                  className="w-full cursor-pointer rounded-2xl p-5 text-left transition-shadow hover:shadow-md sm:p-6"
-                  style={{
-                    background: "var(--m-base)",
-                    border: "1px solid var(--m-rule)",
-                    boxShadow: "var(--m-shadow-in)",
-                  }}
-                  onClick={() => setModalEntry(existingLog)}
-                >
-                  <p
-                    className="whitespace-pre-wrap text-[15px] leading-9"
+                  {/* 正文：固定高度 + 超出省略 */}
+                  <div
+                    className="overflow-hidden rounded-2xl p-4 sm:p-5"
                     style={{
-                      color: "var(--m-ink)",
-                      fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
+                      background: "var(--m-base)",
+                      border: "1px solid var(--m-rule)",
+                      boxShadow: "var(--m-shadow-in)",
+                      maxHeight: 200,
                     }}
                   >
-                    {existingLog.thoughts || "（这一天只留下了一段安静的空白）"}
-                  </p>
-                </button>
-
-                {/* 标签 */}
-                {existingLog.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {existingLog.tags.map((tag) => (
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-xs"
-                        key={tag}
-                        style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink2)" }}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
+                    <p
+                      className="text-[15px] leading-8"
+                      style={{
+                        color: "var(--m-ink)",
+                        fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
+                        display: "-webkit-box",
+                        WebkitLineClamp: 5,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {existingLog.thoughts || "（这一天只留下了一段安静的空白）"}
+                    </p>
                   </div>
-                )}
 
-                {/* 拍立得图片 */}
-                {existingLog.images && existingLog.images.length > 0 && (
-                  <div className="flex flex-wrap gap-5 pt-1">
-                    {existingLog.images.map((src, i) => (
-                      <a
-                        href={src}
-                        key={i}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                        className="block transition-transform duration-300 hover:scale-[1.03] hover:rotate-0"
-                        style={{ transform: `rotate(${i % 2 === 0 ? -1.5 : 1.2}deg)` }}
-                      >
-                        <div
-                          className="overflow-hidden rounded-sm"
-                          style={{
-                            background: "#fff",
-                            padding: "8px 8px 28px",
-                            boxShadow: "0 4px 18px rgba(0,0,0,0.14)",
-                            width: 148,
-                          }}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {/* 底部：标签 + 缩略图 */}
+                  <div className="flex items-center gap-3">
+                    {/* 标签 */}
+                    {existingLog.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {existingLog.tags.map((tag) => (
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[11px]"
+                            key={tag}
+                            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink2)" }}
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {/* 图片缩略图 */}
+                    {existingLog.images && existingLog.images.length > 0 && (
+                      <div className="ml-auto flex -space-x-2">
+                        {existingLog.images.slice(0, 3).map((src, i) => (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img
+                            key={i}
                             alt={`日记图片 ${i + 1}`}
-                            className="block w-full object-cover"
+                            className="rounded-md border-2 border-white object-cover"
                             src={src}
-                            style={{ aspectRatio: "1", borderRadius: 2 }}
+                            style={{ width: 36, height: 36 }}
                           />
-                        </div>
-                      </a>
-                    ))}
+                        ))}
+                        {existingLog.images.length > 3 && (
+                          <span
+                            className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white text-[10px] font-medium"
+                            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink3)" }}
+                          >
+                            +{existingLog.images.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              </button>
             ) : (
               /* ── 写 / 编辑表单 ── */
               <form className="grid gap-5" onSubmit={onSubmit}>
