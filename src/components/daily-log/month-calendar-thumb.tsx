@@ -160,7 +160,7 @@ export function MonthCalendarThumb({
 
   return (
     <div
-      className="rounded-2xl border p-4 md:p-5"
+      className="rounded-2xl border p-4 md:p-6"
       style={{
         background: "var(--m-base-light)",
         borderColor: "var(--m-rule)",
@@ -180,7 +180,7 @@ export function MonthCalendarThumb({
         </button>
 
         <div
-          className="text-sm font-medium tracking-wide"
+          className="text-base font-semibold tracking-wide"
           style={{
             color: "var(--m-ink)",
             fontFamily: '"Noto Serif SC", serif',
@@ -202,14 +202,14 @@ export function MonthCalendarThumb({
       </div>
 
       {/* 星期表头 */}
-      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[11px]" style={{ color: "var(--m-ink3)" }}>
+      <div className="mt-3 grid grid-cols-7 gap-1.5 text-center text-xs font-medium" style={{ color: "var(--m-ink3)" }}>
         {WEEKDAYS.map((w) => (
           <div key={w}>{w}</div>
         ))}
       </div>
 
       {/* 桌面：整月 */}
-      <div className="mt-2 hidden grid-cols-7 gap-1.5 md:grid">
+      <div className="mt-2 hidden grid-cols-7 gap-2 md:grid">
         {cells.map((cell, i) => (
           <CalendarCell cell={cell} key={`m-${i}`} onPick={onPick} />
         ))}
@@ -261,7 +261,7 @@ function CalendarCell({
   return (
     <button
       aria-label={`查看 ${date}${hasMood ? ` 情绪 ${mood}/10` : ""}`}
-      className="group relative aspect-square w-full rounded-[10px] text-[12px] font-medium transition disabled:cursor-not-allowed"
+      className="group relative aspect-square w-full rounded-xl text-[13px] font-semibold transition disabled:cursor-not-allowed"
       disabled={isFuture}
       onClick={() => onPick(date)}
       style={{

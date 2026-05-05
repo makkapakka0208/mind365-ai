@@ -10,6 +10,7 @@ import {
   MoreHorizontal,
   PencilLine,
   Smile,
+  Trash2,
   Type,
   X,
 } from "lucide-react";
@@ -600,17 +601,20 @@ export function DiaryBookModal({
   initialEntryId,
   timeEntries = [],
   onClose,
+  onDelete,
 }: {
   entries: DailyLog[];
   initialEntryId: string;
   timeEntries?: TimeEntry[];
   onClose: () => void;
+  onDelete?: (id: string) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(() =>
     Math.max(0, entries.findIndex((e) => e.id === initialEntryId)),
   );
   const [slideDir, setSlideDir] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const entry = entries[currentIndex];
 
@@ -638,6 +642,9 @@ export function DiaryBookModal({
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     // Ignore non-primary mouse buttons
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Don't capture pointer when user taps an interactive element (button, link, input…)
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, select, [role='button']")) return;
     dragRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
     // Capture the pointer so pointerup fires even if cursor leaves the element
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -909,8 +916,8 @@ export function DiaryBookModal({
                     </div>
                   )}
 
-                  {/* Edit link */}
-                  <div className="mt-auto">
+                  {/* Edit + Delete */}
+                  <div className="mt-auto flex items-center gap-2">
                     <Link
                       href={`/journal?id=${entry.id}`}
                       className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-75"
@@ -920,6 +927,37 @@ export function DiaryBookModal({
                       <PencilLine size={14} />
                       编辑这篇日记
                     </Link>
+                    {onDelete && !confirmDelete && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-red-50"
+                        style={{ color: "#B0756A", border: "1px solid rgba(176,117,106,0.3)" }}
+                        onClick={() => setConfirmDelete(true)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                    {onDelete && confirmDelete && (
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-medium text-white transition-colors hover:bg-red-700"
+                          style={{ background: "#DC2626" }}
+                          onClick={() => { onDelete(entry.id); onClose(); }}
+                        >
+                          <Trash2 size={13} />
+                          确认删除
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-xl px-3 py-2.5 text-xs font-medium transition-colors hover:bg-black/5"
+                          style={{ color: "#A08060" }}
+                          onClick={() => setConfirmDelete(false)}
+                        >
+                          取消
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1082,16 +1120,18 @@ export function DiaryBookModalPortal({
   entryId,
   timeEntries = [],
   onClose,
+  onDelete,
 }: {
   entries: DailyLog[];
   entryId: string | null;
   timeEntries?: TimeEntry[];
   onClose: () => void;
+  onDelete?: (id: string) => void;
 }) {
   return (
     <AnimatePresence>
       {entryId && entries.length > 0 && (
-        <DiaryBookModal entries={entries} initialEntryId={entryId} timeEntries={timeEntries} onClose={onClose} />
+        <DiaryBookModal entries={entries} initialEntryId={entryId} timeEntries={timeEntries} onClose={onClose} onDelete={onDelete} />
       )}
     </AnimatePresence>
   );

@@ -586,6 +586,20 @@ export async function updateDailyLog(nextLog: DailyLog): Promise<DailyLogMutatio
   } catch { return { logs: updated, synced: false }; }
 }
 
+export async function deleteDailyLog(id: string): Promise<DailyLogMutationResult> {
+  const logs = getDailyLogs().filter((log) => log.id !== id);
+  setDailyLogs(logs);
+  try {
+    const settings = getSettingsForSync();
+    const config = getSupabaseConfig(settings);
+    const client = createMind365SupabaseClient(settings);
+    if (config && client) {
+      await client.from("diaries").delete().eq("id", id).eq("user_id", config.userId);
+    }
+    return { logs, synced: true };
+  } catch { return { logs, synced: false }; }
+}
+
 export function getQuotes(): Quote[] {
   if (typeof window === "undefined") return [];
   const raw = window.localStorage.getItem(STORAGE_KEYS.quotes);
