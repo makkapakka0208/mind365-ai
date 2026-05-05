@@ -437,17 +437,19 @@ export default function DailyLogPage() {
         title={pageTitle}
       />
 
-      {/* 月历 */}
-      <StaggerItem index={0}>
-        <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
-      </StaggerItem>
+      {/* 月历 + 日记主体：桌面端左右布局 */}
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+        {/* 左：月历 */}
+        <StaggerItem index={0} className="lg:sticky lg:top-6 lg:self-start">
+          <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
+        </StaggerItem>
 
-      {/* 主内容区：沉浸模式时单列全宽，写/编辑时双列 */}
-      <motion.div
-        layout
-        className={isImmersive ? "grid gap-6" : "grid gap-6 xl:grid-cols-[1.35fr_1fr]"}
-        transition={{ duration: 0.35, ease: "easeInOut" }}
-      >
+        {/* 右：主内容区 */}
+        <motion.div
+          layout
+          className={isImmersive ? "grid gap-6" : "grid gap-6 xl:grid-cols-[1.35fr_1fr]"}
+          transition={{ duration: 0.35, ease: "easeInOut" }}
+        >
         <StaggerItem index={1}>
           <Panel className="p-5 sm:p-6 lg:p-7" interactive>
             {mode === "future" ? (
@@ -504,14 +506,16 @@ export default function DailyLogPage() {
                   </div>
                 </div>
 
-                {/* 正文，字体楷体，自然高度 */}
-                <div
-                  className="rounded-2xl p-5 sm:p-6"
+                {/* 正文，字体楷体，自然高度 — 点击打开日记本 */}
+                <button
+                  type="button"
+                  className="w-full cursor-pointer rounded-2xl p-5 text-left transition-shadow hover:shadow-md sm:p-6"
                   style={{
                     background: "var(--m-base)",
                     border: "1px solid var(--m-rule)",
                     boxShadow: "var(--m-shadow-in)",
                   }}
+                  onClick={() => setModalEntry(existingLog)}
                 >
                   <p
                     className="whitespace-pre-wrap text-[15px] leading-9"
@@ -522,7 +526,7 @@ export default function DailyLogPage() {
                   >
                     {existingLog.thoughts || "（这一天只留下了一段安静的空白）"}
                   </p>
-                </div>
+                </button>
 
                 {/* 标签 */}
                 {existingLog.tags.length > 0 && (
@@ -684,7 +688,8 @@ export default function DailyLogPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* 浮动灯泡（仅沉浸阅读模式） */}
       <AnimatePresence>{isImmersive && <FloatingTips />}</AnimatePresence>
