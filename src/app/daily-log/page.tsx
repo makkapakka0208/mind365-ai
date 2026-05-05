@@ -437,38 +437,30 @@ export default function DailyLogPage() {
         title={pageTitle}
       />
 
-      {/* 月历 + 日记主体：桌面端左右布局，等高对齐 */}
+      {/* ── 月历 + 日记预览：左右等高布局 ── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(380px,420px)_1fr] lg:items-stretch">
         {/* 左：月历 */}
         <StaggerItem index={0}>
           <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
         </StaggerItem>
 
-        {/* 右：主内容区 */}
-        <motion.div
-          layout
-          className={isImmersive ? "flex min-h-0 flex-col gap-6" : "flex min-h-0 flex-col gap-6"}
-          transition={{ duration: 0.35, ease: "easeInOut" }}
-        >
-        <StaggerItem index={1} className="flex min-h-0 flex-1 flex-col">
-          <Panel className="flex min-h-0 flex-1 flex-col p-5 sm:p-6 lg:p-7" interactive>
+        {/* 右：日记预览卡片（等高填充） */}
+        <StaggerItem index={1} className="flex min-h-0 flex-col">
+          <Panel className="flex min-h-0 flex-1 flex-col p-5 sm:p-6" interactive>
             {mode === "future" ? (
-              <div className="py-16 text-center text-sm leading-7" style={{ color: "var(--m-ink3)" }}>
-                未来的日子还没有到来。
-                <br />
-                回到{" "}
-                <button
-                  className="underline"
-                  onClick={() => setViewingDate(todayIso)}
-                  style={{ color: "var(--m-accent)" }}
-                  type="button"
-                >
-                  今天
-                </button>{" "}
-                继续书写吧。
+              <div className="flex flex-1 items-center justify-center py-10 text-center text-sm leading-7" style={{ color: "var(--m-ink3)" }}>
+                <div>
+                  未来的日子还没有到来。
+                  <br />
+                  回到{" "}
+                  <button className="underline" onClick={() => setViewingDate(todayIso)} style={{ color: "var(--m-accent)" }} type="button">
+                    今天
+                  </button>{" "}
+                  继续书写吧。
+                </div>
               </div>
             ) : mode === "empty" ? (
-              <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
+              <div className="flex flex-1 flex-col items-center justify-center gap-4 py-10 text-center">
                 <CalendarDays size={36} style={{ color: "var(--m-ink3)" }} />
                 <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
                   这一天你没有写日记。
@@ -480,14 +472,13 @@ export default function DailyLogPage() {
                 </Button>
               </div>
             ) : mode === "view" && existingLog ? (
-              /* ── 沉浸阅读视图（紧凑卡片，点击打开日记本） ── */
               <button
                 type="button"
                 className="flex min-h-0 w-full flex-1 cursor-pointer flex-col text-left transition-shadow hover:shadow-md"
                 onClick={() => setModalEntry(existingLog)}
               >
                 <div className="flex min-h-0 flex-1 flex-col gap-3">
-                  {/* 头部：日期 + 操作 */}
+                  {/* 头部 */}
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="text-sm" style={{ color: "var(--m-ink3)" }}>
                       {formatDate(existingLog.date)} · 情绪 {existingLog.mood}/10
@@ -495,11 +486,7 @@ export default function DailyLogPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
-                        style={{
-                          background: "rgba(139,94,60,0.08)",
-                          color: "var(--m-accent)",
-                          border: "1px solid var(--m-rule)",
-                        }}
+                        style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)", border: "1px solid var(--m-rule)" }}
                       >
                         📖 打开日记本
                       </span>
@@ -515,15 +502,10 @@ export default function DailyLogPage() {
                       </span>
                     </div>
                   </div>
-
-                  {/* 正文：填满剩余空间 + 超出裁切 */}
+                  {/* 正文 */}
                   <div
                     className="min-h-0 flex-1 overflow-hidden rounded-2xl p-4 sm:p-5"
-                    style={{
-                      background: "var(--m-base)",
-                      border: "1px solid var(--m-rule)",
-                      boxShadow: "var(--m-shadow-in)",
-                    }}
+                    style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-in)" }}
                   >
                     <p
                       className="text-[15px] leading-8"
@@ -539,41 +521,25 @@ export default function DailyLogPage() {
                       {existingLog.thoughts || "（这一天只留下了一段安静的空白）"}
                     </p>
                   </div>
-
                   {/* 底部：标签 + 缩略图 */}
                   <div className="flex items-center gap-3">
-                    {/* 标签 */}
                     {existingLog.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {existingLog.tags.map((tag) => (
-                          <span
-                            className="rounded-full px-2 py-0.5 text-[11px]"
-                            key={tag}
-                            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink2)" }}
-                          >
+                          <span className="rounded-full px-2 py-0.5 text-[11px]" key={tag} style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink2)" }}>
                             #{tag}
                           </span>
                         ))}
                       </div>
                     )}
-                    {/* 图片缩略图 */}
                     {existingLog.images && existingLog.images.length > 0 && (
                       <div className="ml-auto flex -space-x-2">
                         {existingLog.images.slice(0, 3).map((src, i) => (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            key={i}
-                            alt={`日记图片 ${i + 1}`}
-                            className="rounded-md border-2 border-white object-cover"
-                            src={src}
-                            style={{ width: 36, height: 36 }}
-                          />
+                          <img key={i} alt={`日记图片 ${i + 1}`} className="rounded-md border-2 border-white object-cover" src={src} style={{ width: 36, height: 36 }} />
                         ))}
                         {existingLog.images.length > 3 && (
-                          <span
-                            className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white text-[10px] font-medium"
-                            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink3)" }}
-                          >
+                          <span className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-white text-[10px] font-medium" style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink3)" }}>
                             +{existingLog.images.length - 3}
                           </span>
                         )}
@@ -583,118 +549,115 @@ export default function DailyLogPage() {
                 </div>
               </button>
             ) : (
-              /* ── 写 / 编辑表单 ── */
-              <form className="grid gap-5" onSubmit={onSubmit}>
-                <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  日期
-                  <div
-                    className="rounded-lg px-3 py-2 text-sm"
-                    style={{
-                      background: "var(--m-base)",
-                      border: "1px solid var(--m-rule)",
-                      color: "var(--m-ink2)",
-                    }}
-                  >
-                    {formatDate(viewingDate)}
-                  </div>
+              /* 编辑模式：显示简短提示，表单在下方独立区域 */
+              <div className="flex flex-1 items-center justify-center py-10 text-center">
+                <div className="space-y-2">
+                  <NotebookPen size={32} style={{ color: "var(--m-accent)", margin: "0 auto" }} />
+                  <p className="text-sm" style={{ color: "var(--m-ink2)" }}>正在{existingLog ? "编辑" : "书写"}日记…</p>
+                  <p className="text-xs" style={{ color: "var(--m-ink3)" }}>请在下方表单中填写内容</p>
                 </div>
-
-                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  情绪分数 ({mood}/10)
-                  <input
-                    className="h-2 w-full cursor-pointer appearance-none rounded-full"
-                    max={10}
-                    min={1}
-                    onChange={(event) => setMood(Number(event.target.value))}
-                    style={{
-                      background: "var(--m-base)",
-                      border: "1px solid var(--m-rule)",
-                      accentColor: "var(--m-accent)",
-                    }}
-                    type="range"
-                    value={mood}
-                  />
-                </label>
-
-                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  今日日记
-                  <Textarea
-                    onChange={(event) => setThoughts(event.target.value)}
-                    placeholder="写下今天最值得记住的一刻..."
-                    value={thoughts}
-                  />
-                </label>
-
-                <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  标签（逗号分隔）
-                  <Input
-                    onChange={(event) => setTags(event.target.value)}
-                    placeholder="专注, 成长, 平静"
-                    type="text"
-                    value={tags}
-                  />
-                </label>
-
-                <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  插入图片
-                  <ImageUploader images={images} onChange={setImages} />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button disabled={isSaving} size="lg" type="submit" variant="primary">
-                    {isSaving ? "保存中..." : existingLog ? "更新" : "保存"}
-                  </Button>
-                  {!isToday && existingLog ? (
-                    <button
-                      className="text-sm"
-                      onClick={() => setEditMode(false)}
-                      style={{ color: "var(--m-ink3)" }}
-                      type="button"
-                    >
-                      取消
-                    </button>
-                  ) : null}
-                  <Link className="text-sm" href="/library" style={{ color: "var(--m-accent)" }}>
-                    去记录书籍摘抄
-                  </Link>
-                  {message ? (
-                    <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--m-success)" }}>
-                      <CheckCircle2 size={16} />
-                      {message}
-                    </span>
-                  ) : null}
-                </div>
-
-                {alignment && (
-                  <AlignmentCard
-                    contributions={alignment.contributions}
-                    negativeDelta={alignment.negativeDelta}
-                    positiveDelta={alignment.positiveDelta}
-                    score={alignment.score}
-                  />
-                )}
-              </form>
+              </div>
             )}
           </Panel>
         </StaggerItem>
-
-        {/* 右侧栏：沉浸模式时完全隐藏，改为浮动灯泡 */}
-        <AnimatePresence>
-          {!isImmersive && (
-            <motion.div
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 24 }}
-              initial={{ opacity: 0, x: 24 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
-              <StaggerItem index={2} className="h-full">
-                <WriteSidebar />
-              </StaggerItem>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        </motion.div>
       </div>
+
+      {/* ── 写日记 / 编辑表单：独立全宽区域 ── */}
+      <AnimatePresence>
+        {(mode === "edit") && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <StaggerItem index={2}>
+              <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
+                <Panel className="p-5 sm:p-6 lg:p-7">
+                  <form className="grid gap-5" onSubmit={onSubmit}>
+                    <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                      日期
+                      <div
+                        className="rounded-lg px-3 py-2 text-sm"
+                        style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
+                      >
+                        {formatDate(viewingDate)}
+                      </div>
+                    </div>
+
+                    <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                      情绪分数 ({mood}/10)
+                      <input
+                        className="h-2 w-full cursor-pointer appearance-none rounded-full"
+                        max={10} min={1}
+                        onChange={(event) => setMood(Number(event.target.value))}
+                        style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", accentColor: "var(--m-accent)" }}
+                        type="range"
+                        value={mood}
+                      />
+                    </label>
+
+                    <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                      今日日记
+                      <Textarea
+                        onChange={(event) => setThoughts(event.target.value)}
+                        placeholder="写下今天最值得记住的一刻..."
+                        value={thoughts}
+                      />
+                    </label>
+
+                    <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                      标签（逗号分隔）
+                      <Input
+                        onChange={(event) => setTags(event.target.value)}
+                        placeholder="专注, 成长, 平静"
+                        type="text"
+                        value={tags}
+                      />
+                    </label>
+
+                    <div className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                      插入图片
+                      <ImageUploader images={images} onChange={setImages} />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button disabled={isSaving} size="lg" type="submit" variant="primary">
+                        {isSaving ? "保存中..." : existingLog ? "更新" : "保存"}
+                      </Button>
+                      {!isToday && existingLog ? (
+                        <button className="text-sm" onClick={() => setEditMode(false)} style={{ color: "var(--m-ink3)" }} type="button">
+                          取消
+                        </button>
+                      ) : null}
+                      <Link className="text-sm" href="/library" style={{ color: "var(--m-accent)" }}>
+                        去记录书籍摘抄
+                      </Link>
+                      {message ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "var(--m-success)" }}>
+                          <CheckCircle2 size={16} />
+                          {message}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {alignment && (
+                      <AlignmentCard
+                        contributions={alignment.contributions}
+                        negativeDelta={alignment.negativeDelta}
+                        positiveDelta={alignment.positiveDelta}
+                        score={alignment.score}
+                      />
+                    )}
+                  </form>
+                </Panel>
+
+                <WriteSidebar />
+              </div>
+            </StaggerItem>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 浮动灯泡（仅沉浸阅读模式） */}
       <AnimatePresence>{isImmersive && <FloatingTips />}</AnimatePresence>
