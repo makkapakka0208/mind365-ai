@@ -438,20 +438,20 @@ export default function DailyLogPage() {
       />
 
       {/* 月历 + 日记主体：桌面端左右布局，等高对齐 */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(380px,420px)_1fr] lg:items-start">
+      <div className="grid gap-5 lg:grid-cols-[minmax(380px,420px)_1fr] lg:items-stretch">
         {/* 左：月历 */}
-        <StaggerItem index={0} className="lg:sticky lg:top-6">
+        <StaggerItem index={0}>
           <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
         </StaggerItem>
 
         {/* 右：主内容区 */}
         <motion.div
           layout
-          className={isImmersive ? "grid gap-6" : "grid gap-6 xl:grid-cols-[1.35fr_1fr]"}
+          className={isImmersive ? "flex min-h-0 flex-col gap-6" : "flex min-h-0 flex-col gap-6"}
           transition={{ duration: 0.35, ease: "easeInOut" }}
         >
-        <StaggerItem index={1}>
-          <Panel className="p-5 sm:p-6 lg:p-7" interactive>
+        <StaggerItem index={1} className="flex min-h-0 flex-1 flex-col">
+          <Panel className="flex min-h-0 flex-1 flex-col p-5 sm:p-6 lg:p-7" interactive>
             {mode === "future" ? (
               <div className="py-16 text-center text-sm leading-7" style={{ color: "var(--m-ink3)" }}>
                 未来的日子还没有到来。
@@ -483,10 +483,10 @@ export default function DailyLogPage() {
               /* ── 沉浸阅读视图（紧凑卡片，点击打开日记本） ── */
               <button
                 type="button"
-                className="w-full cursor-pointer text-left transition-shadow hover:shadow-md"
+                className="flex min-h-0 w-full flex-1 cursor-pointer flex-col text-left transition-shadow hover:shadow-md"
                 onClick={() => setModalEntry(existingLog)}
               >
-                <div className="grid gap-3">
+                <div className="flex min-h-0 flex-1 flex-col gap-3">
                   {/* 头部：日期 + 操作 */}
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="text-sm" style={{ color: "var(--m-ink3)" }}>
@@ -516,14 +516,13 @@ export default function DailyLogPage() {
                     </div>
                   </div>
 
-                  {/* 正文：固定高度 + 超出省略 */}
+                  {/* 正文：填满剩余空间 + 超出裁切 */}
                   <div
-                    className="overflow-hidden rounded-2xl p-4 sm:p-5"
+                    className="min-h-0 flex-1 overflow-hidden rounded-2xl p-4 sm:p-5"
                     style={{
                       background: "var(--m-base)",
                       border: "1px solid var(--m-rule)",
                       boxShadow: "var(--m-shadow-in)",
-                      maxHeight: 200,
                     }}
                   >
                     <p
@@ -532,7 +531,7 @@ export default function DailyLogPage() {
                         color: "var(--m-ink)",
                         fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
                         display: "-webkit-box",
-                        WebkitLineClamp: 5,
+                        WebkitLineClamp: 6,
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
                       }}
