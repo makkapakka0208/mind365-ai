@@ -638,6 +638,9 @@ export function DiaryBookModal({
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     // Ignore non-primary mouse buttons
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Don't capture pointer when user taps an interactive element (button, link, input…)
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, select, [role='button']")) return;
     dragRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
     // Capture the pointer so pointerup fires even if cursor leaves the element
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
