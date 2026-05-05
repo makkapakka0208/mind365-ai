@@ -20,7 +20,7 @@ import { sortLogsByDate } from "@/lib/analytics";
 import { formatDate, getTodayISODate } from "@/lib/date";
 import { calculateAlignmentScoreWeighted, fuseActions } from "@/lib/life-path";
 import { detectActionsByRules } from "@/lib/life-path-rules";
-import { saveDailyLog, updateDailyLog } from "@/lib/storage";
+import { deleteDailyLog, saveDailyLog, updateDailyLog } from "@/lib/storage";
 import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
 import type { FusedAction } from "@/types/life-path";
@@ -690,7 +690,7 @@ export default function DailyLogPage() {
       <AnimatePresence>{isImmersive && <FloatingTips />}</AnimatePresence>
 
       {/* 日记本弹窗 */}
-      <DiaryBookModalPortal entries={logs} entryId={modalEntry?.id ?? null} timeEntries={timeEntries} onClose={() => setModalEntry(null)} />
+      <DiaryBookModalPortal entries={logs} entryId={modalEntry?.id ?? null} timeEntries={timeEntries} onClose={() => setModalEntry(null)} onDelete={(id) => { void deleteDailyLog(id); setModalEntry(null); }} />
 
       {/* 最近记录 */}
       <StaggerItem index={3}>
