@@ -35,7 +35,7 @@ export function AppShell({ children }: AppShellProps) {
   };
 
   return (
-    <div className="relative h-screen overflow-hidden" style={{ color: "var(--m-ink)" }}>
+    <div className="relative overflow-hidden" style={{ color: "var(--m-ink)", height: "100dvh" }}>
       <div className="mx-auto flex h-full w-full max-w-[1500px] gap-0 md:gap-4 px-0 md:px-4">
         
         {/* ── Desktop Sidebar ── */}

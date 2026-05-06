@@ -341,11 +341,11 @@ export default function DailyLogPage() {
     ? "future"
     : isToday
       ? "edit"
-      : existingLog
-        ? editMode
-          ? "edit"
-          : "view"
-        : "empty";
+      : editMode
+        ? "edit"
+        : existingLog
+          ? "view"
+          : "empty";
 
   // 沉浸阅读模式：view 时隐藏右侧栏
   const isImmersive = mode === "view";

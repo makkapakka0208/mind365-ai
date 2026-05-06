@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+﻿import type { Metadata, Viewport } from "next";
 
 import { AppShell } from "@/components/layout/app-shell";
 
@@ -7,6 +7,24 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Mind365",
   description: "Mind365 个人成长追踪系统",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Mind365",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#8B5E3C",
 };
 
 export default function RootLayout({
@@ -17,6 +35,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
         <link
           href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
           rel="stylesheet"
