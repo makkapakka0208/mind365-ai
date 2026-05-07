@@ -1,22 +1,56 @@
 {
-  "name": "Mind365",
+  "name": "Mind365 — 个人成长追踪",
   "short_name": "Mind365",
-  "description": "Mind365 个人成长追踪系统",
+  "description": "慢一点，写下来，继续成长。每日心境记录、阅读追踪、AI 复盘。",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#F8EFE0",
   "theme_color": "#8B5E3C",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["lifestyle", "productivity", "education"],
   "icons": [
     {
       "src": "/icons/icon-192.svg",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "/icons/icon-192.svg",
+      "src": "/icons/icon-512.svg",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "写日记",
+      "short_name": "日记",
+      "url": "/daily-log",
+      "description": "记录今天的心境"
+    },
+    {
+      "name": "AI 复盘",
+      "short_name": "复盘",
+      "url": "/review",
+      "description": "生成成长复盘报告"
+    },
+    {
+      "name": "灵感书库",
+      "short_name": "书库",
+      "url": "/quotes",
+      "description": "浏览收藏的金句"
     }
   ]
 }

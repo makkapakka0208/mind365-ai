@@ -1,4 +1,4 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { AppShell } from "@/components/layout/app-shell";
 
@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
 };
 
@@ -35,17 +38,19 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
+        {/* PWA Icons */}
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+        <link rel="icon" type="image/svg+xml" href="/icons/icon-192.svg" />
+
+        {/* iOS Splash Screens — solid color fallback */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+        {/* Preconnect to Google Fonts for faster load */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Ma+Shan+Zheng&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -55,4 +60,3 @@ export default function RootLayout({
     </html>
   );
 }
-

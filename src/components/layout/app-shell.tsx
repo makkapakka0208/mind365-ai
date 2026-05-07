@@ -8,6 +8,9 @@ import { usePathname } from "next/navigation";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { desktopNavItems } from "@/components/layout/nav-items";
 import { SmartActionCard } from "@/components/layout/smart-action-card";
+import { OnlineStatus } from "@/components/pwa/online-status";
+import { PWAInstallPrompt } from "@/components/pwa/install-prompt";
+import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 import { cn } from "@/lib/cn";
 
 interface AppShellProps {
@@ -135,6 +138,9 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       <MobileTabBar />
+      <OnlineStatus />
+      <PWAInstallPrompt />
+      <ServiceWorkerRegister />
     </div>
   );
 }
