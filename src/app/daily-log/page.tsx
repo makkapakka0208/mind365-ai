@@ -437,15 +437,15 @@ export default function DailyLogPage() {
         title={pageTitle}
       />
 
-      {/* ── 月历 + 日记预览：左右等高布局（非编辑模式显示） ── */}
-      {mode !== "edit" && (
-        <div className="grid gap-5 lg:grid-cols-[minmax(380px,420px)_1fr] lg:items-stretch">
-          {/* 左：月历 */}
-          <StaggerItem index={0}>
-            <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
-          </StaggerItem>
+      {/* ── 月历 + 日记预览：左右等高布局（月历始终可见） ── */}
+      <div className={mode !== "edit" ? "grid gap-5 lg:grid-cols-[minmax(380px,420px)_1fr] lg:items-stretch" : ""}>
+        {/* 左：月历（始终显示，以便用户随时切换日期） */}
+        <StaggerItem index={0}>
+          <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
+        </StaggerItem>
 
-          {/* 右：日记预览卡片（等高填充） */}
+        {/* 右：日记预览卡片（非编辑模式时显示） */}
+        {mode !== "edit" && (
           <StaggerItem index={1} className="flex min-h-0 flex-col">
             <Panel className="flex min-h-0 flex-1 flex-col p-5 sm:p-6" interactive>
               {mode === "future" ? (
@@ -552,8 +552,8 @@ export default function DailyLogPage() {
               ) : null}
             </Panel>
           </StaggerItem>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── 写日记 / 编辑表单：独立全宽区域 ── */}
       {mode === "edit" && (
