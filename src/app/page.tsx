@@ -355,7 +355,7 @@ function TimeEntryDialog({
     event.preventDefault();
     const value = Number(hours);
     if (!Number.isFinite(value) || value <= 0) return;
-    saveTimeEntry({
+    void saveTimeEntry({
       date: getTodayISODate(),
       type,
       hours: value,

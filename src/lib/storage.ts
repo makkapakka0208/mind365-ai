@@ -391,6 +391,25 @@ async function fetchRemoteNotes(settings: Mind365Settings): Promise<Note[]> {
   return normalizeCollection(data, isNote);
 }
 
+async function fetchRemoteTimeEntries(settings: Mind365Settings): Promise<TimeEntry[]> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+  if (!client || !config) return [];
+  const { data, error } = await client.from("time_entries").select("*").eq("user_id", config.userId).order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((row: Record<string, unknown>) => parseTimeEntry({
+      id: row.id,
+      createdAt: row.created_at,
+      date: row.date,
+      type: row.type,
+      hours: row.hours,
+      note: row.note,
+    }))
+    .filter((e): e is TimeEntry => e !== null);
+}
+
 async function fetchRemoteReviewReports(settings: Mind365Settings): Promise<ReviewReport[]> {
   const client = createMind365SupabaseClient(settings);
   const config = getSupabaseConfig(settings);
@@ -443,6 +462,24 @@ async function upsertRemoteNotes(notes: Note[], settings: Mind365Settings) {
   if (!client || !config || notes.length === 0) return false;
   const payload = notes.map((n) => ({ id: n.id, user_id: config.userId, title: n.title, content: n.content, tags: n.tags }));
   const { error } = await client.from("notes").upsert(payload, { onConflict: "id" });
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+async function upsertRemoteTimeEntries(entries: TimeEntry[], settings: Mind365Settings) {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+  if (!client || !config || entries.length === 0) return false;
+  const payload = entries.map((e) => ({
+    id: e.id,
+    user_id: config.userId,
+    created_at: e.createdAt,
+    date: e.date,
+    type: e.type,
+    hours: e.hours,
+    note: e.note ?? null,
+  }));
+  const { error } = await client.from("time_entries").upsert(payload, { onConflict: "id" });
   if (error) throw new Error(error.message);
   return true;
 }
@@ -572,6 +609,26 @@ export async function refreshReviewReports(): Promise<ReviewReport[]> {
   } catch { return local; }
 }
 
+export async function refreshTimeEntries(): Promise<TimeEntry[]> {
+  if (typeof window === "undefined") return [];
+  const settings = getSettingsForSync();
+  const config = getSupabaseConfig(settings);
+  if (!config) return getTimeEntries();
+  const local = getTimeEntries();
+  try {
+    const remote = await fetchRemoteTimeEntries(settings);
+    const merged = new Map<string, TimeEntry>();
+    for (const e of remote) merged.set(e.id, e);
+    for (const e of local) merged.set(e.id, e);
+    const mergedArr = [...merged.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    setTimeEntries(mergedArr);
+    const remoteIds = new Set(remote.map((e) => e.id));
+    const toUpload = mergedArr.filter((e) => !remoteIds.has(e.id));
+    if (toUpload.length > 0) await upsertRemoteTimeEntries(toUpload, settings);
+    return mergedArr;
+  } catch { return local; }
+}
+
 export async function saveDailyLog(log: DailyLog): Promise<DailyLogMutationResult> {
   const logs = getDailyLogs();
   const normalized: DailyLog = { ...log, id: log.id || createId(), createdAt: log.createdAt || new Date().toISOString() };
@@ -674,7 +731,7 @@ export function setTimeEntries(entries: TimeEntry[]) {
   writeCollection(STORAGE_KEYS.timeEntries, normalizeTimeEntries(entries));
 }
 
-export function saveTimeEntry(entry: Omit<TimeEntry, "id" | "createdAt">): TimeEntry[] {
+export async function saveTimeEntry(entry: Omit<TimeEntry, "id" | "createdAt">): Promise<{ entries: TimeEntry[]; synced: boolean }> {
   const normalized: TimeEntry = {
     ...entry,
     id: createId(),
@@ -684,7 +741,10 @@ export function saveTimeEntry(entry: Omit<TimeEntry, "id" | "createdAt">): TimeE
   };
   const updated = normalizeTimeEntries([normalized, ...getTimeEntries()]);
   setTimeEntries(updated);
-  return updated;
+  try {
+    const synced = await withTimeout(upsertRemoteTimeEntries([normalized], getSettingsForSync()), 8000, false);
+    return { entries: updated, synced: !!synced };
+  } catch { return { entries: updated, synced: false }; }
 }
 
 export async function saveReviewReport(report: ReviewReport): Promise<ReviewReport[]> {
@@ -756,6 +816,7 @@ export function importMind365Backup(raw: string): BackupImportResult {
   void upsertRemoteQuotes(quotes, syncSettings).catch(() => undefined);
   void upsertRemoteNotes(notes, syncSettings).catch(() => undefined);
   void upsertRemoteReviewReports(reviewReports, syncSettings).catch(() => undefined);
+  void upsertRemoteTimeEntries(timeEntries, syncSettings).catch(() => undefined);
 
   return {
     dailyLogs: dailyLogs.length,
