@@ -67,6 +67,14 @@ export interface CloudSyncStatus {
   userId: string;
 }
 
+/** 给 Promise 加上超时，避免网络慢时无限等待 */
+function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 let refreshPromise: Promise<DailyLog[]> | null = null;
 let refreshSignature = "";
 
@@ -570,7 +578,7 @@ export async function saveDailyLog(log: DailyLog): Promise<DailyLogMutationResul
   const updated = normalizeDailyLogs([normalized, ...logs]);
   setDailyLogs(updated);
   try {
-    const synced = await upsertRemoteDailyLogs([normalized], getSettingsForSync());
+    const synced = await withTimeout(upsertRemoteDailyLogs([normalized], getSettingsForSync()), 8000, false);
     return { logs: updated, synced };
   } catch { return { logs: updated, synced: false }; }
 }
@@ -581,7 +589,7 @@ export async function updateDailyLog(nextLog: DailyLog): Promise<DailyLogMutatio
   const updated = normalizeDailyLogs(logs.map((log) => (log.id === updatedLog.id ? updatedLog : log)));
   setDailyLogs(updated);
   try {
-    const synced = await upsertRemoteDailyLogs([updatedLog], getSettingsForSync());
+    const synced = await withTimeout(upsertRemoteDailyLogs([updatedLog], getSettingsForSync()), 8000, false);
     return { logs: updated, synced };
   } catch { return { logs: updated, synced: false }; }
 }
@@ -594,7 +602,8 @@ export async function deleteDailyLog(id: string): Promise<DailyLogMutationResult
     const config = getSupabaseConfig(settings);
     const client = createMind365SupabaseClient(settings);
     if (config && client) {
-      await client.from("diaries").delete().eq("id", id).eq("user_id", config.userId);
+      const deleteOp = client.from("diaries").delete().eq("id", id).eq("user_id", config.userId);
+      await withTimeout(Promise.resolve(deleteOp), 8000, undefined as unknown as Awaited<typeof deleteOp>);
     }
     return { logs, synced: true };
   } catch { return { logs, synced: false }; }

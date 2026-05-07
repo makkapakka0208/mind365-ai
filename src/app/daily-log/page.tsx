@@ -439,8 +439,8 @@ export default function DailyLogPage() {
 
       {/* ── 月历 + 日记预览：左右等高布局（月历始终可见） ── */}
       <div className={mode !== "edit" ? "grid gap-5 lg:grid-cols-[minmax(380px,420px)_1fr] lg:items-stretch" : ""}>
-        {/* 左：月历（始终显示，以便用户随时切换日期） */}
-        <StaggerItem index={0}>
+        {/* 左：月历 — 桌面端始终显示；手机端编辑模式下隐藏以腾出空间给表单 */}
+        <StaggerItem index={0} className={mode === "edit" ? "hidden lg:block" : ""}>
           <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
         </StaggerItem>
 
