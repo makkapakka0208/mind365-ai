@@ -4,9 +4,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, Share, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-/**
- * Detects whether the user is in standalone (installed PWA) mode.
- */
+// ── 全局捕获 beforeinstallprompt（在 React 挂载之前就可能触发） ──
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _deferredPrompt: any = null;
+let _promptCaptured = false;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    _deferredPrompt = e;
+    _promptCaptured = true;
+  });
+}
+
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
   return (
@@ -20,6 +30,11 @@ function isIOS(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
 }
 
+function isAndroid(): boolean {
+  if (typeof window === "undefined") return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
 const DISMISS_KEY = "mind365_pwa_dismiss";
 const DISMISS_DAYS = 7;
 
@@ -27,46 +42,66 @@ export function PWAInstallPrompt() {
   const [show, setShow] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [iosHint, setIosHint] = useState(false);
+  const [promptType, setPromptType] = useState<"install" | "ios" | "android-manual">("install");
 
   useEffect(() => {
-    // Don't show if already installed
     if (isStandalone()) return;
 
-    // Don't show if recently dismissed
+    // Check dismiss
     const dismissed = localStorage.getItem(DISMISS_KEY);
     if (dismissed) {
       const ts = Number(dismissed);
       if (Date.now() - ts < DISMISS_DAYS * 86400000) return;
     }
 
-    // Android/Chrome: listen for beforeinstallprompt
+    // Check if the global handler already captured the event before React mounted
+    if (_promptCaptured && _deferredPrompt) {
+      setDeferredPrompt(_deferredPrompt);
+      setPromptType("install");
+      setShow(true);
+      return;
+    }
+
+    // Listen for future beforeinstallprompt events
     const handler = (e: Event) => {
       e.preventDefault();
+      _deferredPrompt = e;
+      _promptCaptured = true;
       setDeferredPrompt(e);
+      setPromptType("install");
       setShow(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    // iOS: show manual instructions after a short delay
-    if (isIOS()) {
-      const timer = setTimeout(() => {
-        setIosHint(true);
-        setShow(true);
-      }, 3000);
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener("beforeinstallprompt", handler);
-      };
-    }
+    // Fallback: if no event after 5 seconds, show manual instructions
+    const fallbackTimer = setTimeout(() => {
+      if (_promptCaptured) return; // Event was captured, no need for fallback
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+      if (isIOS()) {
+        setPromptType("ios");
+        setShow(true);
+      } else if (isAndroid()) {
+        setPromptType("android-manual");
+        setShow(true);
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   const handleInstall = useCallback(async () => {
-    if (!deferredPrompt) return;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    await deferredPrompt.prompt();
+    const prompt = deferredPrompt || _deferredPrompt;
+    if (!prompt) return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      await prompt.prompt();
+    } catch {
+      // prompt() can only be called once
+    }
+    _deferredPrompt = null;
     setDeferredPrompt(null);
     setShow(false);
   }, [deferredPrompt]);
@@ -112,23 +147,18 @@ export function PWAInstallPrompt() {
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
                 style={{ background: "var(--m-accent)", color: "#FDF6EB" }}
               >
-                {iosHint ? <Share size={20} /> : <Download size={20} />}
+                {promptType === "ios" ? <Share size={20} /> : <Download size={20} />}
               </div>
 
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 pr-6">
                 <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>
                   安装 Mind365 到主屏幕
                 </p>
-                {iosHint ? (
-                  <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
-                    点击底部
-                    <Share size={12} className="mx-0.5 inline" style={{ color: "var(--m-accent)" }} />
-                    分享按钮，选择「添加到主屏幕」即可获得 App 般的全屏体验。
-                  </p>
-                ) : (
+
+                {promptType === "install" ? (
                   <>
                     <p className="mt-1 text-xs" style={{ color: "var(--m-ink3)" }}>
-                      全屏体验，离线可用，快速启动。
+                      全屏体验，离线可用，像原生 App 一样使用。
                     </p>
                     <button
                       type="button"
@@ -139,6 +169,16 @@ export function PWAInstallPrompt() {
                       立即安装
                     </button>
                   </>
+                ) : promptType === "ios" ? (
+                  <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
+                    点击底部
+                    <Share size={12} className="mx-0.5 inline" style={{ color: "var(--m-accent)" }} />
+                    分享按钮，选择「添加到主屏幕」即可。
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
+                    点击浏览器右上角 <strong>⋮</strong> 菜单，选择「添加到主屏幕」或「安装应用」即可。
+                  </p>
                 )}
               </div>
             </div>
