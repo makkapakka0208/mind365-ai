@@ -339,13 +339,11 @@ export default function DailyLogPage() {
 
   const mode: "edit" | "view" | "empty" | "future" = isFuture
     ? "future"
-    : isToday
+    : editMode
       ? "edit"
-      : editMode
-        ? "edit"
-        : existingLog
-          ? "view"
-          : "empty";
+      : existingLog
+        ? "view"
+        : "empty";
 
   // 沉浸阅读模式：view 时隐藏右侧栏
   const isImmersive = mode === "view";
@@ -364,8 +362,9 @@ export default function DailyLogPage() {
       setTags("");
       setImages([]);
     }
-    setEditMode(viewingDate === todayIso);
-  }, [viewingDate, existingLog]);
+    // 今天且没写过日记 → 自动进入编辑模式；其余情况进入查看模式
+    setEditMode(viewingDate === todayIso && !existingLog);
+  }, [viewingDate, existingLog, todayIso]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -412,20 +411,20 @@ export default function DailyLogPage() {
     if (!isToday) setEditMode(false);
   };
 
-  const pageTitle = isToday
-    ? "写日记"
-    : isFuture
-      ? "未来的日子"
+  const pageTitle = isFuture
+    ? "未来的日子"
+    : mode === "edit"
+      ? (isToday ? "写日记" : `补写 ${formatDate(viewingDate)}`)
       : existingLog
         ? formatDate(viewingDate)
-        : `补写 ${formatDate(viewingDate)}`;
+        : formatDate(viewingDate);
 
-  const pageDesc = isToday
-    ? "用最短的路径记录今天的心境、思考和学习投入。"
-    : isFuture
-      ? "还没到那一天，让生活自己翻开它。"
+  const pageDesc = isFuture
+    ? "还没到那一天，让生活自己翻开它。"
+    : mode === "edit"
+      ? "用最短的路径记录今天的心境、思考和学习投入。"
       : existingLog
-        ? (editMode ? "正在编辑这一天的日记。" : "沉浸阅读模式，右下角 💡 可唤起书写提示。")
+        ? (isToday ? "今天的日记已写好，点击可查看或编辑。" : "沉浸阅读模式，右下角 💡 可唤起书写提示。")
         : "这一天你还没写日记，现在补上也不迟。";
 
   return (
@@ -439,8 +438,8 @@ export default function DailyLogPage() {
 
       {/* ── 月历 + 日记预览：左右等高布局（月历始终可见） ── */}
       <div className={mode !== "edit" ? "grid gap-5 lg:grid-cols-[minmax(380px,420px)_1fr] lg:items-stretch" : ""}>
-        {/* 左：月历 — 桌面端始终显示；手机端编辑模式下隐藏以腾出空间给表单 */}
-        <StaggerItem index={0} className={mode === "edit" ? "hidden lg:block" : ""}>
+        {/* 左：月历（始终显示，用户可随时切换日期） */}
+        <StaggerItem index={0}>
           <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
         </StaggerItem>
 
