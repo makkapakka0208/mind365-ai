@@ -68,9 +68,9 @@ export interface CloudSyncStatus {
 }
 
 /** 给 Promise 加上超时，避免网络慢时无限等待 */
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
-    promise,
+    Promise.resolve(promise),
     new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
   ]);
 }
@@ -602,11 +602,8 @@ export async function deleteDailyLog(id: string): Promise<DailyLogMutationResult
     const config = getSupabaseConfig(settings);
     const client = createMind365SupabaseClient(settings);
     if (config && client) {
-      await withTimeout(
-        client.from("diaries").delete().eq("id", id).eq("user_id", config.userId),
-        8000,
-        { error: null },
-      );
+      const deleteOp = client.from("diaries").delete().eq("id", id).eq("user_id", config.userId);
+      await withTimeout(Promise.resolve(deleteOp), 8000, undefined as unknown as Awaited<typeof deleteOp>);
     }
     return { logs, synced: true };
   } catch { return { logs, synced: false }; }
