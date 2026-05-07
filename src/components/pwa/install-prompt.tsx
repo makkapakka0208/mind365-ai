@@ -94,12 +94,28 @@ export function PWAInstallPrompt() {
 
   const handleInstall = useCallback(async () => {
     const prompt = deferredPrompt || _deferredPrompt;
-    if (!prompt) return;
+    if (!prompt) {
+      // No prompt available — fall back to manual instructions
+      setPromptType(isIOS() ? "ios" : "android-manual");
+      return;
+    }
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      await prompt.prompt();
+      const result = await prompt.prompt();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (result?.outcome === "dismissed") {
+        // User dismissed the native prompt — show manual guide
+        setPromptType(isIOS() ? "ios" : "android-manual");
+        _deferredPrompt = null;
+        setDeferredPrompt(null);
+        return;
+      }
     } catch {
-      // prompt() can only be called once
+      // prompt() failed — fall back to manual instructions
+      setPromptType(isIOS() ? "ios" : "android-manual");
+      _deferredPrompt = null;
+      setDeferredPrompt(null);
+      return;
     }
     _deferredPrompt = null;
     setDeferredPrompt(null);
