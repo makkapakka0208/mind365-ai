@@ -287,9 +287,9 @@ export default function SettingsPage() {
                   <Smartphone size={20} style={{ color: "var(--m-accent)" }} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>本机存储</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>本机缓存</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
-                    所有日记、金句和复盘数据默认保存在你的设备上，无需注册账号即可使用。
+                    数据会先保存在浏览器本地，保证离线也能正常使用。清除浏览器缓存后本地数据会丢失，但云端仍有备份。
                   </p>
                   <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: "var(--m-success)" }}>
                     <CheckCircle2 size={12} />
@@ -307,15 +307,25 @@ export default function SettingsPage() {
                   {syncConfigured ? <Cloud size={20} style={{ color: "var(--m-success)" }} /> : <CloudOff size={20} style={{ color: "var(--m-ink3)" }} />}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>云端备份</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>云端同步</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
-                    开启后可跨设备同步数据，换手机不丢失记录。需要在下方配置。
+                    {syncConfigured
+                      ? "数据已自动同步到云端，换设备或清缓存后会自动恢复。每个浏览器会分配独立用户 ID。"
+                      : "未连接云端，数据仅保存在本地。建议定期导出 JSON 备份。"}
                   </p>
                   <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: syncConfigured ? "var(--m-success)" : "var(--m-ink3)" }}>
-                    {syncConfigured ? <><CheckCircle2 size={12} /> 同步中</> : <><CloudOff size={12} /> 未开启</>}
+                    {syncConfigured ? <><CheckCircle2 size={12} /> 自动同步中</> : <><CloudOff size={12} /> 未连接</>}
                   </p>
                 </div>
               </div>
+            </div>
+
+            <div className="rounded-xl p-3 text-xs leading-5" style={{ background: "rgba(211,153,60,0.08)", border: "1px solid rgba(211,153,60,0.18)", color: "var(--m-ink2)" }}>
+              <p className="font-medium" style={{ color: "var(--m-accent)" }}>⚠️ 重要提醒</p>
+              <p className="mt-1">
+                云端数据库存储空间有限（免费版 500 MB），日记中的图片会占用较多空间。
+                <strong>建议定期使用下方的「导出备份」功能，将数据保存为 JSON 文件到电脑或网盘</strong>，这是最可靠的备份方式。
+              </p>
             </div>
           </div>
         </Panel>
@@ -331,7 +341,7 @@ export default function SettingsPage() {
                 数据备份
               </h3>
               <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                定期导出备份，防止数据丢失。备份文件包含你所有的日记、金句、笔记和复盘报告。
+                导出为 JSON 文件保存到电脑或网盘，是最安全的备份方式。文件包含你所有的日记、金句、笔记和复盘报告，不受云端存储限制。
               </p>
             </div>
 
@@ -356,7 +366,7 @@ export default function SettingsPage() {
             />
 
             <div className="rounded-xl p-3 text-xs leading-5" style={{ background: "rgba(180,150,110,0.08)", border: "1px solid var(--m-rule)", color: "var(--m-ink3)" }}>
-              💡 建议每周导出一次备份，保存到网盘或电脑上。导入会覆盖当前数据，请谨慎操作。
+              💡 建议每周导出一次备份，保存到网盘或电脑上。JSON 文件无大小限制，比云端更可靠。导入会覆盖当前数据，请谨慎操作。
             </div>
           </div>
         </Panel>
@@ -372,7 +382,7 @@ export default function SettingsPage() {
                 云端同步
               </h3>
               <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                开启后，数据会自动备份到云端服务器，支持多设备同步。即使更换手机，也能恢复所有记录。
+                数据会自动备份到云端服务器，支持跨设备同步。云端存储空间有限（500 MB），包含图片的日记会占用较多空间，建议同时使用上方的 JSON 导出作为主力备份。
               </p>
             </div>
 
