@@ -5,6 +5,7 @@
   getSupabaseConfig,
   normalizeMind365Settings,
 } from "@/lib/supabase";
+import { getAuthSupabaseClient } from "@/lib/auth";
 import {
   getLifePathBackupData,
   importLifePathBackupData,
@@ -509,9 +510,60 @@ export function getSettings(): Mind365Settings {
   return normalizeMind365Settings(readSettingsValue());
 }
 
+/**
+ * Try to get the authenticated user's ID from the Supabase auth session.
+ * Returns null if not authenticated or not in a browser context.
+ *
+ * The auth client caches the session in memory; we mirror that cache here
+ * and refresh it in the background so every sync call gets the latest ID.
+ */
+let _cachedAuthUserId: string | null = null;
+
+function getAuthUserId(): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const client = getAuthSupabaseClient();
+    // Kick off a background refresh — the result is used on the *next* call
+    client.auth.getSession().then(({ data: { session } }) => {
+      _cachedAuthUserId = session?.user?.id ?? null;
+    });
+    return _cachedAuthUserId;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Eagerly initialize the auth user ID cache.
+ * Called once at module load in browser contexts so that the first
+ * sync operation already has the correct user ID.
+ */
+if (typeof window !== "undefined") {
+  try {
+    const client = getAuthSupabaseClient();
+    client.auth.getSession().then(({ data: { session } }) => {
+      _cachedAuthUserId = session?.user?.id ?? null;
+    });
+    // Also listen for future auth changes
+    client.auth.onAuthStateChange((_event, session) => {
+      _cachedAuthUserId = session?.user?.id ?? null;
+    });
+  } catch {
+    // Auth module not available yet — will be populated on first getAuthUserId() call
+  }
+}
+
 function getSettingsForSync(): Mind365Settings {
   if (typeof window === "undefined") return getSettings();
-  return ensureSettingsUserId(getSettings());
+  const settings = ensureSettingsUserId(getSettings());
+
+  // Override with auth user ID if available
+  const authUserId = getAuthUserId();
+  if (authUserId) {
+    return { ...settings, supabaseUserId: authUserId };
+  }
+  return settings;
 }
 
 export function saveSettings(settings: Mind365Settings): Mind365Settings {

@@ -3,7 +3,8 @@
 import { motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { desktopNavItems } from "@/components/layout/nav-items";
@@ -11,6 +12,7 @@ import { SmartActionCard } from "@/components/layout/smart-action-card";
 import { OnlineStatus } from "@/components/pwa/online-status";
 import { PWAInstallPrompt } from "@/components/pwa/install-prompt";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 
 interface AppShellProps {
@@ -31,6 +33,40 @@ const PATH_GROUPS: Record<string, string[]> = {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // Login page should render without the shell
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
+
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div
+        className="flex items-center justify-center"
+        style={{
+          height: "100dvh",
+          background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
+        }}
+      >
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-4"
+          style={{
+            borderColor: "var(--m-rule)",
+            borderTopColor: "var(--m-accent)",
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    // Use effect-based redirect to avoid render-time navigation
+    return <AuthRedirect />;
+  }
 
   const isActive = (href: string) => {
     const matchers = PATH_GROUPS[href] ?? [href];
@@ -141,6 +177,32 @@ export function AppShell({ children }: AppShellProps) {
       <OnlineStatus />
       <PWAInstallPrompt />
       <ServiceWorkerRegister />
+    </div>
+  );
+}
+
+/** Small helper to redirect to /login via useEffect (avoids render-time navigation) */
+function AuthRedirect() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/login");
+  }, [router]);
+
+  return (
+    <div
+      className="flex items-center justify-center"
+      style={{
+        height: "100dvh",
+        background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
+      }}
+    >
+      <div
+        className="h-8 w-8 animate-spin rounded-full border-4"
+        style={{
+          borderColor: "var(--m-rule)",
+          borderTopColor: "var(--m-accent)",
+        }}
+      />
     </div>
   );
 }

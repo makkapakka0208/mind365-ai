@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { AuthProvider } from "@/lib/auth";
 
 import "./globals.css";
 
@@ -56,7 +57,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );
