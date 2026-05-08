@@ -64,16 +64,22 @@ export interface SupabaseConfig {
 export function getSupabaseConfig(settings: Mind365Settings): SupabaseConfig | null {
   const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
   const envAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
-  const envUserId = process.env.NEXT_PUBLIC_MIND365_USER_ID?.trim() ?? "";
 
   const url = settings.supabaseUrl || envUrl;
   const anonKey = settings.supabaseAnonKey || envAnonKey;
-  const rawUserId = settings.supabaseUserId || envUserId;
-  const userId = isUuid(rawUserId) ? rawUserId : "";
-  const syncEnabled = settings.enableSupabaseSync;
 
-  if (!syncEnabled || !url || !anonKey || !userId) {
+  // 当环境变量提供了 URL 和 Key 时，自动启用同步（用户无需手动开启）
+  const hasEnvConfig = !!(envUrl && envAnonKey);
+  const syncEnabled = settings.enableSupabaseSync || hasEnvConfig;
+
+  if (!syncEnabled || !url || !anonKey) {
     return null;
+  }
+
+  // userId 优先使用 settings 里的，没有则自动生成并持久化
+  let userId = settings.supabaseUserId;
+  if (!isUuid(userId)) {
+    userId = createDefaultSupabaseUserId();
   }
 
   return { anonKey, url, userId };

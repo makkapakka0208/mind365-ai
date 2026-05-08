@@ -520,14 +520,11 @@ export function saveSettings(settings: Mind365Settings): Mind365Settings {
 }
 
 export function getCloudSyncStatus(): CloudSyncStatus {
-  const settings = getSettings();
+  const settings = getSettingsForSync();
   const config = getSupabaseConfig(settings);
 
-  if (!settings.enableSupabaseSync) {
-    return { configured: false, enabled: false, message: "云同步未启用，当前仍使用本地缓存。", userId: settings.supabaseUserId };
-  }
   if (!config) {
-    return { configured: false, enabled: true, message: "请补全 Supabase URL、Anon Key 和同步用户 ID。", userId: settings.supabaseUserId };
+    return { configured: false, enabled: false, message: "云同步未启用，当前仍使用本地缓存。", userId: settings.supabaseUserId };
   }
   return { configured: true, enabled: true, message: "已连接到 Supabase，所有数据均会自动双向同步。", userId: config.userId };
 }
