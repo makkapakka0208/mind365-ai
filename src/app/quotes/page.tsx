@@ -500,11 +500,15 @@ function QuoteStackModal({
   const currentIdRef = useRef(initialId);
   const [slideDir, setSlideDir] = useState(0);
 
-  // Re-anchor index when filter changes
+  // Re-anchor index when filter changes; fall back to "全部" if empty
   useEffect(() => {
+    if (filteredQuotes.length === 0 && filterTab !== "全部") {
+      setFilterTab("全部");
+      return;
+    }
     const idx = filteredQuotes.findIndex((q) => q.id === currentIdRef.current);
     setCurrentIndex(idx >= 0 ? idx : 0);
-  }, [filteredQuotes]);
+  }, [filteredQuotes, filterTab]);
 
   const currentQuote = filteredQuotes[currentIndex] ?? null;
 
@@ -523,18 +527,54 @@ function QuoteStackModal({
     if (canPrev) { setSlideDir(-1); setCurrentIndex((i) => i - 1); setIsEditing(false); }
   }, [canPrev]);
 
-  // Swipe / drag
-  const dragRef = useRef<{ x: number; y: number; t: number } | null>(null);
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    // Don't capture pointer when user taps an interactive element (button, link, input…)
+  // Swipe / drag — use touch events to avoid blocking native scroll
+  const dragRef = useRef<{ x: number; y: number; t: number; decided: boolean; isHorizontal: boolean } | null>(null);
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
     const target = e.target as HTMLElement;
     if (target.closest("button, a, input, textarea, select, [role='button']")) return;
-    dragRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { x: touch.clientX, y: touch.clientY, t: Date.now(), decided: false, isHorizontal: false };
+  }, []);
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragRef.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    if (!dragRef.current.decided) {
+      const dx = Math.abs(touch.clientX - dragRef.current.x);
+      const dy = Math.abs(touch.clientY - dragRef.current.y);
+      if (dx > 8 || dy > 8) {
+        dragRef.current.decided = true;
+        dragRef.current.isHorizontal = dx > dy;
+      }
+    }
+    // Only prevent default scroll if swiping horizontally
+    if (dragRef.current.decided && dragRef.current.isHorizontal) {
+      e.preventDefault();
+    }
+  }, []);
+  const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!dragRef.current) return;
+    const touch = e.changedTouches[0];
+    if (!touch) { dragRef.current = null; return; }
+    const dx = touch.clientX - dragRef.current.x;
+    const dy = touch.clientY - dragRef.current.y;
+    const dt = Date.now() - dragRef.current.t;
+    const isH = dragRef.current.isHorizontal;
+    dragRef.current = null;
+    if (isH && Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.3 && dt < 450) {
+      if (dx < 0) goNext(); else goPrev();
+    }
+  }, [goNext, goPrev]);
+  // Mouse fallback for desktop
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, select, [role='button']")) return;
+    dragRef.current = { x: e.clientX, y: e.clientY, t: Date.now(), decided: true, isHorizontal: true };
   }, []);
   const onPointerUp = useCallback((e: React.PointerEvent) => {
-    if (!dragRef.current) return;
+    if (!dragRef.current || e.pointerType !== "mouse") return;
     const dx = e.clientX - dragRef.current.x;
     const dy = e.clientY - dragRef.current.y;
     const dt = Date.now() - dragRef.current.t;
@@ -543,7 +583,6 @@ function QuoteStackModal({
       if (dx < 0) goNext(); else goPrev();
     }
   }, [goNext, goPrev]);
-  const onPointerCancel = useCallback(() => { dragRef.current = null; }, []);
 
   // Keyboard
   useEffect(() => {
@@ -562,6 +601,11 @@ function QuoteStackModal({
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
   }, []);
+
+  // Safety: if filteredQuotes is empty (e.g. during filter switch), auto-close modal
+  useEffect(() => {
+    if (filteredQuotes.length === 0 && filterTab === "全部") onClose();
+  }, [filteredQuotes.length, filterTab, onClose]);
 
   if (!currentQuote) return null;
 
@@ -660,10 +704,12 @@ function QuoteStackModal({
         {/* ── Card stack ── */}
         <div
           className="relative flex flex-1 items-center justify-center"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
-          onPointerCancel={onPointerCancel}
-          style={{ userSelect: "none", overflow: "hidden" }}
+          style={{ userSelect: "none", overflow: "hidden", touchAction: "pan-y" }}
         >
           {/* Prev card shadow */}
           {prevQuote && !isEditing && (
