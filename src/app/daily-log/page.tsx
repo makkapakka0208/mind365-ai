@@ -373,42 +373,53 @@ export default function DailyLogPage() {
     setMessage("");
     setAlignment(null);
 
-    const parsedTags = tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+    try {
+      const parsedTags = tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
 
-    const baseFields = {
-      date: viewingDate,
-      mood,
-      thoughts: thoughts.trim(),
-      reading: existingLog?.reading ?? "",
-      studyHours: existingLog?.studyHours ?? 0,
-      tags: parsedTags,
-      images,
-    };
-
-    let result;
-    if (existingLog) {
-      result = await updateDailyLog({ ...existingLog, ...baseFields });
-    } else {
-      const entry: DailyLog = {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        ...baseFields,
+      const baseFields = {
+        date: viewingDate,
+        mood,
+        thoughts: thoughts.trim(),
+        reading: existingLog?.reading ?? "",
+        studyHours: existingLog?.studyHours ?? 0,
+        tags: parsedTags,
+        images,
       };
-      result = await saveDailyLog(entry);
-    }
 
-    if (thoughts.trim()) {
-      const rules = detectActionsByRules(thoughts.trim());
-      const fused = fuseActions(rules, []);
-      setAlignment(calculateAlignmentScoreWeighted(fused));
-    }
+      let result;
+      if (existingLog) {
+        result = await updateDailyLog({ ...existingLog, ...baseFields });
+      } else {
+        const entry: DailyLog = {
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          ...baseFields,
+        };
+        result = await saveDailyLog(entry);
+      }
 
-    setMessage(result.synced ? "已保存，并同步到云端。" : "已保存到本地缓存，云端同步稍后重试。");
-    setIsSaving(false);
-    if (!isToday) setEditMode(false);
+      // 对齐分计算单独 try：失败不阻塞保存流程
+      try {
+        if (thoughts.trim()) {
+          const rules = detectActionsByRules(thoughts.trim());
+          const fused = fuseActions(rules, []);
+          setAlignment(calculateAlignmentScoreWeighted(fused));
+        }
+      } catch {
+        /* 对齐分计算失败时静默 */
+      }
+
+      setMessage(result.synced ? "已保存，并同步到云端。" : "已保存到本地缓存，云端同步稍后重试。");
+      if (!isToday) setEditMode(false);
+    } catch (err) {
+      // 任何异常都给用户反馈，不能让按钮一直转圈
+      setMessage(`保存失败：${err instanceof Error ? err.message : "未知错误"}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const pageTitle = isFuture

@@ -292,8 +292,16 @@ function readDailyLogs(): DailyLog[] {
 
 function writeCollection<T>(key: StorageKey, data: T[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(data));
-  dispatchStorageChange();
+  try {
+    window.localStorage.setItem(key, JSON.stringify(data));
+    dispatchStorageChange();
+  } catch (err) {
+    // localStorage 容量超限（手机端通常 5-10MB）：抛出友好错误供调用方处理
+    if (err instanceof DOMException && (err.name === "QuotaExceededError" || err.code === 22)) {
+      throw new Error("本地存储空间已满，请删除一些旧记录或减小图片大小后重试。");
+    }
+    throw err;
+  }
 }
 
 function readSettingsValue(): unknown {
