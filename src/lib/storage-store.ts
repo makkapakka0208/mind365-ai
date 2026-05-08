@@ -12,6 +12,7 @@ import {
   refreshNotes,
   refreshQuotes,
   refreshReviewReports,
+  refreshTimeEntries,
   STORAGE_CHANGE_EVENT,
   STORAGE_KEYS,
 } from "@/lib/storage";
@@ -29,6 +30,7 @@ let hasRequestedInitialDailySync = false;
 let hasRequestedInitialQuotesSync = false;
 let hasRequestedInitialNotesSync = false;
 let hasRequestedInitialReviewSync = false;
+let hasRequestedInitialTimeEntriesSync = false;
 
 let dailyLogsRawCache: string | null | undefined;
 let quotesRawCache: string | null | undefined;
@@ -139,7 +141,13 @@ export function useReviewReportsStore(): ReviewReport[] {
 }
 
 export function useTimeEntriesStore(): TimeEntry[] {
-  return useSyncExternalStore(subscribe, getTimeEntriesSnapshot, () => EMPTY_TIME_ENTRIES);
+  const snapshot = useSyncExternalStore(subscribe, getTimeEntriesSnapshot, () => EMPTY_TIME_ENTRIES);
+  useEffect(() => {
+    if (hasRequestedInitialTimeEntriesSync) return;
+    hasRequestedInitialTimeEntriesSync = true;
+    void refreshTimeEntries();
+  }, []);
+  return snapshot;
 }
 
 /**
