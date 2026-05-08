@@ -85,7 +85,25 @@ export function getSupabaseConfig(settings: Mind365Settings): SupabaseConfig | n
   return { anonKey, url, userId };
 }
 
+/**
+ * Returns the auth-aware Supabase client if available (imported lazily to
+ * avoid circular deps at module-eval time), falling back to the legacy
+ * anon client when no auth module is loaded yet.
+ */
 export function createMind365SupabaseClient(settings: Mind365Settings): SupabaseClient | null {
+  // Try the auth-aware singleton first
+  try {
+    // Dynamic require so this file can still be imported from server contexts
+    // where auth.tsx (a "use client" module) isn't available.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getAuthSupabaseClient } = require("@/lib/auth") as {
+      getAuthSupabaseClient: () => SupabaseClient;
+    };
+    return getAuthSupabaseClient();
+  } catch {
+    // auth module not available — fall through to legacy client
+  }
+
   const config = getSupabaseConfig(settings);
 
   if (!config) {
