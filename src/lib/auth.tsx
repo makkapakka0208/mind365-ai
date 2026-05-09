@@ -14,13 +14,15 @@ import { createClient, type SupabaseClient, type User } from "@supabase/supabase
 
 let authClient: SupabaseClient | null = null;
 
-function getOrCreateAuthClient(): SupabaseClient | null {
+function getOrCreateAuthClient(): SupabaseClient {
   if (authClient) return authClient;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
 
-  if (!url || !anonKey) return null;
+  if (!url || !anonKey) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  }
 
   authClient = createClient(url, anonKey, {
     auth: {
@@ -36,7 +38,7 @@ function getOrCreateAuthClient(): SupabaseClient | null {
  * Returns the auth-aware Supabase client singleton.
  * Can be called from non-React contexts (e.g. storage.ts).
  */
-export function getAuthSupabaseClient(): SupabaseClient | null {
+export function getAuthSupabaseClient(): SupabaseClient {
   return getOrCreateAuthClient();
 }
 
@@ -45,9 +47,8 @@ export function getAuthSupabaseClient(): SupabaseClient | null {
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  configError: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -56,22 +57,17 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [configError, setConfigError] = useState(false);
 
   useEffect(() => {
     const client = getOrCreateAuthClient();
 
-    if (!client) {
-      setConfigError(true);
-      setLoading(false);
-      return;
-    }
-
+    // Get initial session
     client.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
+    // Listen for auth changes
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((_event, session) => {
@@ -86,27 +82,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const client = getOrCreateAuthClient();
-    if (!client) return { error: "服务配置错误，请联系管理员" };
     const { error } = await client.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
     const client = getOrCreateAuthClient();
-    if (!client) return { error: "服务配置错误，请联系管理员", needsEmailConfirmation: false };
-    const { data, error } = await client.auth.signUp({ email, password });
-    const needsEmailConfirmation = !error && data.user != null && data.session == null;
-    return { error: error?.message ?? null, needsEmailConfirmation };
+    const { error } = await client.auth.signUp({ email, password });
+    return { error: error?.message ?? null };
   }, []);
 
   const signOut = useCallback(async () => {
     const client = getOrCreateAuthClient();
-    if (!client) return;
     await client.auth.signOut();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, configError, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

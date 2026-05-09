@@ -1,4 +1,4 @@
-﻿import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import type { Mind365Settings } from "@/types";
 
@@ -97,10 +97,9 @@ export function createMind365SupabaseClient(settings: Mind365Settings): Supabase
     // where auth.tsx (a "use client" module) isn't available.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { getAuthSupabaseClient } = require("@/lib/auth") as {
-      getAuthSupabaseClient: () => SupabaseClient | null;
+      getAuthSupabaseClient: () => SupabaseClient;
     };
-    const authClient = getAuthSupabaseClient();
-    if (authClient) return authClient;
+    return getAuthSupabaseClient();
   } catch {
     // auth module not available — fall through to legacy client
   }
