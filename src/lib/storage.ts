@@ -547,7 +547,16 @@ if (typeof window !== "undefined") {
     });
     // Also listen for future auth changes
     client.auth.onAuthStateChange((_event, session) => {
+      const previousId = _cachedAuthUserId;
       _cachedAuthUserId = session?.user?.id ?? null;
+      // Pull cloud data when a new user signs in
+      if (_cachedAuthUserId && _cachedAuthUserId !== previousId) {
+        void refreshDailyLogs({ force: true });
+        void refreshQuotes();
+        void refreshNotes();
+        void refreshReviewReports();
+        void refreshTimeEntries();
+      }
     });
   } catch {
     // Auth module not available yet — will be populated on first getAuthUserId() call
