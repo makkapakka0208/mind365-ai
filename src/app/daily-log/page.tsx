@@ -20,6 +20,7 @@ import { sortLogsByDate } from "@/lib/analytics";
 import { formatDate, getTodayISODate } from "@/lib/date";
 import { calculateAlignmentScoreWeighted, fuseActions } from "@/lib/life-path";
 import { detectActionsByRules } from "@/lib/life-path-rules";
+import { loadGoals } from "@/lib/life-path-storage";
 import { deleteDailyLog, saveDailyLog, updateDailyLog } from "@/lib/storage";
 import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
@@ -32,11 +33,17 @@ function AlignmentCard({
   positiveDelta,
   negativeDelta,
   contributions,
+  insight,
+  isLoading,
+  hasGoals,
 }: {
   score: number;
   positiveDelta: number;
   negativeDelta: number;
   contributions: FusedAction[];
+  insight?: string;
+  isLoading?: boolean;
+  hasGoals?: boolean;
 }) {
   const color = score >= 60 ? "#4A9B6F" : score >= 40 ? "#D4A42A" : "#C0392B";
   const r = 28;
@@ -48,33 +55,48 @@ function AlignmentCard({
       className="flex flex-wrap items-center gap-4 rounded-xl p-4"
       style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
     >
-      <svg height={68} viewBox="0 0 68 68" width={68} className="shrink-0">
-        <circle cx="34" cy="34" fill="none" r={r} stroke="var(--m-rule)" strokeWidth="7" />
-        <circle
-          cx="34" cy="34" fill="none" r={r}
-          stroke={color}
-          strokeDasharray={`${fill} ${circ}`}
-          strokeLinecap="round"
-          strokeWidth="7"
-          style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
-        />
-        <text dominantBaseline="middle" fill={color} fontFamily="inherit" fontSize="13" fontWeight="700" textAnchor="middle" x="34" y="34">
-          {score}
-        </text>
-      </svg>
+      {isLoading ? (
+        <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center">
+          <div
+            className="h-8 w-8 animate-spin rounded-full border-4"
+            style={{ borderColor: "var(--m-rule)", borderTopColor: "var(--m-accent)" }}
+          />
+        </div>
+      ) : (
+        <svg height={68} viewBox="0 0 68 68" width={68} className="shrink-0">
+          <circle cx="34" cy="34" fill="none" r={r} stroke="var(--m-rule)" strokeWidth="7" />
+          <circle
+            cx="34" cy="34" fill="none" r={r}
+            stroke={color}
+            strokeDasharray={`${fill} ${circ}`}
+            strokeLinecap="round"
+            strokeWidth="7"
+            style={{ transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+          />
+          <text dominantBaseline="middle" fill={color} fontFamily="inherit" fontSize="13" fontWeight="700" textAnchor="middle" x="34" y="34">
+            {score}
+          </text>
+        </svg>
+      )}
 
       <div className="flex-1 space-y-2">
         <div className="flex items-center gap-3 text-xs" style={{ color: "var(--m-ink3)" }}>
           <span>今日对齐分</span>
-          <span style={{ color: "#4A9B6F" }}>
-            <TrendingUp className="mr-0.5 inline" size={11} />+{positiveDelta.toFixed(0)}
-          </span>
-          <span style={{ color: "#C0392B" }}>
-            <TrendingDown className="mr-0.5 inline" size={11} />−{negativeDelta.toFixed(0)}
-          </span>
+          {!isLoading && (
+            <>
+              <span style={{ color: "#4A9B6F" }}>
+                <TrendingUp className="mr-0.5 inline" size={11} />+{positiveDelta.toFixed(0)}
+              </span>
+              <span style={{ color: "#C0392B" }}>
+                <TrendingDown className="mr-0.5 inline" size={11} />−{negativeDelta.toFixed(0)}
+              </span>
+            </>
+          )}
         </div>
 
-        {contributions.length > 0 ? (
+        {isLoading ? (
+          <p className="text-xs" style={{ color: "var(--m-ink3)" }}>AI 分析中…</p>
+        ) : contributions.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {contributions.map((a) => (
               <span
@@ -91,8 +113,14 @@ function AlignmentCard({
           </div>
         ) : (
           <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
-            未检测到已知行为，在「人生主线」中配置人生方向后分数会更准确。
+            {hasGoals === false
+              ? <>请先在 <Link href="/life-path" style={{ color: "var(--m-accent)" }}>人生主线</Link> 中添加目标，对齐分将更准确。</>
+              : "未检测到与目标相关的行为。"}
           </p>
+        )}
+
+        {insight && !isLoading && (
+          <p className="text-[11px] leading-5 italic" style={{ color: "var(--m-ink3)" }}>{insight}</p>
         )}
       </div>
     </div>
@@ -317,11 +345,13 @@ export default function DailyLogPage() {
   const [images, setImages] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [alignment, setAlignment] = useState<{
     score: number;
     positiveDelta: number;
     negativeDelta: number;
     contributions: FusedAction[];
+    insight?: string;
   } | null>(null);
 
   const allLogs = useDailyLogsStore();
@@ -351,6 +381,7 @@ export default function DailyLogPage() {
   useEffect(() => {
     setMessage("");
     setAlignment(null);
+    setIsAnalyzing(false);
     if (existingLog) {
       setMood(existingLog.mood);
       setThoughts(existingLog.thoughts);
@@ -404,9 +435,33 @@ export default function DailyLogPage() {
       // 对齐分计算单独 try：失败不阻塞保存流程
       try {
         if (thoughts.trim()) {
-          const rules = detectActionsByRules(thoughts.trim());
-          const fused = fuseActions(rules, []);
-          setAlignment(calculateAlignmentScoreWeighted(fused));
+          const goals = loadGoals();
+          if (goals.length > 0) {
+            setIsAnalyzing(true);
+            setAlignment(null);
+            fetch("/api/alignment-analysis", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ thoughts: thoughts.trim(), goals }),
+            })
+              .then((r) => r.json() as Promise<{ available?: boolean; data?: { score?: number; positiveActions?: string[]; negativeActions?: string[]; insight?: string } | null }>)
+              .then((resp) => {
+                if (resp.available && resp.data) {
+                  const { score = 50, positiveActions = [], negativeActions = [], insight } = resp.data;
+                  const contributions: FusedAction[] = [
+                    ...positiveActions.map((t) => ({ type: t, category: "positive" as const, source: "ai" as const, weight: 1 })),
+                    ...negativeActions.map((t) => ({ type: t, category: "negative" as const, source: "ai" as const, weight: 1 })),
+                  ];
+                  setAlignment({ score, positiveDelta: positiveActions.length * 10, negativeDelta: negativeActions.length * 10, contributions, insight });
+                }
+              })
+              .catch(() => { /* 静默 */ })
+              .finally(() => setIsAnalyzing(false));
+          } else {
+            const rules = detectActionsByRules(thoughts.trim());
+            const fused = fuseActions(rules, []);
+            setAlignment(calculateAlignmentScoreWeighted(fused));
+          }
         }
       } catch {
         /* 对齐分计算失败时静默 */
@@ -637,12 +692,15 @@ export default function DailyLogPage() {
                   ) : null}
                 </div>
 
-                {alignment && (
+                {(alignment || isAnalyzing) && (
                   <AlignmentCard
-                    contributions={alignment.contributions}
-                    negativeDelta={alignment.negativeDelta}
-                    positiveDelta={alignment.positiveDelta}
-                    score={alignment.score}
+                    contributions={alignment?.contributions ?? []}
+                    negativeDelta={alignment?.negativeDelta ?? 0}
+                    positiveDelta={alignment?.positiveDelta ?? 0}
+                    score={alignment?.score ?? 50}
+                    insight={alignment?.insight}
+                    isLoading={isAnalyzing}
+                    hasGoals={loadGoals().length > 0}
                   />
                 )}
               </form>
