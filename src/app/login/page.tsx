@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Panel } from "@/components/ui/panel";
 
 export default function LoginPage() {
-  const { signIn, signUp, user, loading } = useAuth();
+  const { signIn, signUp, user, loading, configError } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -86,6 +86,28 @@ export default function LoginPage() {
             borderTopColor: "var(--m-accent)",
           }}
         />
+      </div>
+    );
+  }
+
+  if (configError) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center px-4"
+        style={{
+          background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
+          color: "var(--m-ink)",
+          fontFamily: "'Noto Serif SC', serif",
+        }}
+      >
+        <Panel className="w-full max-w-sm p-8 text-center">
+          <p className="text-sm font-medium" style={{ color: "#c0392b" }}>
+            服务配置错误
+          </p>
+          <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--m-ink2)" }}>
+            NEXT_PUBLIC_SUPABASE_URL 或 NEXT_PUBLIC_SUPABASE_ANON_KEY 未正确配置，请检查 Vercel 环境变量后重新部署。
+          </p>
+        </Panel>
       </div>
     );
   }
