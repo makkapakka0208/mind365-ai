@@ -524,6 +524,7 @@ function getAuthUserId(): string | null {
 
   try {
     const client = getAuthSupabaseClient();
+    if (!client) return _cachedAuthUserId;
     // Kick off a background refresh — the result is used on the *next* call
     client.auth.getSession().then(({ data: { session } }) => {
       _cachedAuthUserId = session?.user?.id ?? null;
@@ -542,13 +543,15 @@ function getAuthUserId(): string | null {
 if (typeof window !== "undefined") {
   try {
     const client = getAuthSupabaseClient();
-    client.auth.getSession().then(({ data: { session } }) => {
-      _cachedAuthUserId = session?.user?.id ?? null;
-    });
-    // Also listen for future auth changes
-    client.auth.onAuthStateChange((_event, session) => {
-      _cachedAuthUserId = session?.user?.id ?? null;
-    });
+    if (client) {
+      client.auth.getSession().then(({ data: { session } }) => {
+        _cachedAuthUserId = session?.user?.id ?? null;
+      });
+      // Also listen for future auth changes
+      client.auth.onAuthStateChange((_event, session) => {
+        _cachedAuthUserId = session?.user?.id ?? null;
+      });
+    }
   } catch {
     // Auth module not available yet — will be populated on first getAuthUserId() call
   }
