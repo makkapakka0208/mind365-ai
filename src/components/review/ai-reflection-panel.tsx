@@ -447,6 +447,29 @@ export function AiReflectionPanel({
     }
   };
 
+  const onRegenerate = async () => {
+    if (isGenerating || logs.length === 0) return;
+    setIsGenerating(true);
+    setMessage("");
+    try {
+      const data = await requestAiReflection(period, logs, range, summary);
+      if (!data.reflection) {
+        setReflection("");
+        setHasSavedReflection(false);
+        setMessage(data.message ?? emptyMessage);
+        return;
+      }
+      const savedKey = saveReview(period, data.reflection);
+      setReflection(data.reflection);
+      setHasSavedReflection(true);
+      setMessage(`复盘已重新生成（${savedKey}）。`);
+    } catch {
+      setMessage("AI 复盘生成失败，请稍后再试。");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Archive AI reflection into ReviewReport history
   const onArchive = async () => {
     if (!reflection || isArchiving) return;
@@ -530,12 +553,13 @@ export function AiReflectionPanel({
                 </h2>
               </div>
               <button
-                className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
-                onClick={onGenerate}
+                className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80 disabled:opacity-40"
+                disabled={isGenerating}
+                onClick={onRegenerate}
                 type="button"
                 style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
               >
-                重新加载
+                {isGenerating ? "生成中…" : "重新加载"}
               </button>
             </div>
 
