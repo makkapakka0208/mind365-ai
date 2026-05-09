@@ -8,6 +8,7 @@ import {
   Flame,
   NotebookPen,
   Sparkles,
+  Target,
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
@@ -731,14 +732,14 @@ export default function HomePage() {
                 </Link>
                 <Link
                   className="flex h-12 w-12 items-center justify-center rounded-[16px]"
-                  href="/library"
+                  href="/life-path"
                   style={{
                     background: "rgba(255,248,238,0.9)",
                     border: "1px solid rgba(139,94,60,0.12)",
                     boxShadow: "var(--m-shadow-out)",
                   }}
                 >
-                  <BookOpen size={18} style={{ color: "var(--m-accent)" }} />
+                  <Target size={18} style={{ color: "var(--m-accent)" }} />
                 </Link>
                 <Link
                   className="flex h-12 w-12 items-center justify-center rounded-[16px]"
