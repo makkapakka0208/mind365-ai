@@ -48,7 +48,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -88,8 +88,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(async (email: string, password: string) => {
     const client = getOrCreateAuthClient();
-    const { error } = await client.auth.signUp({ email, password });
-    return { error: error?.message ?? null };
+    const { data, error } = await client.auth.signUp({ email, password });
+    // needsEmailConfirmation: signed up but session not created yet (email confirmation pending)
+    const needsEmailConfirmation = !error && data.user != null && data.session == null;
+    return { error: error?.message ?? null, needsEmailConfirmation };
   }, []);
 
   const signOut = useCallback(async () => {
