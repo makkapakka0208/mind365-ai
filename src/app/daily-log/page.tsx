@@ -21,6 +21,7 @@ import { formatDate, getTodayISODate } from "@/lib/date";
 import { calculateAlignmentScoreWeighted, fuseActions } from "@/lib/life-path";
 import { detectActionsByRules } from "@/lib/life-path-rules";
 import { loadGoals } from "@/lib/life-path-storage";
+import { isAllowed, incrementUsage } from "@/lib/rate-limit";
 import { deleteDailyLog, saveDailyLog, updateDailyLog } from "@/lib/storage";
 import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
@@ -437,8 +438,16 @@ export default function DailyLogPage() {
         if (thoughts.trim()) {
           const goals = loadGoals();
           if (goals.length > 0) {
+            const todayStr = getTodayISODate();
+            if (!isAllowed("alignment", todayStr, 1)) {
+              // Already analyzed today — show rules-based fallback silently
+              const rules = detectActionsByRules(thoughts.trim());
+              const fused = fuseActions(rules, []);
+              setAlignment(calculateAlignmentScoreWeighted(fused));
+            } else {
             setIsAnalyzing(true);
             setAlignment(null);
+            incrementUsage("alignment", todayStr);
             fetch("/api/alignment-analysis", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -457,6 +466,7 @@ export default function DailyLogPage() {
               })
               .catch(() => { /* 静默 */ })
               .finally(() => setIsAnalyzing(false));
+            } // end else (allowed)
           } else {
             const rules = detectActionsByRules(thoughts.trim());
             const fused = fuseActions(rules, []);

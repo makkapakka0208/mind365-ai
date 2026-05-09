@@ -36,6 +36,7 @@ import {
   todayKey,
   upsertWeekTask,
 } from "@/lib/life-path-storage";
+import { getRemainingCount, incrementUsage, isAllowed } from "@/lib/rate-limit";
 import type { MentorPlan, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
 
 // ── Small id helper ──────────────────────────────────────────────────────────
@@ -359,6 +360,7 @@ function GoalTaskGroup({
   tasks,
   readonly,
   generating,
+  canGenerate,
   onGenerate,
   onAddTask,
   onToggleTask,
@@ -369,6 +371,7 @@ function GoalTaskGroup({
   tasks: WeekTask[];
   readonly: boolean;
   generating: boolean;
+  canGenerate?: boolean;
   onGenerate?: () => void;
   onAddTask: (text: string) => void;
   onToggleTask: (id: string) => void;
@@ -430,7 +433,7 @@ function GoalTaskGroup({
         {goal && onGenerate && !readonly && (
           <button
             className="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
-            disabled={generating}
+            disabled={generating || canGenerate === false}
             onClick={onGenerate}
             type="button"
             style={{
@@ -551,6 +554,8 @@ export default function WeekPlanPage() {
 
   const thisWeek = currentWeekKey();
   const readonly = weekKey !== thisWeek;
+  const PLAN_LIMIT = 3;
+  const planRemaining = weekKey ? getRemainingCount("week_plan", weekKey, PLAN_LIMIT) : PLAN_LIMIT;
 
   const tasksByGoal = useMemo(() => {
     const map: Record<string, WeekTask[]> = {};
@@ -627,8 +632,14 @@ export default function WeekPlanPage() {
     const goal = goals.find((g) => g.id === goalId);
     if (!goal || !plan) return;
 
+    if (!isAllowed("week_plan", thisWeek, PLAN_LIMIT)) {
+      setError(`本周 AI 生成次数已用完（上限 ${PLAN_LIMIT} 次）。`);
+      return;
+    }
+
     setGenerating(goalId);
     setError("");
+    incrementUsage("week_plan", thisWeek);
 
     try {
       const res = await generateWeeklyForGoal(goal);
@@ -678,8 +689,15 @@ export default function WeekPlanPage() {
 
   const generateForAll = async () => {
     if (goals.length === 0) return;
+
+    if (!isAllowed("week_plan", thisWeek, PLAN_LIMIT)) {
+      setError(`本周 AI 生成次数已用完（上限 ${PLAN_LIMIT} 次）。`);
+      return;
+    }
+
     setGenerating("all");
     setError("");
+    incrementUsage("week_plan", thisWeek);
 
     try {
       const results = await Promise.all(
@@ -870,8 +888,9 @@ export default function WeekPlanPage() {
                   </p>
                 </div>
                 {goals.length > 0 ? (
+                  <div className="flex flex-col items-center gap-1.5">
                   <Button
-                    disabled={generating !== null}
+                    disabled={generating !== null || planRemaining === 0}
                     onClick={() => void generateForAll()}
                     variant="primary"
                   >
@@ -887,6 +906,8 @@ export default function WeekPlanPage() {
                       </span>
                     )}
                   </Button>
+                  <span className="text-xs" style={{ color: "var(--m-ink3)" }}>本周剩余 {planRemaining}/{PLAN_LIMIT} 次</span>
+                  </div>
                 ) : (
                   <Link
                     className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
@@ -908,6 +929,7 @@ export default function WeekPlanPage() {
                   if (readonly && list.length === 0) return null;
                   return (
                     <GoalTaskGroup
+                      canGenerate={planRemaining > 0}
                       generating={generating === g.id}
                       goal={g}
                       key={g.id}
@@ -938,9 +960,9 @@ export default function WeekPlanPage() {
 
                 {/* Bottom action: regenerate all */}
                 {!readonly && goals.length > 0 && (
-                  <div className="flex justify-center pt-2">
+                  <div className="flex flex-col items-center gap-1 pt-2">
                     <Button
-                      disabled={generating !== null}
+                      disabled={generating !== null || planRemaining === 0}
                       onClick={() => void generateForAll()}
                       variant="ghost"
                     >
@@ -956,6 +978,7 @@ export default function WeekPlanPage() {
                         </span>
                       )}
                     </Button>
+                    <span className="text-xs" style={{ color: "var(--m-ink3)" }}>本周剩余 {planRemaining}/{PLAN_LIMIT} 次</span>
                   </div>
                 )}
               </div>

@@ -29,6 +29,7 @@ import {
   type ReviewPeriod,
   type ReviewSummary,
 } from "@/lib/review-reflection";
+import { getRemainingCount, incrementUsage, isAllowed } from "@/lib/rate-limit";
 import { saveReviewReport } from "@/lib/storage";
 import type { DailyLog, ReviewReport } from "@/types";
 
@@ -400,6 +401,9 @@ export function AiReflectionPanel({
   const [archived, setArchived] = useState(false);
 
   const reviewKey = getCurrentReviewKey(period);
+  const reviewFeature = period === "week" ? "review_week" : period === "month" ? "review_month" : "review_year";
+  const reviewLimit = period === "year" ? 3 : 3;
+  const remaining = getRemainingCount(reviewFeature, reviewKey, reviewLimit);
 
   useEffect(() => {
     const savedReview = getSavedReview(period);
@@ -425,6 +429,12 @@ export function AiReflectionPanel({
       return;
     }
 
+    if (!isAllowed(reviewFeature, reviewKey, reviewLimit)) {
+      const periodLabel = period === "week" ? "本周" : period === "month" ? "本月" : "本年";
+      setMessage(`${periodLabel}生成次数已用完（上限 ${reviewLimit} 次）。`);
+      return;
+    }
+
     setIsGenerating(true);
     setMessage("");
 
@@ -436,6 +446,7 @@ export function AiReflectionPanel({
         setMessage(data.message ?? emptyMessage);
         return;
       }
+      incrementUsage(reviewFeature, reviewKey);
       const savedKey = saveReview(period, data.reflection);
       setReflection(data.reflection);
       setHasSavedReflection(true);
@@ -449,6 +460,13 @@ export function AiReflectionPanel({
 
   const onRegenerate = async () => {
     if (isGenerating || logs.length === 0) return;
+
+    if (!isAllowed(reviewFeature, reviewKey, reviewLimit)) {
+      const periodLabel = period === "week" ? "本周" : period === "month" ? "本月" : "本年";
+      setMessage(`${periodLabel}生成次数已用完（上限 ${reviewLimit} 次）。`);
+      return;
+    }
+
     setIsGenerating(true);
     setMessage("");
     try {
@@ -459,6 +477,7 @@ export function AiReflectionPanel({
         setMessage(data.message ?? emptyMessage);
         return;
       }
+      incrementUsage(reviewFeature, reviewKey);
       const savedKey = saveReview(period, data.reflection);
       setReflection(data.reflection);
       setHasSavedReflection(true);
@@ -508,7 +527,7 @@ export function AiReflectionPanel({
                 穿透数据表象，生成一份结构化的成长复盘报告。
               </p>
             </div>
-            <Button className="justify-center sm:min-w-44" onClick={onGenerate} size="lg" variant="primary">
+            <Button className="justify-center sm:min-w-44" disabled={remaining === 0 && !hasSavedReflection} onClick={onGenerate} size="lg" variant="primary">
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 animate-spin" size={16} />
@@ -522,7 +541,16 @@ export function AiReflectionPanel({
               )}
             </Button>
           </div>
-          {message && <p className="mt-3 text-sm" style={{ color: "var(--m-ink2)" }}>{message}</p>}
+          <div className="mt-3 flex items-center justify-between">
+            {message ? (
+              <p className="text-sm" style={{ color: "var(--m-ink2)" }}>{message}</p>
+            ) : (
+              <span />
+            )}
+            <span className="shrink-0 text-xs" style={{ color: "var(--m-ink3)" }}>
+              剩余 {remaining}/{reviewLimit} 次
+            </span>
+          </div>
         </Panel>
       )}
 
@@ -552,15 +580,20 @@ export function AiReflectionPanel({
                   {title}
                 </h2>
               </div>
-              <button
-                className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80 disabled:opacity-40"
-                disabled={isGenerating}
-                onClick={onRegenerate}
-                type="button"
-                style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
-              >
-                {isGenerating ? "生成中…" : "重新加载"}
-              </button>
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <button
+                  className="rounded-xl px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80 disabled:opacity-40"
+                  disabled={isGenerating || remaining === 0}
+                  onClick={onRegenerate}
+                  type="button"
+                  style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                >
+                  {isGenerating ? "生成中…" : "重新加载"}
+                </button>
+                <span className="text-[10px]" style={{ color: "var(--m-ink3)" }}>
+                  剩余 {remaining}/{reviewLimit} 次
+                </span>
+              </div>
             </div>
 
             {keyInsight && (
