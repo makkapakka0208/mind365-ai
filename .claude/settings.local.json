@@ -10,7 +10,9 @@
       "Bash(findstr \"LISTENING\")",
       "Bash(findstr \":3000\\\\|:3001\\\\|:3002\\\\|:3003\")",
       "Bash(xargs grep *)",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "mcp__74e4d5d2-4d20-4658-bdfe-9b660efa734c__list_projects",
+      "mcp__74e4d5d2-4d20-4658-bdfe-9b660efa734c__execute_sql"
     ]
   }
 }
