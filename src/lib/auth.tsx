@@ -80,6 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (user && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("mind365:user-changed", { detail: { userId: user.id } }),
+      );
+    }
+  }, [user?.id]);
+
   const signIn = useCallback(async (email: string, password: string) => {
     const client = getOrCreateAuthClient();
     const { error } = await client.auth.signInWithPassword({ email, password });

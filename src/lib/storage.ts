@@ -518,6 +518,7 @@ export function getSettings(): Mind365Settings {
  * and refresh it in the background so every sync call gets the latest ID.
  */
 let _cachedAuthUserId: string | null = null;
+let _lastSyncedUserId: string | null = null;
 
 function getAuthUserId(): string | null {
   if (typeof window === "undefined") return null;
@@ -545,22 +546,27 @@ if (typeof window !== "undefined") {
     client.auth.getSession().then(({ data: { session } }) => {
       _cachedAuthUserId = session?.user?.id ?? null;
     });
-    // Also listen for future auth changes
     client.auth.onAuthStateChange((_event, session) => {
-      const previousId = _cachedAuthUserId;
       _cachedAuthUserId = session?.user?.id ?? null;
-      // Pull cloud data when a new user signs in
-      if (_cachedAuthUserId && _cachedAuthUserId !== previousId) {
-        void refreshDailyLogs({ force: true });
-        void refreshQuotes();
-        void refreshNotes();
-        void refreshReviewReports();
-        void refreshTimeEntries();
-      }
     });
   } catch {
     // Auth module not available yet — will be populated on first getAuthUserId() call
   }
+
+  // React's AuthProvider dispatches this event after user state is confirmed,
+  // giving us a reliable signal to pull cloud data for the authenticated user.
+  window.addEventListener("mind365:user-changed", ((event: Event) => {
+    const userId = (event as CustomEvent<{ userId: string }>).detail.userId;
+    _cachedAuthUserId = userId;
+    if (userId && userId !== _lastSyncedUserId) {
+      _lastSyncedUserId = userId;
+      void refreshDailyLogs({ force: true });
+      void refreshQuotes();
+      void refreshNotes();
+      void refreshReviewReports();
+      void refreshTimeEntries();
+    }
+  }) as EventListener);
 }
 
 function getSettingsForSync(): Mind365Settings {
