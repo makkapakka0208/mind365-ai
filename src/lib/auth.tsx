@@ -45,6 +45,8 @@ export function getAuthSupabaseClient(): SupabaseClient {
 // ── React Auth Context ─────────────────────────────────────────────────────
 
 interface AuthContextValue {
+  authConfigured: boolean;
+  localMode: boolean;
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -54,11 +56,24 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function hasSupabaseAuthConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
+  return Boolean(url && anonKey);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const authConfigured = hasSupabaseAuthConfig();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authConfigured) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     const client = getOrCreateAuthClient();
 
     // Get initial session
@@ -78,27 +93,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [authConfigured]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (!authConfigured) {
+      return { error: "当前未配置 Supabase 登录，已使用本地模式。" };
+    }
     const client = getOrCreateAuthClient();
     const { error } = await client.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
-  }, []);
+  }, [authConfigured]);
 
   const signUp = useCallback(async (email: string, password: string) => {
+    if (!authConfigured) {
+      return { error: "当前未配置 Supabase 登录，已使用本地模式。" };
+    }
     const client = getOrCreateAuthClient();
     const { error } = await client.auth.signUp({ email, password });
     return { error: error?.message ?? null };
-  }, []);
+  }, [authConfigured]);
 
   const signOut = useCallback(async () => {
+    if (!authConfigured) return;
     const client = getOrCreateAuthClient();
     await client.auth.signOut();
-  }, []);
+  }, [authConfigured]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{
+        authConfigured,
+        localMode: !authConfigured,
+        user,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

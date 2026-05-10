@@ -6,6 +6,7 @@ import {
   Brain,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
   FolderOpen,
   Lightbulb,
   PencilLine,
@@ -1253,6 +1254,10 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
 
   const quotes = useQuotesStore();
   const dailyQuote = getDailyQuote(quotes);
+  const tagList = useMemo(
+    () => tags.split(/[,\s，、]+/).map((t) => t.trim().replace(/^#/, "")).filter(Boolean),
+    [tags],
+  );
 
   useEffect(() => { void refreshQuotes(); }, []);
 
@@ -1272,7 +1277,7 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
       author: author.trim(),
       book: book.trim(),
       readingHours: 0,
-      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+      tags: tagList,
     };
     await saveQuote(quote);
     setText(""); setAuthor(""); setBook(""); setTags("");
@@ -1508,6 +1513,293 @@ function NotesSection() {
 }
 
 // ── Page ───────────────────────────────────────────────────────
+function ReadingNotebookSection() {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [tags, setTags] = useState("");
+  const [message, setMessage] = useState("");
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+
+  const notes = useNotesStore();
+
+  useEffect(() => {
+    void refreshNotes();
+  }, []);
+
+  const sortedNotes = useMemo(() => [...notes].reverse(), [notes]);
+  const tagList = useMemo(
+    () => tags.split(/[,\s，、]+/).map((t) => t.trim().replace(/^#/, "")).filter(Boolean),
+    [tags],
+  );
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((cur) => cur.includes(id) ? cur.filter((i) => i !== id) : [...cur, id]);
+  };
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const note: Note = {
+      id: crypto.randomUUID(),
+      title: title.trim(),
+      content: content.trim(),
+      tags: tagList,
+    };
+    saveNote(note);
+    setTitle("");
+    setContent("");
+    setTags("");
+    setMessage("阅读笔记已保存。");
+  };
+
+  return (
+    <div className="space-y-6">
+      <section
+        className="relative overflow-hidden rounded-[30px] px-5 py-6 sm:px-7 lg:px-9"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(255,251,244,0.96), rgba(245,234,216,0.84)), radial-gradient(circle at 80% 0%, rgba(255,235,190,0.30), transparent 34%)",
+          border: "1px solid rgba(139,94,60,0.12)",
+          boxShadow: "0 26px 60px rgba(122,79,43,0.12)",
+        }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E\")",
+          }}
+        />
+        <div className="relative">
+          <p className="flex items-center gap-2 text-xs font-medium tracking-[0.24em]" style={{ color: "var(--m-ink3)" }}>
+            <Brain size={15} />
+            READING NOTEBOOK
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: "var(--m-ink)" }}>
+            写下一则阅读笔记
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+            把读到的线索、疑问和触动放进这一页。它不必完整，只要诚实。
+          </p>
+        </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <form
+          className="relative overflow-hidden rounded-[32px] p-5 sm:p-7 lg:p-9"
+          onSubmit={onSubmit}
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,252,246,0.98), rgba(249,240,225,0.96)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
+            backgroundSize: "auto, 44px 44px",
+            border: "1px solid rgba(139,94,60,0.12)",
+            boxShadow: "0 30px 70px rgba(122,79,43,0.13)",
+          }}
+        >
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
+                NOTE SPACE
+              </p>
+              <h3 className="mt-2 text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>
+                给这段阅读留一页纸
+              </h3>
+            </div>
+            <Button disabled={!title.trim() || !content.trim()} size="lg" type="submit" variant="primary">
+              <Save className="mr-2" size={16} />
+              保存笔记
+            </Button>
+          </div>
+
+          <div className="space-y-7">
+            <Input
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="标题：这段阅读想回答什么问题？"
+              required
+              type="text"
+              value={title}
+              style={{
+                background: "rgba(255,253,248,0.62)",
+                border: "1px solid rgba(139,94,60,0.10)",
+                borderRadius: 24,
+                boxShadow: "0 12px 26px rgba(122,79,43,0.05)",
+                fontSize: 22,
+                fontWeight: 600,
+                height: "auto",
+                padding: "1rem 1.15rem",
+              }}
+            />
+
+            <section>
+              <Textarea
+                className="min-h-[420px] resize-y rounded-[28px] px-6 py-6 text-[16px] leading-9 sm:min-h-[520px] sm:px-8 sm:py-8"
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="写下你的摘录、理解、疑问，或者读完以后还在心里回响的一句话..."
+                required
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(255,253,248,0.92), rgba(250,243,231,0.82)), repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.055) 36px)",
+                  border: "1px solid rgba(139,94,60,0.10)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78)",
+                  fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                }}
+                value={content}
+              />
+              <div className="mt-3 flex justify-end text-xs" style={{ color: "var(--m-ink3)" }}>
+                {content.length} 字
+              </div>
+            </section>
+
+            <section
+              className="rounded-[26px] p-5"
+              style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
+            >
+              <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                <Tag size={16} />
+                标签
+              </div>
+              <Input
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="输入自定义标签，用空格或逗号分隔"
+                type="text"
+                value={tags}
+                style={{
+                  background: "rgba(255,253,248,0.68)",
+                  borderRadius: 22,
+                  borderColor: "rgba(139,94,60,0.10)",
+                  boxShadow: "0 8px 18px rgba(122,79,43,0.04)",
+                  padding: "0.85rem 1rem",
+                }}
+              />
+              {tagList.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {tagList.map((tag) => (
+                    <span
+                      className="rounded-full px-3 py-1.5 text-xs transition duration-300 hover:-translate-y-0.5"
+                      key={tag}
+                      style={{
+                        background: "rgba(172,120,76,0.10)",
+                        border: "1px solid rgba(139,94,60,0.10)",
+                        color: "var(--m-accent)",
+                      }}
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs leading-6" style={{ color: "var(--m-ink3)" }}>
+                  例如：#结构 #反思 #阅读。这里会跟随你的输入生成标签。
+                </p>
+              )}
+            </section>
+
+            {message ? (
+              <p className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm" style={{ background: "rgba(74,155,111,0.08)", color: "var(--m-success)" }}>
+                <CheckCircle2 size={16} />
+                {message}
+              </p>
+            ) : null}
+          </div>
+        </form>
+
+        <aside className="space-y-5 xl:sticky xl:top-6">
+          <div
+            className="rounded-[28px] p-5"
+            style={{
+              display: "none",
+              background: "linear-gradient(135deg, rgba(255,247,235,0.92), rgba(245,231,210,0.72))",
+              border: "1px solid rgba(139,94,60,0.10)",
+              color: "var(--m-ink2)",
+              boxShadow: "0 18px 40px rgba(122,79,43,0.08)",
+            }}
+          >
+            <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--m-ink)" }}>
+              <PencilLine size={16} />
+              记录的意义
+            </p>
+            <p className="mt-3 text-sm leading-7">
+              "无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。"
+            </p>
+          </div>
+
+          <div
+            className="rounded-[28px] p-5"
+            style={{
+              background: "rgba(255,250,242,0.72)",
+              border: "1px solid rgba(139,94,60,0.12)",
+              boxShadow: "0 18px 40px rgba(122,79,43,0.08)",
+            }}
+          >
+            <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
+              RECENT NOTES
+            </p>
+            <h3 className="mt-1 text-lg font-semibold" style={{ color: "var(--m-ink)" }}>
+              最近写下的
+            </h3>
+            <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+              已沉淀 {sortedNotes.length} 则阅读笔记。
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      {sortedNotes.length === 0 ? (
+        <EmptyState
+          description="你的阅读笔记会在这里慢慢沉淀成一条个人专栏。写下第一篇后，阅读流就会开始形成。"
+          icon={Sparkles}
+          illustrationAlt="thinking notebook illustration"
+          illustrationSrc="/illustrations/reading-time.svg"
+          title="还没有阅读笔记"
+        />
+      ) : (
+        <div className="space-y-4">
+          {sortedNotes.map((note) => {
+            const isExpanded = expandedIds.includes(note.id);
+            return (
+              <Panel className="p-6 md:p-7" interactive key={note.id}>
+                <div className="border-b border-dashed pb-4" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
+                  <h3 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.04em]" style={{ color: "var(--m-ink)" }}>
+                    {note.title}
+                  </h3>
+                </div>
+                <p
+                  className="mt-5 whitespace-pre-wrap text-[15px] leading-8"
+                  style={isExpanded
+                    ? { color: "var(--m-ink2)" }
+                    : { color: "var(--m-ink2)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 4, overflow: "hidden" }}
+                >
+                  {note.content}
+                </p>
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {note.tags.map((tag) => (
+                      <span
+                        className="rounded-full px-3 py-1 text-xs"
+                        key={`${note.id}-${tag}`}
+                        style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    className="rounded-full px-4 py-2 text-sm transition-all"
+                    onClick={() => toggleExpanded(note.id)}
+                    style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                    type="button"
+                  >
+                    {isExpanded ? "收起" : "展开阅读"}
+                  </button>
+                </div>
+              </Panel>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<Tab>("quotes");
   const [scrollToId, setScrollToId] = useState<string | null>(null);
@@ -1542,7 +1834,7 @@ export default function LibraryPage() {
           <ArchiveSection notes={notes} onOpenQuote={onOpenQuote} quotes={quotes} />
         )}
         {activeTab === "quotes" && <QuotesSection onOpenQuote={onOpenQuote} scrollToId={scrollToId} />}
-        {activeTab === "notes" && <NotesSection />}
+        {activeTab === "notes" && <ReadingNotebookSection />}
       </PageTransition>
 
       {/* Quote stack modal */}

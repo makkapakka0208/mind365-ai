@@ -107,22 +107,30 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
   const canAdd = images.length < maxImages;
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-4">
       {images.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {images.map((src, i) => (
-            <div className="group relative aspect-square overflow-hidden rounded-xl" key={i}>
+            <div
+              className="group relative aspect-[4/3] overflow-hidden rounded-[20px] p-1 transition duration-300 hover:-translate-y-1"
+              key={i}
+              style={{
+                background: "rgba(255,253,248,0.88)",
+                border: "1px solid rgba(139,94,60,0.10)",
+                boxShadow: "0 14px 30px rgba(122,79,43,0.10)",
+              }}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 alt={`日记图片 ${i + 1}`}
-                className="h-full w-full object-cover"
+                className="h-full w-full rounded-[16px] object-cover transition duration-500 group-hover:scale-105"
                 src={src}
               />
               <button
                 aria-label="删除图片"
-                className="absolute right-1 top-1 rounded-full p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-2 top-2 rounded-full p-1 opacity-0 transition-opacity group-hover:opacity-100"
                 onClick={() => removeImage(i)}
-                style={{ background: "rgba(0,0,0,0.55)" }}
+                style={{ background: "rgba(71,49,35,0.62)" }}
                 type="button"
               >
                 <X color="white" size={14} />
@@ -134,18 +142,26 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
 
       {canAdd && (
         <div
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-5 transition-colors"
+          className="flex min-h-[154px] cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed px-5 py-7 text-center transition duration-300 hover:-translate-y-0.5"
           onClick={() => inputRef.current?.click()}
           onDragLeave={onDragLeave}
           onDragOver={onDragOver}
           onDrop={onDrop}
           style={{
-            borderColor: isDragging ? "var(--m-accent)" : "var(--m-rule)",
-            background: isDragging ? "color-mix(in srgb, var(--m-accent) 6%, transparent)" : "var(--m-base)",
+            borderColor: isDragging ? "rgba(214,154,84,0.62)" : "rgba(139,94,60,0.18)",
+            background: isDragging
+              ? "rgba(255,244,226,0.78)"
+              : "linear-gradient(135deg, rgba(255,253,248,0.74), rgba(247,236,218,0.46))",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7), 0 14px 30px rgba(122,79,43,0.06)",
           }}
         >
-          <ImagePlus size={20} style={{ color: "var(--m-ink3)" }} />
-          <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
+          <span
+            className="grid h-12 w-12 place-items-center rounded-[18px]"
+            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+          >
+            <ImagePlus size={21} />
+          </span>
+          <p className="text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
             {isProcessing ? "正在压缩图片..." : `点击或拖拽图片到这里（最多 ${maxImages} 张，自动压缩）`}
           </p>
         </div>

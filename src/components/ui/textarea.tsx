@@ -6,15 +6,16 @@ export function Textarea({ className, style, ...props }: TextareaHTMLAttributes<
   return (
     <textarea
       className={cn(
-        "min-h-32 w-full rounded-xl px-3 py-2 text-sm",
+        "min-h-32 w-full rounded-[22px] px-4 py-3 text-sm",
         "transition-all duration-300 ease-out",
-        "focus:outline-none",
+        "focus:outline-none focus:ring-4 focus:ring-[rgba(214,154,84,0.13)]",
         className,
       )}
       style={{
-        background: "var(--m-base)",
-        border: "1px solid var(--m-rule)",
-        boxShadow: "var(--m-shadow-in)",
+        background:
+          "linear-gradient(180deg, rgba(255,253,248,0.90), rgba(250,243,231,0.82))",
+        border: "1px solid rgba(139,94,60,0.11)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78), 0 12px 28px rgba(122,79,43,0.05)",
         color: "var(--m-ink)",
         fontFamily: "'Noto Serif SC', serif",
         ...style,
