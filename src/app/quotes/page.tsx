@@ -3,11 +3,15 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
+  Bookmark,
   Brain,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
   FolderOpen,
+  Grid3X3,
+  LayoutList,
   Lightbulb,
   PencilLine,
   Plus,
@@ -24,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import { Textarea } from "@/components/ui/textarea";
@@ -206,110 +211,95 @@ function QuoteCard({ quote, onOpen }: { quote: Quote; onOpen?: () => void }) {
     setPickerOpen(false);
   };
 
-  const isLong = quote.text.length > 50;
+  const dateStr = quote.createdAt
+    ? new Date(quote.createdAt).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "/")
+    : "";
 
   return (
     <>
       <div
-        className="group break-inside-avoid"
+        className="group relative break-inside-avoid"
         onClick={onOpen}
         style={{
-          background: "rgba(253,250,243,0.88)",
-          borderRadius: 18,
-          border: "1px solid rgba(139,94,60,0.06)",
-          padding: "28px 24px 22px",
-          marginBottom: 16,
+          background: "var(--m-base-light)",
+          borderRadius: 16,
+          border: "1px solid var(--m-rule)",
+          padding: "20px 20px 16px",
+          marginBottom: 14,
           cursor: onOpen ? "pointer" : undefined,
-          transition: "all 0.35s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: "0 2px 12px rgba(139,94,60,0.03)",
+          transition: "all 0.25s ease",
+          boxShadow: "0 1px 4px rgba(139,94,60,0.06)",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = "0 8px 32px rgba(139,94,60,0.08)";
+          e.currentTarget.style.boxShadow = "0 6px 24px rgba(139,94,60,0.10)";
           e.currentTarget.style.transform = "translateY(-2px)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = "0 2px 12px rgba(139,94,60,0.03)";
+          e.currentTarget.style.boxShadow = "0 1px 4px rgba(139,94,60,0.06)";
           e.currentTarget.style.transform = "translateY(0)";
         }}
       >
-        {/* Decorative opening quote */}
-        <div
-          style={{
-            fontSize: 42,
-            lineHeight: 0.5,
-            color: "rgba(139,94,60,0.08)",
-            fontFamily: "'Playfair Display', Georgia, serif",
-            marginBottom: 14,
-            userSelect: "none",
-          }}
+        {/* Bookmark icon — top right */}
+        <button
+          className="absolute right-4 top-4 transition-colors hover:opacity-70"
+          onClick={(e) => { e.stopPropagation(); setPickerOpen(true); }}
+          type="button"
+          style={{ color: "var(--m-ink3)" }}
         >
-          "
-        </div>
+          <Bookmark size={16} />
+        </button>
 
-        {/* Quote text — literary typography */}
+        {/* Quote text — calligraphy style */}
         <p
           style={{
-            fontSize: isLong ? 15 : 17,
-            lineHeight: 2,
+            fontSize: 16,
+            lineHeight: 1.9,
             color: "var(--m-ink)",
-            fontFamily: '"Noto Serif SC", serif',
-            letterSpacing: "0.02em",
+            fontFamily: '"Ma Shan Zheng", "STKaiti", "KaiTi", "Noto Serif SC", serif',
+            letterSpacing: "0.04em",
+            paddingRight: 24,
           }}
         >
           {quote.text}
         </p>
 
-        {/* Author line — elegant format */}
+        {/* Author line */}
         <p
-          className="mt-5"
+          className="mt-3"
           style={{
-            fontSize: 13,
+            fontSize: 12,
             color: "var(--m-ink3)",
-            fontFamily: '"Noto Serif SC", serif',
           }}
         >
           —— {quote.author || "佚名"}
           {quote.book ? (
-            <span style={{ opacity: 0.7 }}>
-              {" "}
-              《{quote.book}》
-            </span>
+            <span style={{ opacity: 0.7 }}>{"\n"}《{quote.book}》</span>
           ) : null}
         </p>
 
-        {/* Tags — soft pills */}
-        {quote.tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+        {/* Tags + date row */}
+        <div className="mt-3 flex items-end justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {quote.tags.map((tag) => (
               <span
                 key={`${quote.id}-${tag}`}
-                className="rounded-full px-2.5 py-0.5"
+                className="rounded px-2 py-0.5"
                 style={{
                   fontSize: 11,
-                  background: "rgba(139,94,60,0.04)",
-                  color: "rgba(139,94,60,0.45)",
-                  letterSpacing: "0.02em",
+                  background: "rgba(139,94,60,0.06)",
+                  color: "var(--m-accent)",
                 }}
               >
                 #{tag}
               </span>
             ))}
           </div>
-        )}
-
-        {/* Theme classify — revealed on hover */}
-        <button
-          className="mt-4 inline-flex items-center gap-1 text-[11px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          onClick={(e) => {
-            e.stopPropagation();
-            setPickerOpen(true);
-          }}
-          type="button"
-          style={{ color: "var(--m-accent)" }}
-        >
-          <Sparkles size={11} />
-          归入认知体系
-        </button>
+          {dateStr && (
+            <span style={{ fontSize: 11, color: "var(--m-ink3)", whiteSpace: "nowrap", flexShrink: 0 }}>
+              {dateStr}
+            </span>
+          )}
+        </div>
       </div>
 
       <ThemePickerDialog
@@ -1366,158 +1356,130 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
     setMessage("已保存到你的灵感书库。");
   };
 
+  // Preset quick-add tags
+  const PRESET_TAGS = ["思想", "成长", "勇气", "平静"];
+  const toggleTag = (t: string) => {
+    const list = tagList;
+    if (list.includes(t)) {
+      setTags(list.filter((x) => x !== t).join(", "));
+    } else {
+      setTags([...list, t].join(", "));
+    }
+  };
+
+  // Tag filter + sort + view
+  const [filterTag, setFilterTag] = useState("全部标签");
+  const [sortMode, setSortMode] = useState("最新收藏");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    for (const q of quotes) for (const t of q.tags) s.add(t);
+    return [...s];
+  }, [quotes]);
+
+  const filteredQuotes = useMemo(() => {
+    let list = [...quotes];
+    if (filterTag !== "全部标签") {
+      list = list.filter((q) => q.tags.includes(filterTag));
+    }
+    if (sortMode === "最早收藏") {
+      list.reverse();
+    }
+    return list;
+  }, [quotes, filterTag, sortMode]);
+
   return (
-    <div className="space-y-8">
-      {/* ── Daily quote — atmospheric meditation card ── */}
-      {dailyQuote && (
-        <StaggerItem index={0}>
-          <div
-            className="relative overflow-hidden"
-            style={{
-              background: "rgba(253,250,243,0.75)",
-              borderRadius: 24,
-              border: "1px solid rgba(139,94,60,0.06)",
-              padding: "40px 32px 36px",
-              boxShadow: "0 4px 20px rgba(139,94,60,0.03)",
-            }}
-          >
-            {/* Subtle decorative element */}
-            <div
-              className="pointer-events-none absolute -right-6 -top-6 select-none"
-              style={{
-                fontSize: 180,
-                lineHeight: 1,
-                color: "rgba(139,94,60,0.03)",
-                fontFamily: "'Playfair Display', Georgia, serif",
-              }}
-            >
-              "
-            </div>
-
-            <p
-              className="text-[10px] font-medium uppercase tracking-[0.22em]"
-              style={{ color: "var(--m-ink3)", letterSpacing: "0.22em" }}
-            >
-              TODAY&apos;S QUOTE
-            </p>
-            <p
-              className="mt-5 max-w-2xl"
-              style={{
-                fontSize: 20,
-                lineHeight: 2,
-                color: "var(--m-ink)",
-                fontFamily: '"Noto Serif SC", serif',
-                letterSpacing: "0.03em",
-              }}
-            >
-              {dailyQuote.text}
-            </p>
-            <p
-              className="mt-6"
-              style={{
-                fontSize: 13,
-                color: "var(--m-ink3)",
-                fontFamily: '"Noto Serif SC", serif',
-              }}
-            >
-              —— {dailyQuote.author || "佚名"}
-              {dailyQuote.book ? (
-                <span style={{ opacity: 0.7 }}> 《{dailyQuote.book}》</span>
-              ) : null}
-            </p>
-          </div>
-        </StaggerItem>
-      )}
-
-      {/* ── Quote editor — literary writing surface ── */}
-      <StaggerItem index={1}>
-        <div
-          className="relative overflow-hidden"
-          style={{
-            background: "rgba(253,250,243,0.65)",
-            borderRadius: 24,
-            border: "1px solid rgba(139,94,60,0.06)",
-            boxShadow: "0 2px 16px rgba(139,94,60,0.03)",
-          }}
-        >
+    <div className="space-y-6">
+      {/* ── Quote editor — two-column layout like reference ── */}
+      <StaggerItem index={0}>
+        <Panel className="overflow-hidden p-0">
           <form onSubmit={onSubmit}>
-            {/* Writing area — centered, spacious */}
-            <div className="px-6 pt-10 pb-6 sm:px-10 md:px-16">
-              <div className="mx-auto max-w-2xl">
-                {/* Decorative quote marks */}
-                <div className="flex items-start justify-between" style={{ marginBottom: -8 }}>
-                  <span
-                    style={{
-                      fontSize: 56,
-                      lineHeight: 0.6,
-                      color: "rgba(139,94,60,0.08)",
-                      fontFamily: "'Playfair Display', Georgia, serif",
-                      userSelect: "none",
-                    }}
-                  >
-                    "
-                  </span>
-                  <span
-                    className="hidden sm:block"
-                    style={{
-                      fontSize: 56,
-                      lineHeight: 0.6,
-                      color: "rgba(139,94,60,0.08)",
-                      fontFamily: "'Playfair Display', Georgia, serif",
-                      userSelect: "none",
-                      transform: "rotate(180deg)",
-                    }}
-                  >
-                    "
-                  </span>
-                </div>
-
-                {/* Main text input — transparent, literary */}
-                <textarea
-                  className="w-full resize-none border-none bg-transparent text-center outline-none placeholder:text-center"
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="在这里写下那句打动你的话…"
-                  required
-                  rows={4}
-                  style={{
-                    fontSize: 18,
-                    lineHeight: 2.2,
-                    color: "var(--m-ink)",
-                    fontFamily: '"Noto Serif SC", serif',
-                    letterSpacing: "0.03em",
-                    minHeight: 120,
-                  }}
-                  value={text}
-                />
-              </div>
+            {/* Header */}
+            <div className="px-6 pt-6 sm:px-8 sm:pt-8">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--m-accent)" }}>
+                NEW QUOTE
+              </p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>
+                记录一句值得回看的话
+              </h2>
+              <p className="mt-1 text-sm" style={{ color: "var(--m-ink3)" }}>
+                写下那些触动你的智慧、观点或力量。
+              </p>
             </div>
 
-            {/* Meta fields — subtle, below the fold */}
-            <div
-              style={{
-                borderTop: "1px dashed rgba(139,94,60,0.08)",
-                padding: "20px 24px 24px",
-                background: "rgba(139,94,60,0.015)",
-              }}
-            >
-              <div className="mx-auto grid max-w-2xl gap-x-8 gap-y-4 sm:grid-cols-2">
-                {/* Author */}
-                <div className="relative">
+            {/* Two-column: writing area + meta sidebar */}
+            <div className="mt-5 grid gap-0 lg:grid-cols-[1fr_260px]">
+              {/* Left — writing area */}
+              <div className="px-6 pb-6 sm:px-8">
+                <div
+                  className="relative rounded-2xl"
+                  style={{
+                    background: "var(--m-base-light)",
+                    border: "1px solid var(--m-rule)",
+                    boxShadow: "var(--m-shadow-in)",
+                    padding: "24px 20px 20px",
+                    minHeight: 220,
+                  }}
+                >
+                  {/* Decorative large opening quote */}
                   <span
-                    className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2"
-                    style={{ fontSize: 13, color: "rgba(139,94,60,0.3)" }}
-                  >
-                    ——
-                  </span>
-                  <input
-                    className="w-full border-none bg-transparent py-2 pl-8 text-sm outline-none"
-                    onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="作者姓名"
+                    className="pointer-events-none absolute left-5 top-4 select-none"
                     style={{
+                      fontSize: 48,
+                      lineHeight: 0.8,
+                      color: "rgba(139,94,60,0.10)",
+                      fontFamily: "Georgia, 'Playfair Display', serif",
+                    }}
+                  >
+                    "
+                  </span>
+                  {/* Decorative closing quote */}
+                  <span
+                    className="pointer-events-none absolute bottom-12 right-5 select-none"
+                    style={{
+                      fontSize: 48,
+                      lineHeight: 0.8,
+                      color: "rgba(139,94,60,0.10)",
+                      fontFamily: "Georgia, 'Playfair Display', serif",
+                    }}
+                  >
+                    "
+                  </span>
+
+                  <textarea
+                    className="w-full resize-none border-none bg-transparent outline-none"
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="在这里写下那句打动你的话…"
+                    required
+                    rows={5}
+                    style={{
+                      fontSize: 16,
+                      lineHeight: 2,
                       color: "var(--m-ink)",
                       fontFamily: '"Noto Serif SC", serif',
-                      borderBottom: "1px solid rgba(139,94,60,0.06)",
+                      letterSpacing: "0.02em",
+                      paddingTop: 28,
+                      paddingLeft: 4,
                     }}
+                    value={text}
+                  />
+                </div>
+              </div>
+
+              {/* Right — meta fields sidebar */}
+              <div
+                className="space-y-4 px-6 pb-6 sm:px-8 lg:border-l lg:px-6 lg:pb-8 lg:pt-0"
+                style={{ borderColor: "var(--m-rule)" }}
+              >
+                {/* Author */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
+                    作者
+                  </label>
+                  <Input
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="作者姓名"
                     type="text"
                     value={author}
                   />
@@ -1525,64 +1487,88 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
 
                 {/* Book / source */}
                 <div>
-                  <input
-                    className="w-full border-none bg-transparent py-2 text-sm outline-none"
+                  <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
+                    书名 / 来源
+                  </label>
+                  <Input
                     onChange={(e) => setBook(e.target.value)}
                     placeholder="书籍、文章、演讲等来源"
-                    style={{
-                      color: "var(--m-ink)",
-                      fontFamily: '"Noto Serif SC", serif',
-                      borderBottom: "1px solid rgba(139,94,60,0.06)",
-                    }}
                     type="text"
                     value={book}
                   />
                 </div>
 
                 {/* Tags */}
-                <div className="flex items-center gap-2 sm:col-span-2">
-                  <Tag size={13} style={{ color: "rgba(139,94,60,0.25)", flexShrink: 0 }} />
-                  <input
-                    className="w-full border-none bg-transparent py-2 text-sm outline-none"
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
+                    标签
+                  </label>
+                  <Input
                     onChange={(e) => setTags(e.target.value)}
-                    placeholder="标签：思想, 成长, 勇气, 平静"
-                    style={{
-                      color: "var(--m-ink2)",
-                      borderBottom: "1px solid rgba(139,94,60,0.06)",
-                    }}
+                    placeholder="点击添加标签"
                     type="text"
                     value={tags}
                   />
+                  {/* Preset tag pills */}
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    {PRESET_TAGS.map((t) => {
+                      const active = tagList.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
+                          onClick={(e) => { e.preventDefault(); toggleTag(t); }}
+                          type="button"
+                          style={{
+                            background: active ? "rgba(139,94,60,0.12)" : "var(--m-base)",
+                            border: `1px solid ${active ? "var(--m-accent)" : "var(--m-rule)"}`,
+                            color: active ? "var(--m-accent)" : "var(--m-ink3)",
+                          }}
+                        >
+                          + {t}
+                        </button>
+                      );
+                    })}
+                    <button
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium"
+                      onClick={(e) => e.preventDefault()}
+                      type="button"
+                      style={{
+                        background: "var(--m-base)",
+                        border: "1px solid var(--m-rule)",
+                        color: "var(--m-ink3)",
+                      }}
+                    >
+                      + 自定义
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Save button — centered, elegant */}
-              <div className="mx-auto mt-6 flex max-w-2xl items-center justify-center gap-4">
+                {/* Save button */}
                 <button
-                  className="inline-flex items-center gap-2 rounded-2xl px-7 py-3 text-sm font-medium transition-all duration-300 hover:opacity-90"
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all hover:opacity-90"
                   style={{
                     background: "var(--m-accent)",
                     color: "#fff",
-                    boxShadow: "0 4px 16px rgba(139,94,60,0.2)",
-                    fontFamily: '"Noto Serif SC", serif',
+                    boxShadow: "0 2px 8px rgba(139,94,60,0.2)",
                   }}
                   type="submit"
                 >
-                  <Save size={15} />
+                  <Bookmark size={15} />
                   收藏这句话
                 </button>
                 {message && (
-                  <span className="text-sm" style={{ color: "var(--m-success)" }}>
+                  <p className="text-center text-sm" style={{ color: "var(--m-success)" }}>
                     {message}
-                  </span>
+                  </p>
                 )}
               </div>
             </div>
           </form>
-        </div>
+        </Panel>
       </StaggerItem>
 
-      {/* ── Quote wall — masonry layout ── */}
+      {/* ── Quote wall ── */}
       {quotes.length === 0 ? (
         <EmptyState
           description="保存第一条金句后，这里会逐渐变成你的私人灵感墙。"
@@ -1592,52 +1578,119 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
           title="还没有收藏金句"
         />
       ) : (
-        <div>
-          {/* Section header */}
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <p
-                className="text-[10px] font-medium uppercase tracking-[0.22em]"
-                style={{ color: "var(--m-ink3)" }}
-              >
-                COLLECTION
-              </p>
-              <h3
-                className="mt-1"
-                style={{
-                  fontSize: 18,
-                  color: "var(--m-ink)",
-                  fontFamily: '"Noto Serif SC", serif',
-                  fontWeight: 600,
-                }}
-              >
+        <StaggerItem index={1}>
+          <div>
+            {/* Grid header — title + filters + view toggle */}
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h3 style={{ fontSize: 16, color: "var(--m-ink)", fontWeight: 600 }}>
                 我的金句库
-                <span
-                  className="ml-2"
-                  style={{ fontSize: 14, color: "var(--m-ink3)", fontWeight: 400 }}
-                >
-                  {quotes.length} 句
+                <span className="ml-2" style={{ fontSize: 14, color: "var(--m-ink3)", fontWeight: 400 }}>
+                  {filteredQuotes.length} 句
                 </span>
               </h3>
-            </div>
-          </div>
 
-          {/* Masonry wall */}
-          <div
-            className="m-masonry-wall"
-            style={{
-              columnCount: 2,
-              columnGap: 16,
-              columnWidth: 260,
-            }}
-          >
-            {quotes.map((quote) => (
-              <div key={quote.id} id={`quote-${quote.id}`}>
-                <QuoteCard onOpen={() => onOpenQuote(quote.id)} quote={quote} />
+              <div className="flex items-center gap-2">
+                {/* Tag filter dropdown */}
+                <div className="relative">
+                  <select
+                    className="appearance-none rounded-lg py-1.5 pl-3 pr-7 text-xs font-medium outline-none"
+                    onChange={(e) => setFilterTag(e.target.value)}
+                    style={{
+                      background: "var(--m-base-light)",
+                      border: "1px solid var(--m-rule)",
+                      color: "var(--m-ink2)",
+                    }}
+                    value={filterTag}
+                  >
+                    <option>全部标签</option>
+                    {allTags.map((t) => (
+                      <option key={t}>{t}</option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
+                    size={12}
+                    style={{ color: "var(--m-ink3)" }}
+                  />
+                </div>
+
+                {/* Sort dropdown */}
+                <div className="relative">
+                  <select
+                    className="appearance-none rounded-lg py-1.5 pl-3 pr-7 text-xs font-medium outline-none"
+                    onChange={(e) => setSortMode(e.target.value)}
+                    style={{
+                      background: "var(--m-base-light)",
+                      border: "1px solid var(--m-rule)",
+                      color: "var(--m-ink2)",
+                    }}
+                    value={sortMode}
+                  >
+                    <option>最新收藏</option>
+                    <option>最早收藏</option>
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
+                    size={12}
+                    style={{ color: "var(--m-ink3)" }}
+                  />
+                </div>
+
+                {/* View toggle */}
+                <div
+                  className="flex rounded-lg"
+                  style={{ border: "1px solid var(--m-rule)", overflow: "hidden" }}
+                >
+                  <button
+                    className="flex h-7 w-7 items-center justify-center transition-colors"
+                    onClick={() => setViewMode("grid")}
+                    type="button"
+                    style={{
+                      background: viewMode === "grid" ? "var(--m-accent)" : "var(--m-base-light)",
+                      color: viewMode === "grid" ? "#fff" : "var(--m-ink3)",
+                    }}
+                  >
+                    <Grid3X3 size={13} />
+                  </button>
+                  <button
+                    className="flex h-7 w-7 items-center justify-center transition-colors"
+                    onClick={() => setViewMode("list")}
+                    type="button"
+                    style={{
+                      background: viewMode === "list" ? "var(--m-accent)" : "var(--m-base-light)",
+                      color: viewMode === "list" ? "#fff" : "var(--m-ink3)",
+                      borderLeft: "1px solid var(--m-rule)",
+                    }}
+                  >
+                    <LayoutList size={13} />
+                  </button>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Cards — masonry grid or list */}
+            {viewMode === "grid" ? (
+              <div
+                className="m-masonry-wall"
+                style={{ columnCount: 2, columnGap: 14, columnWidth: 260 }}
+              >
+                {filteredQuotes.map((quote) => (
+                  <div key={quote.id} id={`quote-${quote.id}`}>
+                    <QuoteCard onOpen={() => onOpenQuote(quote.id)} quote={quote} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredQuotes.map((quote) => (
+                  <div key={quote.id} id={`quote-${quote.id}`}>
+                    <QuoteCard onOpen={() => onOpenQuote(quote.id)} quote={quote} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        </StaggerItem>
       )}
     </div>
   );
@@ -2076,38 +2129,12 @@ export default function LibraryPage() {
   return (
     <>
       <PageTransition className="space-y-6">
-        {/* ── Page header — literary atmosphere ── */}
-        <div className="pb-2">
-          <p
-            className="text-[10px] font-medium uppercase tracking-[0.22em]"
-            style={{ color: "var(--m-ink3)" }}
-          >
-            LIBRARY
-          </p>
-          <h1
-            className="mt-2"
-            style={{
-              fontSize: 28,
-              fontWeight: 600,
-              color: "var(--m-ink)",
-              fontFamily: "'Playfair Display', 'Noto Serif SC', serif",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            灵感书库
-          </h1>
-          <p
-            className="mt-2 max-w-md"
-            style={{
-              fontSize: 14,
-              lineHeight: 1.8,
-              color: "var(--m-ink3)",
-              fontFamily: '"Noto Serif SC", serif',
-            }}
-          >
-            留住那些曾经打动你的文字，让它们在时间里慢慢发酵。
-          </p>
-        </div>
+        <PageTitle
+          description="把值得反复回看的句子和阅读笔记，收进同一座灵感书库里。"
+          eyebrow="灵感书库"
+          icon={Lightbulb}
+          title="灵感书库"
+        />
 
         <TabBar active={activeTab} onChange={(t) => { setActiveTab(t); setScrollToId(null); }} />
 
