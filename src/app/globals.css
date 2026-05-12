@@ -180,3 +180,10 @@ button {
 .m-scroll-hidden::-webkit-scrollbar {
   display: none;
 }
+
+/* Quote wall masonry — single column on mobile */
+@media (max-width: 560px) {
+  .m-masonry-wall {
+    column-count: 1 !important;
+  }
+}
