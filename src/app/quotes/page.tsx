@@ -1356,216 +1356,119 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
     setMessage("已保存到你的灵感书库。");
   };
 
-  // Preset quick-add tags
-  const PRESET_TAGS = ["思想", "成长", "勇气", "平静"];
-  const toggleTag = (t: string) => {
-    const list = tagList;
-    if (list.includes(t)) {
-      setTags(list.filter((x) => x !== t).join(", "));
-    } else {
-      setTags([...list, t].join(", "));
-    }
-  };
-
-  // Tag filter + sort + view
-  const [filterTag, setFilterTag] = useState("全部标签");
-  const [sortMode, setSortMode] = useState("最新收藏");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
-  const allTags = useMemo(() => {
-    const s = new Set<string>();
-    for (const q of quotes) for (const t of q.tags) s.add(t);
-    return [...s];
-  }, [quotes]);
-
-  const filteredQuotes = useMemo(() => {
-    let list = [...quotes];
-    if (filterTag !== "全部标签") {
-      list = list.filter((q) => q.tags.includes(filterTag));
-    }
-    if (sortMode === "最早收藏") {
-      list.reverse();
-    }
-    return list;
-  }, [quotes, filterTag, sortMode]);
-
   return (
     <div className="space-y-6">
-      {/* ── Quote editor — two-column layout like reference ── */}
+      {/* ── Quote editor — journal-style writing surface ── */}
       <StaggerItem index={0}>
-        <Panel className="overflow-hidden p-0">
-          <form onSubmit={onSubmit}>
-            {/* Header */}
-            <div className="px-6 pt-6 sm:px-8 sm:pt-8">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--m-accent)" }}>
+        <form
+          className="relative overflow-hidden rounded-[32px] p-5 sm:p-7 lg:p-9"
+          onSubmit={onSubmit}
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,252,246,0.98), rgba(249,240,225,0.96)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
+            backgroundSize: "auto, 44px 44px",
+            border: "1px solid rgba(139,94,60,0.12)",
+            boxShadow: "0 30px 70px rgba(122,79,43,0.13)",
+          }}
+        >
+          {/* Header + save button */}
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
+                <QuoteIcon size={14} />
                 NEW QUOTE
               </p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>
+              <h2 className="mt-2 text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>
                 记录一句值得回看的话
               </h2>
-              <p className="mt-1 text-sm" style={{ color: "var(--m-ink3)" }}>
+              <p className="mt-1 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
                 写下那些触动你的智慧、观点或力量。
               </p>
             </div>
+            <Button disabled={!text.trim()} size="lg" type="submit" variant="primary">
+              <Save className="mr-1.5" size={15} />
+              收藏这句话
+            </Button>
+          </div>
 
-            {/* Two-column: writing area + meta sidebar */}
-            <div className="mt-5 grid gap-0 lg:grid-cols-[1fr_260px]">
-              {/* Left — writing area */}
-              <div className="px-6 pb-6 sm:px-8">
-                <div
-                  className="relative rounded-2xl"
-                  style={{
-                    background: "var(--m-base-light)",
-                    border: "1px solid var(--m-rule)",
-                    boxShadow: "var(--m-shadow-in)",
-                    padding: "24px 20px 20px",
-                    minHeight: 220,
-                  }}
-                >
-                  {/* Decorative large opening quote */}
-                  <span
-                    className="pointer-events-none absolute left-5 top-4 select-none"
-                    style={{
-                      fontSize: 48,
-                      lineHeight: 0.8,
-                      color: "rgba(139,94,60,0.10)",
-                      fontFamily: "Georgia, 'Playfair Display', serif",
-                    }}
-                  >
-                    "
-                  </span>
-                  {/* Decorative closing quote */}
-                  <span
-                    className="pointer-events-none absolute bottom-12 right-5 select-none"
-                    style={{
-                      fontSize: 48,
-                      lineHeight: 0.8,
-                      color: "rgba(139,94,60,0.10)",
-                      fontFamily: "Georgia, 'Playfair Display', serif",
-                    }}
-                  >
-                    "
-                  </span>
-
-                  <textarea
-                    className="w-full resize-none border-none bg-transparent outline-none"
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="在这里写下那句打动你的话…"
-                    required
-                    rows={5}
-                    style={{
-                      fontSize: 16,
-                      lineHeight: 2,
-                      color: "var(--m-ink)",
-                      fontFamily: '"Noto Serif SC", serif',
-                      letterSpacing: "0.02em",
-                      paddingTop: 28,
-                      paddingLeft: 4,
-                    }}
-                    value={text}
-                  />
-                </div>
+          <div className="space-y-6">
+            {/* Main writing area — lined paper style like journal */}
+            <section>
+              <Textarea
+                className="min-h-[200px] resize-y rounded-[28px] px-6 py-6 text-[16px] leading-9 sm:px-8 sm:py-8"
+                onChange={(e) => setText(e.target.value)}
+                placeholder="在这里写下那句打动你的话…"
+                required
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(255,253,248,0.92), rgba(250,243,231,0.82)), repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.055) 36px)",
+                  border: "1px solid rgba(139,94,60,0.10)",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78)",
+                  fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                }}
+                value={text}
+              />
+              <div className="mt-2 flex justify-end text-xs" style={{ color: "var(--m-ink3)" }}>
+                {text.length} 字
               </div>
+            </section>
 
-              {/* Right — meta fields sidebar */}
+            {/* Author + source — side by side */}
+            <section className="grid gap-4 sm:grid-cols-2">
               <div
-                className="space-y-4 px-6 pb-6 sm:px-8 lg:border-l lg:px-6 lg:pb-8 lg:pt-0"
-                style={{ borderColor: "var(--m-rule)" }}
+                className="rounded-[22px] p-5"
+                style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
               >
-                {/* Author */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
-                    作者
-                  </label>
-                  <Input
-                    onChange={(e) => setAuthor(e.target.value)}
-                    placeholder="作者姓名"
-                    type="text"
-                    value={author}
-                  />
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                  <PencilLine size={15} />
+                  作者
                 </div>
-
-                {/* Book / source */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
-                    书名 / 来源
-                  </label>
-                  <Input
-                    onChange={(e) => setBook(e.target.value)}
-                    placeholder="书籍、文章、演讲等来源"
-                    type="text"
-                    value={book}
-                  />
-                </div>
-
-                {/* Tags */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
-                    标签
-                  </label>
-                  <Input
-                    onChange={(e) => setTags(e.target.value)}
-                    placeholder="点击添加标签"
-                    type="text"
-                    value={tags}
-                  />
-                  {/* Preset tag pills */}
-                  <div className="mt-2.5 flex flex-wrap gap-2">
-                    {PRESET_TAGS.map((t) => {
-                      const active = tagList.includes(t);
-                      return (
-                        <button
-                          key={t}
-                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all"
-                          onClick={(e) => { e.preventDefault(); toggleTag(t); }}
-                          type="button"
-                          style={{
-                            background: active ? "rgba(139,94,60,0.12)" : "var(--m-base)",
-                            border: `1px solid ${active ? "var(--m-accent)" : "var(--m-rule)"}`,
-                            color: active ? "var(--m-accent)" : "var(--m-ink3)",
-                          }}
-                        >
-                          + {t}
-                        </button>
-                      );
-                    })}
-                    <button
-                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium"
-                      onClick={(e) => e.preventDefault()}
-                      type="button"
-                      style={{
-                        background: "var(--m-base)",
-                        border: "1px solid var(--m-rule)",
-                        color: "var(--m-ink3)",
-                      }}
-                    >
-                      + 自定义
-                    </button>
-                  </div>
-                </div>
-
-                {/* Save button */}
-                <button
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all hover:opacity-90"
-                  style={{
-                    background: "var(--m-accent)",
-                    color: "#fff",
-                    boxShadow: "0 2px 8px rgba(139,94,60,0.2)",
-                  }}
-                  type="submit"
-                >
-                  <Bookmark size={15} />
-                  收藏这句话
-                </button>
-                {message && (
-                  <p className="text-center text-sm" style={{ color: "var(--m-success)" }}>
-                    {message}
-                  </p>
-                )}
+                <Input onChange={(e) => setAuthor(e.target.value)} placeholder="作者姓名" type="text" value={author} />
               </div>
-            </div>
-          </form>
-        </Panel>
+              <div
+                className="rounded-[22px] p-5"
+                style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
+              >
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                  <Bookmark size={15} />
+                  书名 / 来源
+                </div>
+                <Input onChange={(e) => setBook(e.target.value)} placeholder="书籍、文章、演讲等来源" type="text" value={book} />
+              </div>
+            </section>
+
+            {/* Tags */}
+            <section
+              className="rounded-[26px] p-5"
+              style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
+            >
+              <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                <Tag size={15} />
+                标签
+              </div>
+              <Input onChange={(e) => setTags(e.target.value)} placeholder="思想, 成长, 勇气, 平静" type="text" value={tags} />
+              {tagList.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tagList.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full px-3 py-1 text-xs"
+                      style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                    >
+                      #{t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {message && (
+            <p className="mt-4 text-center text-sm" style={{ color: "var(--m-success)" }}>
+              {message}
+            </p>
+          )}
+        </form>
       </StaggerItem>
 
       {/* ── Quote wall ── */}
@@ -1580,115 +1483,19 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
       ) : (
         <StaggerItem index={1}>
           <div>
-            {/* Grid header — title + filters + view toggle */}
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <h3 style={{ fontSize: 16, color: "var(--m-ink)", fontWeight: 600 }}>
-                我的金句库
-                <span className="ml-2" style={{ fontSize: 14, color: "var(--m-ink3)", fontWeight: 400 }}>
-                  {filteredQuotes.length} 句
-                </span>
-              </h3>
-
-              <div className="flex items-center gap-2">
-                {/* Tag filter dropdown */}
-                <div className="relative">
-                  <select
-                    className="appearance-none rounded-lg py-1.5 pl-3 pr-7 text-xs font-medium outline-none"
-                    onChange={(e) => setFilterTag(e.target.value)}
-                    style={{
-                      background: "var(--m-base-light)",
-                      border: "1px solid var(--m-rule)",
-                      color: "var(--m-ink2)",
-                    }}
-                    value={filterTag}
-                  >
-                    <option>全部标签</option>
-                    {allTags.map((t) => (
-                      <option key={t}>{t}</option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
-                    size={12}
-                    style={{ color: "var(--m-ink3)" }}
-                  />
+            <h3 className="mb-4" style={{ fontSize: 16, color: "var(--m-ink)", fontWeight: 600 }}>
+              我的金句库
+              <span className="ml-2" style={{ fontSize: 14, color: "var(--m-ink3)", fontWeight: 400 }}>
+                {quotes.length} 句
+              </span>
+            </h3>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {quotes.map((quote) => (
+                <div key={quote.id} id={`quote-${quote.id}`}>
+                  <QuoteCard onOpen={() => onOpenQuote(quote.id)} quote={quote} />
                 </div>
-
-                {/* Sort dropdown */}
-                <div className="relative">
-                  <select
-                    className="appearance-none rounded-lg py-1.5 pl-3 pr-7 text-xs font-medium outline-none"
-                    onChange={(e) => setSortMode(e.target.value)}
-                    style={{
-                      background: "var(--m-base-light)",
-                      border: "1px solid var(--m-rule)",
-                      color: "var(--m-ink2)",
-                    }}
-                    value={sortMode}
-                  >
-                    <option>最新收藏</option>
-                    <option>最早收藏</option>
-                  </select>
-                  <ChevronDown
-                    className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
-                    size={12}
-                    style={{ color: "var(--m-ink3)" }}
-                  />
-                </div>
-
-                {/* View toggle */}
-                <div
-                  className="flex rounded-lg"
-                  style={{ border: "1px solid var(--m-rule)", overflow: "hidden" }}
-                >
-                  <button
-                    className="flex h-7 w-7 items-center justify-center transition-colors"
-                    onClick={() => setViewMode("grid")}
-                    type="button"
-                    style={{
-                      background: viewMode === "grid" ? "var(--m-accent)" : "var(--m-base-light)",
-                      color: viewMode === "grid" ? "#fff" : "var(--m-ink3)",
-                    }}
-                  >
-                    <Grid3X3 size={13} />
-                  </button>
-                  <button
-                    className="flex h-7 w-7 items-center justify-center transition-colors"
-                    onClick={() => setViewMode("list")}
-                    type="button"
-                    style={{
-                      background: viewMode === "list" ? "var(--m-accent)" : "var(--m-base-light)",
-                      color: viewMode === "list" ? "#fff" : "var(--m-ink3)",
-                      borderLeft: "1px solid var(--m-rule)",
-                    }}
-                  >
-                    <LayoutList size={13} />
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-
-            {/* Cards — masonry grid or list */}
-            {viewMode === "grid" ? (
-              <div
-                className="m-masonry-wall"
-                style={{ columnCount: 2, columnGap: 14, columnWidth: 260 }}
-              >
-                {filteredQuotes.map((quote) => (
-                  <div key={quote.id} id={`quote-${quote.id}`}>
-                    <QuoteCard onOpen={() => onOpenQuote(quote.id)} quote={quote} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredQuotes.map((quote) => (
-                  <div key={quote.id} id={`quote-${quote.id}`}>
-                    <QuoteCard onOpen={() => onOpenQuote(quote.id)} quote={quote} />
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </StaggerItem>
       )}
@@ -1696,131 +1503,7 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
   );
 }
 
-// ── Notes section ──────────────────────────────────────────────
-function NotesSection() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tags, setTags] = useState("");
-  const [message, setMessage] = useState("");
-  const [expandedIds, setExpandedIds] = useState<string[]>([]);
-
-  const notes = useNotesStore();
-  useEffect(() => { refreshNotes(); }, []);
-
-  const sortedNotes = useMemo(() => [...notes].reverse(), [notes]);
-
-  const toggleExpanded = (id: string) => {
-    setExpandedIds((cur) => cur.includes(id) ? cur.filter((i) => i !== id) : [...cur, id]);
-  };
-
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const note: Note = {
-      id: crypto.randomUUID(),
-      title: title.trim(),
-      content: content.trim(),
-      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-    };
-    saveNote(note);
-    setTitle(""); setContent(""); setTags("");
-    setMessage("笔记已保存，继续把想法慢慢写清楚。");
-  };
-
-  return (
-    <div className="space-y-5">
-      {/* Add note form */}
-      <Panel className="p-6 md:p-7">
-        <div className="border-b border-dashed pb-5" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
-          <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>NEW NOTE</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>
-            写下一则阅读笔记
-          </h2>
-          <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-            慢一点，把读到的线索、疑问和触动写下来，它们会在复盘里慢慢长出结构。
-          </p>
-        </div>
-        <form className="mt-6 grid gap-4" onSubmit={onSubmit}>
-          <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-            标题
-            <Input onChange={(e) => setTitle(e.target.value)} placeholder="这篇文章想回答什么问题？" required type="text" value={title} />
-          </label>
-          <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-            内容
-            <Textarea
-              className="min-h-56"
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="把你的书评、摘录理解或者阅读后的想法写下来..."
-              required
-              value={content}
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-            标签
-            <Input onChange={(e) => setTags(e.target.value)} placeholder="结构化, 反思, 阅读" type="text" value={tags} />
-          </label>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button size="lg" type="submit" variant="secondary">保存笔记</Button>
-            {message && <span className="text-sm" style={{ color: "var(--m-success)" }}>{message}</span>}
-          </div>
-        </form>
-      </Panel>
-
-      {/* Notes list */}
-      {sortedNotes.length === 0 ? (
-        <EmptyState
-          description="你的阅读笔记会在这里慢慢沉淀成一条个人专栏。写下第一篇后，阅读流就会开始形成。"
-          icon={Sparkles}
-          illustrationAlt="thinking notebook illustration"
-          illustrationSrc="/illustrations/reading-time.svg"
-          title="还没有阅读笔记"
-        />
-      ) : (
-        <div className="space-y-4">
-          {sortedNotes.map((note) => {
-            const isExpanded = expandedIds.includes(note.id);
-            return (
-              <Panel className="p-6 md:p-7" interactive key={note.id}>
-                <div className="border-b border-dashed pb-4" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
-                  <h3 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.04em]" style={{ color: "var(--m-ink)" }}>
-                    {note.title}
-                  </h3>
-                </div>
-                <p
-                  className="mt-5 text-[15px] leading-8"
-                  style={isExpanded
-                    ? { color: "var(--m-ink2)" }
-                    : { color: "var(--m-ink2)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 4, overflow: "hidden" }}
-                >
-                  {formatPreview(note.content)}
-                </p>
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap gap-2">
-                    {note.tags.map((tag) => (
-                      <span className="rounded-full px-3 py-1 text-xs" key={`${note.id}-${tag}`}
-                        style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}>
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  <button
-                    className="rounded-full px-4 py-2 text-sm transition-all"
-                    onClick={() => toggleExpanded(note.id)}
-                    style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
-                    type="button"
-                  >
-                    {isExpanded ? "收起" : "展开阅读"}
-                  </button>
-                </div>
-              </Panel>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Page ───────────────────────────────────────────────────────
+// ── Notes section — journal style matching QuotesSection ──────
 function ReadingNotebookSection() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -1861,37 +1544,8 @@ function ReadingNotebookSection() {
 
   return (
     <div className="space-y-6">
-      <section
-        className="relative overflow-hidden rounded-[30px] px-5 py-6 sm:px-7 lg:px-9"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(255,251,244,0.96), rgba(245,234,216,0.84)), radial-gradient(circle at 80% 0%, rgba(255,235,190,0.30), transparent 34%)",
-          border: "1px solid rgba(139,94,60,0.12)",
-          boxShadow: "0 26px 60px rgba(122,79,43,0.12)",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.12]"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E\")",
-          }}
-        />
-        <div className="relative">
-          <p className="flex items-center gap-2 text-xs font-medium tracking-[0.24em]" style={{ color: "var(--m-ink3)" }}>
-            <Brain size={15} />
-            READING NOTEBOOK
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: "var(--m-ink)" }}>
-            写下一则阅读笔记
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-            把读到的线索、疑问和触动放进这一页。它不必完整，只要诚实。
-          </p>
-        </div>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+      {/* ── Note editor — journal-style writing surface ── */}
+      <StaggerItem index={0}>
         <form
           className="relative overflow-hidden rounded-[32px] p-5 sm:p-7 lg:p-9"
           onSubmit={onSubmit}
@@ -1903,45 +1557,51 @@ function ReadingNotebookSection() {
             boxShadow: "0 30px 70px rgba(122,79,43,0.13)",
           }}
         >
+          {/* Header + save button */}
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                NOTE SPACE
+              <p className="flex items-center gap-2 text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
+                <Brain size={14} />
+                READING NOTE
               </p>
-              <h3 className="mt-2 text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>
-                给这段阅读留一页纸
-              </h3>
+              <h2 className="mt-2 text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>
+                写下一则阅读笔记
+              </h2>
+              <p className="mt-1 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
+                把读到的线索、疑问和触动放进这一页。
+              </p>
             </div>
             <Button disabled={!title.trim() || !content.trim()} size="lg" type="submit" variant="primary">
-              <Save className="mr-2" size={16} />
+              <Save className="mr-1.5" size={15} />
               保存笔记
             </Button>
           </div>
 
-          <div className="space-y-7">
-            <Input
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="标题：这段阅读想回答什么问题？"
-              required
-              type="text"
-              value={title}
-              style={{
-                background: "rgba(255,253,248,0.62)",
-                border: "1px solid rgba(139,94,60,0.10)",
-                borderRadius: 24,
-                boxShadow: "0 12px 26px rgba(122,79,43,0.05)",
-                fontSize: 22,
-                fontWeight: 600,
-                height: "auto",
-                padding: "1rem 1.15rem",
-              }}
-            />
+          <div className="space-y-6">
+            {/* Title — styled card like author/source in QuotesSection */}
+            <section
+              className="rounded-[22px] p-5"
+              style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
+            >
+              <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                <PencilLine size={15} />
+                标题
+              </div>
+              <Input
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="这段阅读想回答什么问题？"
+                required
+                type="text"
+                value={title}
+              />
+            </section>
 
+            {/* Main writing area — lined paper style like journal */}
             <section>
               <Textarea
-                className="min-h-[420px] resize-y rounded-[28px] px-6 py-6 text-[16px] leading-9 sm:min-h-[520px] sm:px-8 sm:py-8"
+                className="min-h-[280px] resize-y rounded-[28px] px-6 py-6 text-[16px] leading-9 sm:min-h-[360px] sm:px-8 sm:py-8"
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="写下你的摘录、理解、疑问，或者读完以后还在心里回响的一句话..."
+                placeholder="写下你的摘录、理解、疑问，或者读完以后还在心里回响的一句话…"
                 required
                 style={{
                   background:
@@ -1952,105 +1612,46 @@ function ReadingNotebookSection() {
                 }}
                 value={content}
               />
-              <div className="mt-3 flex justify-end text-xs" style={{ color: "var(--m-ink3)" }}>
+              <div className="mt-2 flex justify-end text-xs" style={{ color: "var(--m-ink3)" }}>
                 {content.length} 字
               </div>
             </section>
 
+            {/* Tags */}
             <section
               className="rounded-[26px] p-5"
               style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
             >
               <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                <Tag size={16} />
+                <Tag size={15} />
                 标签
               </div>
-              <Input
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="输入自定义标签，用空格或逗号分隔"
-                type="text"
-                value={tags}
-                style={{
-                  background: "rgba(255,253,248,0.68)",
-                  borderRadius: 22,
-                  borderColor: "rgba(139,94,60,0.10)",
-                  boxShadow: "0 8px 18px rgba(122,79,43,0.04)",
-                  padding: "0.85rem 1rem",
-                }}
-              />
-              {tagList.length > 0 ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {tagList.map((tag) => (
+              <Input onChange={(e) => setTags(e.target.value)} placeholder="结构, 反思, 阅读, 成长" type="text" value={tags} />
+              {tagList.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tagList.map((t) => (
                     <span
-                      className="rounded-full px-3 py-1.5 text-xs transition duration-300 hover:-translate-y-0.5"
-                      key={tag}
-                      style={{
-                        background: "rgba(172,120,76,0.10)",
-                        border: "1px solid rgba(139,94,60,0.10)",
-                        color: "var(--m-accent)",
-                      }}
+                      key={t}
+                      className="rounded-full px-3 py-1 text-xs"
+                      style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
                     >
-                      #{tag}
+                      #{t}
                     </span>
                   ))}
                 </div>
-              ) : (
-                <p className="mt-3 text-xs leading-6" style={{ color: "var(--m-ink3)" }}>
-                  例如：#结构 #反思 #阅读。这里会跟随你的输入生成标签。
-                </p>
               )}
             </section>
-
-            {message ? (
-              <p className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm" style={{ background: "rgba(74,155,111,0.08)", color: "var(--m-success)" }}>
-                <CheckCircle2 size={16} />
-                {message}
-              </p>
-            ) : null}
           </div>
+
+          {message && (
+            <p className="mt-4 text-center text-sm" style={{ color: "var(--m-success)" }}>
+              {message}
+            </p>
+          )}
         </form>
+      </StaggerItem>
 
-        <aside className="space-y-5 xl:sticky xl:top-6">
-          <div
-            className="rounded-[28px] p-5"
-            style={{
-              display: "none",
-              background: "linear-gradient(135deg, rgba(255,247,235,0.92), rgba(245,231,210,0.72))",
-              border: "1px solid rgba(139,94,60,0.10)",
-              color: "var(--m-ink2)",
-              boxShadow: "0 18px 40px rgba(122,79,43,0.08)",
-            }}
-          >
-            <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--m-ink)" }}>
-              <PencilLine size={16} />
-              记录的意义
-            </p>
-            <p className="mt-3 text-sm leading-7">
-              "无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。"
-            </p>
-          </div>
-
-          <div
-            className="rounded-[28px] p-5"
-            style={{
-              background: "rgba(255,250,242,0.72)",
-              border: "1px solid rgba(139,94,60,0.12)",
-              boxShadow: "0 18px 40px rgba(122,79,43,0.08)",
-            }}
-          >
-            <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-              RECENT NOTES
-            </p>
-            <h3 className="mt-1 text-lg font-semibold" style={{ color: "var(--m-ink)" }}>
-              最近写下的
-            </h3>
-            <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-              已沉淀 {sortedNotes.length} 则阅读笔记。
-            </p>
-          </div>
-        </aside>
-      </div>
-
+      {/* ── Notes list ── */}
       {sortedNotes.length === 0 ? (
         <EmptyState
           description="你的阅读笔记会在这里慢慢沉淀成一条个人专栏。写下第一篇后，阅读流就会开始形成。"
@@ -2060,49 +1661,71 @@ function ReadingNotebookSection() {
           title="还没有阅读笔记"
         />
       ) : (
-        <div className="space-y-4">
-          {sortedNotes.map((note) => {
-            const isExpanded = expandedIds.includes(note.id);
-            return (
-              <Panel className="p-6 md:p-7" interactive key={note.id}>
-                <div className="border-b border-dashed pb-4" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
-                  <h3 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.04em]" style={{ color: "var(--m-ink)" }}>
-                    {note.title}
-                  </h3>
-                </div>
-                <p
-                  className="mt-5 whitespace-pre-wrap text-[15px] leading-8"
-                  style={isExpanded
-                    ? { color: "var(--m-ink2)" }
-                    : { color: "var(--m-ink2)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 4, overflow: "hidden" }}
-                >
-                  {note.content}
-                </p>
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap gap-2">
-                    {note.tags.map((tag) => (
-                      <span
-                        className="rounded-full px-3 py-1 text-xs"
-                        key={`${note.id}-${tag}`}
-                        style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  <button
-                    className="rounded-full px-4 py-2 text-sm transition-all"
-                    onClick={() => toggleExpanded(note.id)}
-                    style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
-                    type="button"
+        <StaggerItem index={1}>
+          <div>
+            <h3 className="mb-4" style={{ fontSize: 16, color: "var(--m-ink)", fontWeight: 600 }}>
+              我的笔记
+              <span className="ml-2" style={{ fontSize: 14, color: "var(--m-ink3)", fontWeight: 400 }}>
+                {sortedNotes.length} 篇
+              </span>
+            </h3>
+            <div className="space-y-4">
+              {sortedNotes.map((note) => {
+                const isExpanded = expandedIds.includes(note.id);
+                return (
+                  <div
+                    key={note.id}
+                    className="group relative break-inside-avoid"
+                    style={{
+                      background: "var(--m-base-light)",
+                      borderRadius: 16,
+                      border: "1px solid var(--m-rule)",
+                      padding: "20px 20px 16px",
+                      transition: "all 0.25s ease",
+                      boxShadow: "0 1px 4px rgba(139,94,60,0.06)",
+                    }}
                   >
-                    {isExpanded ? "收起" : "展开阅读"}
-                  </button>
-                </div>
-              </Panel>
-            );
-          })}
-        </div>
+                    <h4
+                      className="text-lg font-semibold leading-tight"
+                      style={{ color: "var(--m-ink)" }}
+                    >
+                      {note.title}
+                    </h4>
+                    <p
+                      className="mt-3 whitespace-pre-wrap text-[15px] leading-8"
+                      style={isExpanded
+                        ? { color: "var(--m-ink2)" }
+                        : { color: "var(--m-ink2)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 4, overflow: "hidden" }}
+                    >
+                      {note.content}
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        {note.tags.map((tag) => (
+                          <span
+                            className="rounded-full px-3 py-1 text-xs"
+                            key={`${note.id}-${tag}`}
+                            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                      <button
+                        className="rounded-full px-4 py-1.5 text-sm transition-all hover:opacity-80"
+                        onClick={() => toggleExpanded(note.id)}
+                        style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                        type="button"
+                      >
+                        {isExpanded ? "收起" : "展开阅读"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </StaggerItem>
       )}
     </div>
   );
