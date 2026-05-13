@@ -1,21 +1,29 @@
 "use client";
 
 import type { ChartData, ChartOptions, ScriptableContext } from "chart.js";
+import {
+  BookOpen,
+  CalendarCheck,
+  GraduationCap,
+  Lightbulb,
+  Smile,
+  TrendingUp,
+} from "lucide-react";
 import { useMemo, useState } from "react";
-import { Chart } from "react-chartjs-2";
+import { Chart, Doughnut } from "react-chartjs-2";
 
 import "@/components/charts/chart-registry";
-import { Panel } from "@/components/ui/panel";
 import { parseReadingHours } from "@/lib/analytics";
 import { parseISODate, toISODate } from "@/lib/date";
 import type { DailyLog, Quote, TimeEntry } from "@/types";
 
-type Range = "7d" | "30d" | "all";
+type Range = "7d" | "30d" | "90d" | "all";
 
 const RANGE_OPTIONS: { value: Range; label: string }[] = [
   { value: "7d", label: "近 7 天" },
   { value: "30d", label: "近 30 天" },
-  { value: "all", label: "全部" },
+  { value: "90d", label: "近 90 天" },
+  { value: "all", label: "全部时间" },
 ];
 
 interface CombinedTrendChartProps {
@@ -31,10 +39,8 @@ interface DayPoint {
   reading: number;
 }
 
-/**
- * Build a contiguous-date series so all three metrics share the same X axis.
- * mood is averaged per day; study and reading are summed.
- */
+const WEEKDAY_SHORT = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+
 function buildSeries(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[], range: Range): DayPoint[] {
   if (logs.length === 0 && quotes.length === 0 && timeEntries.length === 0) return [];
 
@@ -52,11 +58,13 @@ function buildSeries(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[]
   } else if (range === "30d") {
     start = new Date(today);
     start.setDate(today.getDate() - 29);
+  } else if (range === "90d") {
+    start = new Date(today);
+    start.setDate(today.getDate() - 89);
   } else {
     start = parseISODate(earliest);
   }
 
-  // Aggregate
   const moodSum = new Map<string, { sum: number; count: number }>();
   const studySum = new Map<string, number>();
   const readingSum = new Map<string, number>();
@@ -81,7 +89,6 @@ function buildSeries(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[]
     target.set(entry.date, (target.get(entry.date) ?? 0) + Math.max(0, entry.hours));
   }
 
-  // Walk every day from start → today
   const out: DayPoint[] = [];
   const cursor = new Date(start);
   cursor.setHours(0, 0, 0, 0);
@@ -108,60 +115,336 @@ function formatTickLabel(iso: string): string {
   return `${d.getMonth() + 1}/${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/* ── Stat helpers ── */
+function computeStats(series: DayPoint[], prevSeries: DayPoint[]) {
+  const moods = series.filter((p) => p.mood !== null).map((p) => p.mood!);
+  const avgMood = moods.length ? Number((moods.reduce((a, b) => a + b, 0) / moods.length).toFixed(1)) : 0;
+  const totalStudy = Number(series.reduce((s, p) => s + p.study, 0).toFixed(1));
+  const totalReading = Number(series.reduce((s, p) => s + p.reading, 0).toFixed(1));
+  const recordDays = series.filter((p) => p.mood !== null || p.study > 0 || p.reading > 0).length;
+
+  const prevMoods = prevSeries.filter((p) => p.mood !== null).map((p) => p.mood!);
+  const prevAvgMood = prevMoods.length ? Number((prevMoods.reduce((a, b) => a + b, 0) / prevMoods.length).toFixed(1)) : 0;
+  const prevTotalStudy = Number(prevSeries.reduce((s, p) => s + p.study, 0).toFixed(1));
+  const prevTotalReading = Number(prevSeries.reduce((s, p) => s + p.reading, 0).toFixed(1));
+  const prevRecordDays = prevSeries.filter((p) => p.mood !== null || p.study > 0 || p.reading > 0).length;
+
+  return {
+    avgMood,
+    totalStudy,
+    totalReading,
+    recordDays,
+    deltaMood: Number((avgMood - prevAvgMood).toFixed(1)),
+    deltaStudy: Number((totalStudy - prevTotalStudy).toFixed(1)),
+    deltaReading: Number((totalReading - prevTotalReading).toFixed(1)),
+    deltaRecordDays: recordDays - prevRecordDays,
+  };
+}
+
+function buildPrevSeries(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[], range: Range): DayPoint[] {
+  if (range === "all") return [];
+  const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
+  const prevRange = range; // same window size
+  // Build a fake range shifted back by `days`
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(today.getDate() - days * 2 + 1);
+  const end = new Date(today);
+  end.setDate(today.getDate() - days);
+
+  const moodSum = new Map<string, { sum: number; count: number }>();
+  const studySum = new Map<string, number>();
+  const readingSum = new Map<string, number>();
+
+  const startIso = toISODate(start);
+  const endIso = toISODate(end);
+
+  for (const log of logs) {
+    if (log.date < startIso || log.date > endIso) continue;
+    const m = moodSum.get(log.date) ?? { sum: 0, count: 0 };
+    m.sum += log.mood; m.count += 1;
+    moodSum.set(log.date, m);
+    studySum.set(log.date, (studySum.get(log.date) ?? 0) + log.studyHours);
+    readingSum.set(log.date, (readingSum.get(log.date) ?? 0) + parseReadingHours(log.reading));
+  }
+  for (const q of quotes) {
+    const date = q.createdAt.slice(0, 10);
+    if (date < startIso || date > endIso) continue;
+    readingSum.set(date, (readingSum.get(date) ?? 0) + (Number.isFinite(q.readingHours) ? Math.max(0, q.readingHours) : 0));
+  }
+  for (const entry of timeEntries) {
+    if (entry.date < startIso || entry.date > endIso) continue;
+    const target = entry.type === "study" ? studySum : readingSum;
+    target.set(entry.date, (target.get(entry.date) ?? 0) + Math.max(0, entry.hours));
+  }
+
+  const out: DayPoint[] = [];
+  const cursor = new Date(start);
+  cursor.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  while (cursor.getTime() <= end.getTime()) {
+    const iso = toISODate(cursor);
+    const m = moodSum.get(iso);
+    out.push({
+      date: iso,
+      mood: m ? Number((m.sum / m.count).toFixed(2)) : null,
+      study: Number((studySum.get(iso) ?? 0).toFixed(2)),
+      reading: Number((readingSum.get(iso) ?? 0).toFixed(2)),
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+}
+
+/* ── Distribution helpers ── */
+function moodDistribution(series: DayPoint[]) {
+  const moods = series.filter((p) => p.mood !== null).map((p) => p.mood!);
+  const high = moods.filter((m) => m >= 7).length;
+  const mid = moods.filter((m) => m >= 4 && m < 7).length;
+  const low = moods.filter((m) => m < 4).length;
+  const total = moods.length || 1;
+  return {
+    labels: ["积极 (7-10)", "平稳 (4-6)", "低落 (0-3)"],
+    values: [high, mid, low],
+    pcts: [Math.round(high / total * 100), Math.round(mid / total * 100), Math.round(low / total * 100)],
+    colors: ["rgba(139,94,60,0.7)", "rgba(139,94,60,0.35)", "rgba(139,94,60,0.15)"],
+  };
+}
+
+function studyDistribution(series: DayPoint[]) {
+  const days = series.filter((p) => p.study > 0);
+  const high = days.filter((d) => d.study >= 3).length;
+  const mid = days.filter((d) => d.study >= 1 && d.study < 3).length;
+  const low = days.filter((d) => d.study > 0 && d.study < 1).length;
+  const total = days.length || 1;
+  return {
+    labels: ["高效 (≥3h)", "专注 (1-3h)", "较少 (<1h)"],
+    values: [high, mid, low],
+    pcts: [Math.round(high / total * 100), Math.round(mid / total * 100), Math.round(low / total * 100)],
+    colors: ["rgba(74,155,111,0.75)", "rgba(74,155,111,0.42)", "rgba(74,155,111,0.18)"],
+  };
+}
+
+function readingDistribution(series: DayPoint[]) {
+  const days = series.filter((p) => p.reading > 0);
+  const high = days.filter((d) => d.reading >= 2).length;
+  const mid = days.filter((d) => d.reading >= 1 && d.reading < 2).length;
+  const low = days.filter((d) => d.reading > 0 && d.reading < 1).length;
+  const total = days.length || 1;
+  return {
+    labels: ["≥2h", "1-2h", "<1h"],
+    values: [high, mid, low],
+    pcts: [Math.round(high / total * 100), Math.round(mid / total * 100), Math.round(low / total * 100)],
+    colors: ["rgba(180,140,80,0.72)", "rgba(180,140,80,0.40)", "rgba(180,140,80,0.16)"],
+  };
+}
+
+/* ── Insight generator ── */
+function generateInsight(series: DayPoint[]): string {
+  const moods = series.filter((p) => p.mood !== null);
+  if (moods.length < 3) return "继续记录几天，趋势洞察会在这里出现。";
+
+  // Find best mood day
+  let bestDay = moods[0];
+  for (const p of moods) {
+    if (p.mood! > bestDay.mood!) bestDay = p;
+  }
+
+  // Find highest study day
+  const studyDays = series.filter((p) => p.study > 0);
+  let bestStudyDay = studyDays[0];
+  for (const p of studyDays) {
+    if (p.study > (bestStudyDay?.study ?? 0)) bestStudyDay = p;
+  }
+
+  // Check if mood correlates with study
+  const withStudy = moods.filter((p) => p.study > 1);
+  const withoutStudy = moods.filter((p) => p.study <= 1);
+  const avgWithStudy = withStudy.length ? withStudy.reduce((s, p) => s + p.mood!, 0) / withStudy.length : 0;
+  const avgWithoutStudy = withoutStudy.length ? withoutStudy.reduce((s, p) => s + p.mood!, 0) / withoutStudy.length : 0;
+
+  if (avgWithStudy - avgWithoutStudy > 1 && withStudy.length >= 2) {
+    return `学习投入较多的日子，你的情绪平均高出 ${(avgWithStudy - avgWithoutStudy).toFixed(1)} 分。保持这个节奏，你会走得更远。`;
+  }
+
+  if (bestStudyDay && bestDay) {
+    const bd = parseISODate(bestDay.date);
+    return `你在 ${bd.getMonth() + 1}/${bd.getDate()} 情绪最佳（${bestDay.mood}/10），当天学习 ${bestDay.study.toFixed(1)}h。保持这个节奏，你会走得更远。`;
+  }
+
+  return "保持记录的习惯，数据会慢慢帮你看见自己的成长节奏。";
+}
+
+/* ── Stat card ── */
+function StatCard({ icon: Icon, label, value, unit, delta, deltaUnit, color }: {
+  icon: typeof Smile;
+  label: string;
+  value: string;
+  unit: string;
+  delta: number;
+  deltaUnit?: string;
+  color: string;
+}) {
+  const isUp = delta > 0;
+  const isDown = delta < 0;
+  return (
+    <div
+      className="relative overflow-hidden rounded-[20px] p-5"
+      style={{
+        background: "var(--m-base-light)",
+        border: "1px solid var(--m-rule)",
+        boxShadow: "0 2px 8px rgba(139,94,60,0.04)",
+      }}
+    >
+      <div
+        className="mb-3 flex h-10 w-10 items-center justify-center rounded-full"
+        style={{ background: color }}
+      >
+        <Icon size={18} style={{ color: "var(--m-base-light)" }} />
+      </div>
+      <p className="text-xs tracking-wide" style={{ color: "var(--m-ink3)" }}>
+        {label}
+      </p>
+      <div className="mt-1 flex items-baseline gap-1">
+        <span className="text-[28px] font-bold leading-none tracking-tight" style={{ color: "var(--m-ink)" }}>
+          {value}
+        </span>
+        <span className="text-sm" style={{ color: "var(--m-ink3)" }}>{unit}</span>
+      </div>
+      {delta !== 0 && (
+        <p className="mt-2 text-xs" style={{ color: isUp ? "rgba(74,155,111,0.9)" : isDown ? "rgba(200,100,80,0.85)" : "var(--m-ink3)" }}>
+          较上周期 {isUp ? "↑" : "↓"} {Math.abs(delta)}{deltaUnit ?? ""}
+        </p>
+      )}
+      {delta === 0 && (
+        <p className="mt-2 text-xs" style={{ color: "var(--m-ink3)" }}>
+          与上周期持平
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ── Mini donut ── */
+function MiniDonut({ title, dist, rangeName }: {
+  title: string;
+  dist: { labels: string[]; values: number[]; pcts: number[]; colors: string[] };
+  rangeName: string;
+}) {
+  const data: ChartData<"doughnut"> = {
+    labels: dist.labels,
+    datasets: [{
+      data: dist.values.every((v) => v === 0) ? [1] : dist.values,
+      backgroundColor: dist.values.every((v) => v === 0) ? ["rgba(139,94,60,0.08)"] : dist.colors,
+      borderWidth: 0,
+      borderRadius: 3,
+    }],
+  };
+  const opts: ChartOptions<"doughnut"> = {
+    responsive: true,
+    maintainAspectRatio: true,
+    cutout: "62%",
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+  };
+
+  return (
+    <div
+      className="rounded-[20px] p-5"
+      style={{
+        background: "var(--m-base-light)",
+        border: "1px solid var(--m-rule)",
+        boxShadow: "0 2px 8px rgba(139,94,60,0.04)",
+      }}
+    >
+      <p className="mb-4 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+        {title}（{rangeName}）
+      </p>
+      <div className="flex items-center gap-5">
+        <div className="w-20 shrink-0">
+          <Doughnut data={data} options={opts} />
+        </div>
+        <div className="space-y-2 text-xs">
+          {dist.labels.map((label, i) => (
+            <div className="flex items-center gap-2" key={label}>
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: dist.colors[i] }} />
+              <span style={{ color: "var(--m-ink2)" }}>{label}</span>
+              <span className="font-semibold" style={{ color: "var(--m-ink)" }}>{dist.pcts[i]}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main component ── */
 export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedTrendChartProps) {
   const [range, setRange] = useState<Range>("30d");
 
   const series = useMemo(() => buildSeries(logs, quotes, timeEntries, range), [logs, quotes, timeEntries, range]);
+  const prevSeries = useMemo(() => buildPrevSeries(logs, quotes, timeEntries, range), [logs, quotes, timeEntries, range]);
+  const stats = useMemo(() => computeStats(series, prevSeries), [series, prevSeries]);
   const labels = series.map((p) => formatTickLabel(p.date));
+  const rangeName = RANGE_OPTIONS.find((r) => r.value === range)?.label ?? "";
 
-  // Tick density: cap to ~8 visible labels regardless of range size
-  const maxTicks = range === "7d" ? 7 : range === "30d" ? 8 : 10;
+  const moodDist = useMemo(() => moodDistribution(series), [series]);
+  const studyDist = useMemo(() => studyDistribution(series), [series]);
+  const readingDist = useMemo(() => readingDistribution(series), [series]);
+  const insight = useMemo(() => generateInsight(series), [series]);
+
+  const maxTicks = range === "7d" ? 7 : range === "30d" ? 8 : range === "90d" ? 10 : 12;
 
   const data: ChartData<"bar" | "line"> = {
     labels,
     datasets: [
       {
         type: "bar" as const,
-        label: "学习 (h)",
+        label: "学习时长 (h)",
         data: series.map((p) => p.study),
-        backgroundColor: "rgba(160, 120, 80, 0.55)",
-        hoverBackgroundColor: "rgba(160, 120, 80, 0.85)",
-        borderRadius: 6,
-        yAxisID: "yHours",
-        order: 2,
-      },
-      {
-        type: "bar" as const,
-        label: "阅读 (h)",
-        data: series.map((p) => p.reading),
-        backgroundColor: "rgba(74, 155, 111, 0.45)",
-        hoverBackgroundColor: "rgba(74, 155, 111, 0.75)",
-        borderRadius: 6,
+        backgroundColor: "rgba(74,155,111,0.50)",
+        hoverBackgroundColor: "rgba(74,155,111,0.80)",
+        borderRadius: 4,
+        barPercentage: 0.6,
+        categoryPercentage: 0.7,
         yAxisID: "yHours",
         order: 3,
       },
       {
+        type: "bar" as const,
+        label: "阅读时长 (h)",
+        data: series.map((p) => p.reading),
+        backgroundColor: "rgba(180,140,80,0.45)",
+        hoverBackgroundColor: "rgba(180,140,80,0.75)",
+        borderRadius: 4,
+        barPercentage: 0.6,
+        categoryPercentage: 0.7,
+        yAxisID: "yHours",
+        order: 2,
+      },
+      {
         type: "line" as const,
-        label: "情绪",
+        label: "情绪 (0-10)",
         data: series.map((p) => p.mood),
-        borderColor: "rgba(139, 94, 60, 0.95)",
+        borderColor: "rgba(139, 94, 60, 0.92)",
         backgroundColor: (ctx: ScriptableContext<"line">) => {
           const chart = ctx.chart;
           const { ctx: c, chartArea } = chart;
-          if (!chartArea) return "rgba(139,94,60,0.15)";
+          if (!chartArea) return "rgba(139,94,60,0.12)";
           const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, "rgba(139,94,60,0.18)");
+          g.addColorStop(0, "rgba(139,94,60,0.14)");
           g.addColorStop(1, "rgba(139,94,60,0.0)");
           return g;
         },
         borderWidth: 2.5,
-        tension: 0.4,
+        tension: 0.38,
         cubicInterpolationMode: "monotone" as const,
         fill: true,
-        pointBackgroundColor: "#8b5e3c",
-        pointBorderColor: "rgba(139,94,60,0.4)",
-        pointRadius: 3,
-        pointHoverRadius: 5,
+        pointBackgroundColor: "#fff",
+        pointBorderColor: "rgba(139,94,60,0.9)",
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: "#8b5e3c",
         spanGaps: true,
         yAxisID: "yMood",
         order: 1,
@@ -181,32 +464,39 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         align: "end",
         labels: {
           color: "#a07850",
-          boxWidth: 12,
-          boxHeight: 12,
+          boxWidth: 10,
+          boxHeight: 10,
           font: { size: 11 },
-          padding: 14,
+          padding: 16,
           usePointStyle: true,
+          pointStyle: "circle",
         },
       },
       tooltip: {
-        backgroundColor: "rgba(44, 26, 14, 0.92)",
-        titleColor: "#fdf6eb",
-        bodyColor: "#f0e6d3",
-        borderColor: "rgba(139, 94, 60, 0.45)",
+        backgroundColor: "rgba(255,252,246,0.97)",
+        titleColor: "#5a3a1e",
+        bodyColor: "#7a5a3a",
+        borderColor: "rgba(139,94,60,0.18)",
         borderWidth: 1,
-        padding: 12,
-        cornerRadius: 12,
+        padding: { top: 12, bottom: 12, left: 16, right: 16 },
+        cornerRadius: 14,
+        titleFont: { size: 13, weight: "bold" as const },
+        bodyFont: { size: 12 },
+        bodySpacing: 6,
+        boxPadding: 4,
+        usePointStyle: true,
         callbacks: {
           title: (items) => {
             const idx = items[0]?.dataIndex ?? 0;
-            const iso = series[idx]?.date ?? "";
-            return iso;
+            const p = series[idx];
+            if (!p) return "";
+            const d = parseISODate(p.date);
+            return `${d.getMonth() + 1}/${d.getDate()} ${WEEKDAY_SHORT[d.getDay()]}`;
           },
           label: (item) => {
             const v = item.parsed.y;
-            if (v === null || v === undefined) return `${item.dataset.label}: --`;
-            const unit = item.dataset.label?.includes("h") ? "h" : "";
-            return `${item.dataset.label}: ${typeof v === "number" ? v.toFixed(1) : v}${unit ? "" : ""}`;
+            if (v === null || v === undefined) return `  ${item.dataset.label}: --`;
+            return `  ${item.dataset.label}: ${typeof v === "number" ? v.toFixed(1) : v}`;
           },
         },
       },
@@ -215,7 +505,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
       x: {
         grid: { display: false },
         ticks: {
-          color: "#a07850",
+          color: "#b0956e",
           font: { size: 11 },
           autoSkip: true,
           maxTicksLimit: maxTicks,
@@ -228,68 +518,155 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         position: "left",
         beginAtZero: true,
         max: 10,
-        title: { display: true, text: "情绪 (0–10)", color: "#a07850", font: { size: 10 } },
+        title: { display: true, text: "情绪 (0–10)", color: "#b0956e", font: { size: 10 } },
         border: { display: false },
-        grid: { color: "rgba(221, 208, 188, 0.55)" },
-        ticks: { color: "#a07850", font: { size: 11 }, stepSize: 2 },
+        grid: { color: "rgba(221,208,188,0.40)" },
+        ticks: { color: "#b0956e", font: { size: 11 }, stepSize: 2 },
       },
       yHours: {
         type: "linear",
         position: "right",
         beginAtZero: true,
-        title: { display: true, text: "时长 (h)", color: "#a07850", font: { size: 10 } },
+        title: { display: true, text: "时长 (h)", color: "#b0956e", font: { size: 10 } },
         border: { display: false },
         grid: { display: false },
-        ticks: { color: "#a07850", font: { size: 11 } },
+        ticks: { color: "#b0956e", font: { size: 11 } },
       },
     },
   };
 
   return (
-    <Panel className="p-5 lg:p-6" interactive>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
-            情绪 · 学习 · 阅读 关联
-          </h3>
-          <p className="mt-1 text-sm" style={{ color: "var(--m-ink2)" }}>
-            一图叠加三条主线，看见情绪起伏与学习/阅读节奏之间的相关性。
-          </p>
-        </div>
-
-        <div
-          className="inline-flex items-center gap-1 rounded-full p-1"
-          style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-in)" }}
-        >
-          {RANGE_OPTIONS.map((opt) => {
-            const active = opt.value === range;
-            return (
-              <button
-                className="rounded-full px-3 py-1 text-xs font-medium transition-colors"
-                key={opt.value}
-                onClick={() => setRange(opt.value)}
-                type="button"
-                style={{
-                  background: active ? "var(--m-accent)" : "transparent",
-                  color: active ? "#fff" : "var(--m-ink2)",
-                }}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+    <div className="space-y-5">
+      {/* ── Summary stat cards ── */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard
+          color="rgba(139,94,60,0.65)"
+          delta={stats.deltaMood}
+          icon={Smile}
+          label="平均情绪"
+          unit="/10"
+          value={stats.avgMood ? stats.avgMood.toFixed(1) : "--"}
+        />
+        <StatCard
+          color="rgba(74,155,111,0.65)"
+          delta={stats.deltaStudy}
+          deltaUnit="h"
+          icon={GraduationCap}
+          label="学习投入"
+          unit="h"
+          value={stats.totalStudy.toFixed(1)}
+        />
+        <StatCard
+          color="rgba(180,140,80,0.65)"
+          delta={stats.deltaReading}
+          deltaUnit="h"
+          icon={BookOpen}
+          label="阅读时长"
+          unit="h"
+          value={stats.totalReading.toFixed(1)}
+        />
+        <StatCard
+          color="rgba(200,170,120,0.60)"
+          delta={stats.deltaRecordDays}
+          icon={CalendarCheck}
+          label="记录天数"
+          unit="天"
+          value={String(stats.recordDays)}
+        />
       </div>
 
-      {series.length === 0 ? (
-        <div className="mt-6 rounded-[18px] border border-dashed px-6 py-10 text-center text-sm" style={{ borderColor: "rgba(139,94,60,0.16)", color: "var(--m-ink3)" }}>
-          所选区间内还没有记录，先去写一条吧。
+      {/* ── Main chart panel ── */}
+      <div
+        className="rounded-[22px] p-5 lg:p-6"
+        style={{
+          background: "var(--m-base-light)",
+          border: "1px solid var(--m-rule)",
+          boxShadow: "0 2px 8px rgba(139,94,60,0.04)",
+        }}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h4 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
+              情绪 · 学习 · 阅读趋势
+            </h4>
+            <span
+              className="cursor-help rounded-full text-xs"
+              style={{ color: "var(--m-ink3)" }}
+              title="点击图例可隐藏曲线"
+            >
+              ⓘ
+            </span>
+          </div>
+          <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
+            点击图例可隐藏曲线
+          </p>
+
+          <div
+            className="inline-flex items-center gap-1 rounded-full p-1"
+            style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
+          >
+            {RANGE_OPTIONS.map((opt) => {
+              const active = opt.value === range;
+              return (
+                <button
+                  className="rounded-full px-3.5 py-1.5 text-xs font-medium transition-all"
+                  key={opt.value}
+                  onClick={() => setRange(opt.value)}
+                  type="button"
+                  style={{
+                    background: active ? "var(--m-accent)" : "transparent",
+                    color: active ? "#fff" : "var(--m-ink2)",
+                    boxShadow: active ? "0 2px 8px rgba(139,94,60,0.25)" : "none",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      ) : (
-        <div className="mt-5 h-80">
-          <Chart data={data} options={options} type="bar" />
+
+        {series.length === 0 ? (
+          <div className="mt-6 rounded-[18px] border border-dashed px-6 py-10 text-center text-sm" style={{ borderColor: "rgba(139,94,60,0.16)", color: "var(--m-ink3)" }}>
+            所选区间内还没有记录，先去写一条吧。
+          </div>
+        ) : (
+          <div className="mt-5 h-80">
+            <Chart data={data} options={options} type="bar" />
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom row: donut distributions + insight ── */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <MiniDonut dist={moodDist} rangeName={rangeName} title="情绪分布" />
+        <MiniDonut dist={studyDist} rangeName={rangeName} title="学习时长分布" />
+        <MiniDonut dist={readingDist} rangeName={rangeName} title="阅读时长分布" />
+
+        {/* Insight card */}
+        <div
+          className="flex flex-col justify-between rounded-[20px] p-5"
+          style={{
+            background: "linear-gradient(145deg, rgba(255,250,240,0.95), rgba(245,235,218,0.85))",
+            border: "1px solid var(--m-rule)",
+            boxShadow: "0 2px 8px rgba(139,94,60,0.04)",
+          }}
+        >
+          <div>
+            <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--m-ink)" }}>
+              <Lightbulb size={16} style={{ color: "var(--m-accent)" }} />
+              趋势洞察
+            </p>
+            <p className="mt-3 text-[13px] leading-6" style={{ color: "var(--m-ink2)" }}>
+              {insight}
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-1 text-xs" style={{ color: "var(--m-ink3)" }}>
+            <TrendingUp size={12} />
+            基于 {rangeName} 数据生成
+          </div>
         </div>
-      )}
-    </Panel>
+      </div>
+    </div>
   );
 }

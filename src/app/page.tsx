@@ -1123,8 +1123,8 @@ export default function HomePage() {
             </div>
           </Panel>
 
-          <Panel className="p-7 lg:p-8" id="trends">
-            <div className="flex flex-wrap items-end justify-between gap-4 border-b border-dashed pb-5" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
+          <section className="space-y-5" id="trends">
+            <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="max-w-3xl">
                 <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
                   TRENDS · 长期趋势
@@ -1136,27 +1136,23 @@ export default function HomePage() {
                   将情绪波动、专注投入与阅读节奏整合为连续曲线，帮助你在时间跨度中发现规律、识别转折，看见真实的成长轨迹。
                 </p>
               </div>
-
-              <div className="rounded-full border px-4 py-2 text-sm" style={{ borderColor: "rgba(139,94,60,0.12)", color: "var(--m-ink2)" }}>
-                累计 {logs.length} 条记录
-              </div>
             </div>
 
             {logs.length === 0 ? (
-              <div className="mt-6 rounded-[22px] border border-dashed px-6 py-10 text-center" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
-                <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                  先连续记录几天，成长概览里的长期趋势图就会自动长出来。
-                </p>
-                <Link className="mt-4 inline-flex text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
-                  去写今天的记录
-                </Link>
-              </div>
+              <Panel className="p-7 lg:p-8">
+                <div className="rounded-[22px] border border-dashed px-6 py-10 text-center" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
+                  <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+                    先连续记录几天，成长概览里的长期趋势图就会自动长出来。
+                  </p>
+                  <Link className="mt-4 inline-flex text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
+                    去写今天的记录
+                  </Link>
+                </div>
+              </Panel>
             ) : (
-              <div className="mt-6">
-                <CombinedTrendChart logs={logs} quotes={quotes} timeEntries={timeEntries} />
-              </div>
+              <CombinedTrendChart logs={logs} quotes={quotes} timeEntries={timeEntries} />
             )}
-          </Panel>
+          </section>
         </section>
       </div>
     </PageTransition>

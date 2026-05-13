@@ -1,4 +1,5 @@
 ﻿import {
+  ArcElement,
   BarElement,
   CategoryScale,
   Chart as ChartJS,
@@ -15,6 +16,7 @@ let isRegistered = false;
 
 if (!isRegistered) {
   ChartJS.register(
+    ArcElement,
     CategoryScale,
     LinearScale,
     PointElement,
