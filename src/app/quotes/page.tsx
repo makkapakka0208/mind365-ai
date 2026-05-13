@@ -1391,71 +1391,107 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
             </Button>
           </div>
 
-          <div className="space-y-6">
-            {/* Main writing area — lined paper style like journal */}
-            <section>
+          <div className="space-y-0">
+            {/* Main writing area — seamless lined paper, no border */}
+            <section className="relative">
               <Textarea
-                className="min-h-[200px] resize-y rounded-[28px] px-6 py-6 text-[16px] leading-9 sm:px-8 sm:py-8"
+                className="min-h-[180px] w-full resize-none border-0 bg-transparent px-2 py-4 text-[17px] leading-[36px] outline-none focus:ring-0 sm:px-4 sm:py-5 sm:text-[18px]"
                 onChange={(e) => setText(e.target.value)}
                 placeholder="在这里写下那句打动你的话…"
                 required
                 style={{
-                  background:
-                    "linear-gradient(180deg, rgba(255,253,248,0.92), rgba(250,243,231,0.82)), repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.055) 36px)",
-                  border: "1px solid rgba(139,94,60,0.10)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78)",
-                  fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                  backgroundImage: "repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.07) 35px, rgba(139,94,60,0.07) 36px)",
+                  backgroundPositionY: "35px",
+                  fontFamily: '"Noto Serif SC", "Songti SC", "KaiTi", serif',
+                  color: "var(--m-ink)",
+                  caretColor: "var(--m-accent)",
                 }}
                 value={text}
               />
-              <div className="mt-2 flex justify-end text-xs" style={{ color: "var(--m-ink3)" }}>
+              <div className="flex justify-end px-2 pb-2 text-xs" style={{ color: "var(--m-ink3)" }}>
                 {text.length} 字
               </div>
             </section>
 
-            {/* Author + source — side by side */}
-            <section className="grid gap-4 sm:grid-cols-2">
-              <div
-                className="rounded-[22px] p-5"
-                style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
-              >
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  <PencilLine size={15} />
+            {/* Elegant divider */}
+            <div className="flex items-center gap-4 py-5">
+              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(139,94,60,0.12), transparent)" }} />
+              <QuoteIcon size={12} style={{ color: "rgba(139,94,60,0.25)" }} />
+              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(139,94,60,0.12), transparent)" }} />
+            </div>
+
+            {/* Author + source — borderless underline inputs */}
+            <section className="grid gap-6 sm:grid-cols-2 sm:gap-8">
+              <div className="group">
+                <label className="mb-2 flex items-center gap-2 text-xs tracking-wider" style={{ color: "var(--m-ink3)" }}>
+                  <PencilLine size={13} />
                   作者
-                </div>
-                <Input onChange={(e) => setAuthor(e.target.value)} placeholder="作者姓名" type="text" value={author} />
+                </label>
+                <input
+                  className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                  onChange={(e) => setAuthor(e.target.value)}
+                  placeholder="留下名字"
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: "rgba(139,94,60,0.15)",
+                    borderBottomStyle: "solid",
+                    color: "var(--m-ink)",
+                    fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                  }}
+                  type="text"
+                  value={author}
+                />
               </div>
-              <div
-                className="rounded-[22px] p-5"
-                style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
-              >
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  <Bookmark size={15} />
-                  书名 / 来源
-                </div>
-                <Input onChange={(e) => setBook(e.target.value)} placeholder="书籍、文章、演讲等来源" type="text" value={book} />
+              <div className="group">
+                <label className="mb-2 flex items-center gap-2 text-xs tracking-wider" style={{ color: "var(--m-ink3)" }}>
+                  <Bookmark size={13} />
+                  出处
+                </label>
+                <input
+                  className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                  onChange={(e) => setBook(e.target.value)}
+                  placeholder="书籍、文章或演讲"
+                  style={{
+                    borderBottomWidth: 1,
+                    borderBottomColor: "rgba(139,94,60,0.15)",
+                    borderBottomStyle: "solid",
+                    color: "var(--m-ink)",
+                    fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                  }}
+                  type="text"
+                  value={book}
+                />
               </div>
             </section>
 
-            {/* Tags */}
-            <section
-              className="rounded-[26px] p-5"
-              style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
-            >
-              <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                <Tag size={15} />
+            {/* Tags — minimal inline */}
+            <section className="pt-6">
+              <label className="mb-2 flex items-center gap-2 text-xs tracking-wider" style={{ color: "var(--m-ink3)" }}>
+                <Tag size={13} />
                 标签
-              </div>
-              <Input onChange={(e) => setTags(e.target.value)} placeholder="思想, 成长, 勇气, 平静" type="text" value={tags} />
+              </label>
+              <input
+                className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="思想, 成长, 勇气, 平静"
+                style={{
+                  borderBottomWidth: 1,
+                  borderBottomColor: "rgba(139,94,60,0.15)",
+                  borderBottomStyle: "solid",
+                  color: "var(--m-ink)",
+                }}
+                type="text"
+                value={tags}
+              />
               {tagList.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {tagList.map((t) => (
                     <span
                       key={t}
-                      className="rounded-full px-3 py-1 text-xs"
-                      style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                      className="rounded-full px-3 py-1 text-[11px] tracking-wide"
+                      style={{ background: "rgba(139,94,60,0.06)", color: "var(--m-accent)", border: "1px solid rgba(139,94,60,0.08)" }}
                     >
-                      #{t}
+                      {t}
                     </span>
                   ))}
                 </div>
@@ -1577,65 +1613,86 @@ function ReadingNotebookSection() {
             </Button>
           </div>
 
-          <div className="space-y-6">
-            {/* Title — styled card like author/source in QuotesSection */}
-            <section
-              className="rounded-[22px] p-5"
-              style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
-            >
-              <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                <PencilLine size={15} />
+          <div className="space-y-0">
+            {/* Title — borderless underline input */}
+            <section className="pb-4">
+              <label className="mb-2 flex items-center gap-2 text-xs tracking-wider" style={{ color: "var(--m-ink3)" }}>
+                <PencilLine size={13} />
                 标题
-              </div>
-              <Input
+              </label>
+              <input
+                className="w-full border-0 border-b bg-transparent pb-2 text-xl font-semibold outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="这段阅读想回答什么问题？"
                 required
+                style={{
+                  borderBottomWidth: 1,
+                  borderBottomColor: "rgba(139,94,60,0.15)",
+                  borderBottomStyle: "solid",
+                  color: "var(--m-ink)",
+                  fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                }}
                 type="text"
                 value={title}
               />
             </section>
 
-            {/* Main writing area — lined paper style like journal */}
-            <section>
+            {/* Elegant divider */}
+            <div className="flex items-center gap-4 py-4">
+              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(139,94,60,0.12), transparent)" }} />
+              <Brain size={12} style={{ color: "rgba(139,94,60,0.25)" }} />
+              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(139,94,60,0.12), transparent)" }} />
+            </div>
+
+            {/* Main writing area — seamless lined paper, no border */}
+            <section className="relative">
               <Textarea
-                className="min-h-[280px] resize-y rounded-[28px] px-6 py-6 text-[16px] leading-9 sm:min-h-[360px] sm:px-8 sm:py-8"
+                className="min-h-[240px] w-full resize-none border-0 bg-transparent px-2 py-4 text-[17px] leading-[36px] outline-none focus:ring-0 sm:min-h-[320px] sm:px-4 sm:py-5 sm:text-[18px]"
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="写下你的摘录、理解、疑问，或者读完以后还在心里回响的一句话…"
                 required
                 style={{
-                  background:
-                    "linear-gradient(180deg, rgba(255,253,248,0.92), rgba(250,243,231,0.82)), repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.055) 36px)",
-                  border: "1px solid rgba(139,94,60,0.10)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78)",
-                  fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                  backgroundImage: "repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.07) 35px, rgba(139,94,60,0.07) 36px)",
+                  backgroundPositionY: "35px",
+                  fontFamily: '"Noto Serif SC", "Songti SC", "KaiTi", serif',
+                  color: "var(--m-ink)",
+                  caretColor: "var(--m-accent)",
                 }}
                 value={content}
               />
-              <div className="mt-2 flex justify-end text-xs" style={{ color: "var(--m-ink3)" }}>
+              <div className="flex justify-end px-2 pb-2 text-xs" style={{ color: "var(--m-ink3)" }}>
                 {content.length} 字
               </div>
             </section>
 
-            {/* Tags */}
-            <section
-              className="rounded-[26px] p-5"
-              style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
-            >
-              <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                <Tag size={15} />
+            {/* Tags — minimal inline */}
+            <section className="pt-4">
+              <label className="mb-2 flex items-center gap-2 text-xs tracking-wider" style={{ color: "var(--m-ink3)" }}>
+                <Tag size={13} />
                 标签
-              </div>
-              <Input onChange={(e) => setTags(e.target.value)} placeholder="结构, 反思, 阅读, 成长" type="text" value={tags} />
+              </label>
+              <input
+                className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="结构, 反思, 阅读, 成长"
+                style={{
+                  borderBottomWidth: 1,
+                  borderBottomColor: "rgba(139,94,60,0.15)",
+                  borderBottomStyle: "solid",
+                  color: "var(--m-ink)",
+                }}
+                type="text"
+                value={tags}
+              />
               {tagList.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {tagList.map((t) => (
                     <span
                       key={t}
-                      className="rounded-full px-3 py-1 text-xs"
-                      style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                      className="rounded-full px-3 py-1 text-[11px] tracking-wide"
+                      style={{ background: "rgba(139,94,60,0.06)", color: "var(--m-accent)", border: "1px solid rgba(139,94,60,0.08)" }}
                     >
-                      #{t}
+                      {t}
                     </span>
                   ))}
                 </div>
