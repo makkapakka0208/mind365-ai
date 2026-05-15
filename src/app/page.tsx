@@ -1345,6 +1345,10 @@ export default function HomePage() {
         entryId={diaryModalId}
         timeEntries={timeEntries}
         onClose={() => setDiaryModalId(null)}
+        onEdit={(entry) => {
+          setDiaryModalId(null);
+          window.location.href = `/daily-log?date=${entry.date}`;
+        }}
       />
     </PageTransition>
   );

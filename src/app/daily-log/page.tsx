@@ -1,7 +1,8 @@
 "use client";
 
 import { BookOpen, CalendarDays, CheckCircle2, Feather, ImagePlus, NotebookPen } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { MonthCalendarThumb } from "@/components/daily-log/month-calendar-thumb";
 import { DiaryBookModalPortal } from "@/components/dashboard/featured-book-preview";
@@ -89,13 +90,23 @@ function RecentEntryButton({
 }
 
 export default function DailyLogPage() {
+  return (
+    <Suspense>
+      <DailyLogInner />
+    </Suspense>
+  );
+}
+
+function DailyLogInner() {
   const todayIso = getTodayISODate();
+  const searchParams = useSearchParams();
+  const initialDate = searchParams.get("date") || todayIso;
   const allLogs = useDailyLogsStore();
   const timeEntries = useTimeEntriesStore();
   const logs = sortLogsByDate(allLogs, "desc");
   const recentLogs = logs.slice(0, 5);
 
-  const [viewingDate, setViewingDate] = useState(todayIso);
+  const [viewingDate, setViewingDate] = useState(initialDate);
   const [diaryModalId, setDiaryModalId] = useState<string | null>(null);
   const [mood, setMood] = useState(6);
   const [thoughts, setThoughts] = useState("");
