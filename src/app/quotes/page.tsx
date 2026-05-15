@@ -734,7 +734,7 @@ function QuoteStackModal({
       <div className="flex h-full flex-col" onClick={(e) => e.stopPropagation()}>
 
         {/* ── Top bar ── */}
-        <div className="flex shrink-0 items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-[max(1.25rem,env(safe-area-inset-top,20px))]">
           <span style={{ fontSize: 13, color: "rgba(250,247,240,0.45)", fontFamily: "ui-sans-serif,sans-serif" }}>
             {filteredQuotes.length > 0 ? `${currentIndex + 1} / ${filteredQuotes.length}` : ""}
           </span>
@@ -749,7 +749,7 @@ function QuoteStackModal({
         </div>
 
         {/* ── Category tabs ── */}
-        <div className="shrink-0 overflow-x-auto pb-4 px-4" style={{ scrollbarWidth: "none" }}>
+        <div className="shrink-0 overflow-x-auto pb-4 pt-2 px-4" style={{ scrollbarWidth: "none" }}>
           <div className="flex gap-2 w-max">
             {themes.map((theme) => {
               const isActive = filterTab === theme;
