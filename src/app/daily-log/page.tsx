@@ -13,8 +13,10 @@ import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Textarea } from "@/components/ui/textarea";
 import { sortLogsByDate } from "@/lib/analytics";
 import { formatDate, getTodayISODate } from "@/lib/date";
+import { isBase64DataUrl, migrateBase64Images } from "@/lib/image-storage";
 import { saveDailyLog, updateDailyLog } from "@/lib/storage";
 import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
+import { useImageMigration } from "@/lib/use-image-migration";
 import type { DailyLog } from "@/types";
 
 const MOODS = [
@@ -115,6 +117,9 @@ function DailyLogInner() {
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Run background migration of base64 images to Supabase Storage
+  useImageMigration();
+
   const existingLog = useMemo(
     () => allLogs.find((log) => log.date === viewingDate) ?? null,
     [allLogs, viewingDate],
@@ -140,6 +145,23 @@ function DailyLogInner() {
     setTags("");
     setImages([]);
   }, [existingLog, viewingDate]);
+
+  // Background migration: convert base64 images to Supabase Storage URLs
+  useEffect(() => {
+    if (!existingLog) return;
+    const hasBase64 = existingLog.images?.some(isBase64DataUrl);
+    if (!hasBase64) return;
+
+    let cancelled = false;
+    (async () => {
+      const { urls, changed } = await migrateBase64Images(existingLog.images ?? []);
+      if (cancelled || !changed) return;
+      // Update the log with new URLs
+      await updateDailyLog({ ...existingLog, images: urls });
+      setImages(urls);
+    })();
+    return () => { cancelled = true; };
+  }, [existingLog]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

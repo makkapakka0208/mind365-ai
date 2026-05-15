@@ -1,7 +1,8 @@
 "use client";
 
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { DragEvent, useRef, useState } from "react";
+import { compressAndUpload, deleteImageFromStorage } from "@/lib/image-storage";
 
 interface ImageUploaderProps {
   images: string[];
@@ -9,81 +10,53 @@ interface ImageUploaderProps {
   maxImages?: number;
 }
 
-const MAX_DIMENSION = 1600; // 最长边像素
-const JPEG_QUALITY = 0.78;
-
-/** 压缩图片：等比缩放到最长边 1600px，重编码为 JPEG ~78% 质量 */
-function compressImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("读取图片失败"));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("图片解码失败"));
-      img.onload = () => {
-        try {
-          let { width, height } = img;
-          if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-            const scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
-            width = Math.round(width * scale);
-            height = Math.round(height * scale);
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            reject(new Error("浏览器不支持图片压缩"));
-            return;
-          }
-          ctx.drawImage(img, 0, 0, width, height);
-          // 统一输出为 JPEG，体积小且兼容性好
-          resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
-        } catch (e) {
-          reject(e instanceof Error ? e : new Error("图片处理失败"));
-        }
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-async function processFiles(files: FileList | File[], maxImages: number, current: string[]): Promise<{ next: string[]; errors: string[] }> {
+async function processFiles(
+  files: FileList | File[],
+  maxImages: number,
+  current: string[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ next: string[]; errors: string[] }> {
   const remaining = maxImages - current.length;
   if (remaining <= 0) return { next: current, errors: [] };
   const accepted = Array.from(files)
     .filter((f) => f.type.startsWith("image/"))
     .slice(0, remaining);
   const errors: string[] = [];
-  const encoded: string[] = [];
-  for (const file of accepted) {
+  const uploaded: string[] = [];
+  for (let i = 0; i < accepted.length; i++) {
+    onProgress?.(i, accepted.length);
     try {
-      encoded.push(await compressImage(file));
+      uploaded.push(await compressAndUpload(accepted[i]));
     } catch (e) {
-      errors.push(`${file.name}: ${e instanceof Error ? e.message : "处理失败"}`);
+      errors.push(`${accepted[i].name}: ${e instanceof Error ? e.message : "处理失败"}`);
     }
   }
-  return { next: [...current, ...encoded], errors };
+  onProgress?.(accepted.length, accepted.length);
+  return { next: [...current, ...uploaded], errors };
 }
 
 export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   const handleFiles = async (files: FileList | File[]) => {
     setIsProcessing(true);
     setErrorMsg("");
+    setProgress("准备上传...");
     try {
-      const { next, errors } = await processFiles(files, maxImages, images);
+      const { next, errors } = await processFiles(files, maxImages, images, (done, total) => {
+        setProgress(`正在上传 ${done + 1}/${total}...`);
+      });
       onChange(next);
       if (errors.length > 0) setErrorMsg(errors.join("；"));
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : "图片处理失败");
     } finally {
       setIsProcessing(false);
+      setProgress("");
     }
   };
 
@@ -101,7 +74,10 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
   };
 
   const removeImage = (index: number) => {
+    const removed = images[index];
     onChange(images.filter((_, i) => i !== index));
+    // Clean up from storage in background (best-effort)
+    void deleteImageFromStorage(removed);
   };
 
   const canAdd = images.length < maxImages;
@@ -159,10 +135,10 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
             className="grid h-12 w-12 place-items-center rounded-[18px]"
             style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
           >
-            <ImagePlus size={21} />
+            {isProcessing ? <Loader2 size={21} className="animate-spin" /> : <ImagePlus size={21} />}
           </span>
           <p className="text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
-            {isProcessing ? "正在压缩图片..." : `点击或拖拽图片到这里（最多 ${maxImages} 张，自动压缩）`}
+            {isProcessing ? progress : `点击或拖拽图片到这里（最多 ${maxImages} 张，自动压缩上传）`}
           </p>
         </div>
       )}
