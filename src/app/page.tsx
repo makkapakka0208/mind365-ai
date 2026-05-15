@@ -14,7 +14,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
-import { FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
+import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -632,6 +632,7 @@ export default function HomePage() {
   const [now, setNow] = useState(() => new Date());
   const [activeIndex, setActiveIndex] = useState(0);
   const [timeDialogType, setTimeDialogType] = useState<TimeEntry["type"] | null>(null);
+  const [diaryModalId, setDiaryModalId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60000);
@@ -913,9 +914,10 @@ export default function HomePage() {
                   )}
                 </div>
               </div>
-              <Link
-                className="block rounded-[24px] transition-transform active:scale-[0.98]"
-                href={`/journal?id=${activeEntry.id}`}
+              <button
+                className="block w-full rounded-[24px] text-left transition-transform active:scale-[0.98]"
+                onClick={() => setDiaryModalId(activeEntry.id)}
+                type="button"
                 style={{
                   background: "linear-gradient(135deg, rgba(255,250,240,0.95), rgba(245,235,218,0.88))",
                   border: "1px solid var(--m-rule)",
@@ -988,7 +990,7 @@ export default function HomePage() {
                     点击翻阅 →
                   </span>
                 </div>
-              </Link>
+              </button>
             </div>
           )}
 
@@ -1248,7 +1250,9 @@ export default function HomePage() {
             <div className="mt-6">
               {activeEntry ? (
                 <>
-                  <FeaturedBookPreview entry={activeEntry} />
+                  <div className="cursor-pointer" onClick={() => setDiaryModalId(activeEntry.id)}>
+                    <FeaturedBookPreview entry={activeEntry} />
+                  </div>
                   <div className="mt-5 flex items-center justify-between gap-4 px-3">
                     <div
                       className="text-sm tracking-[0.28em]"
@@ -1337,6 +1341,13 @@ export default function HomePage() {
           </section>
         </section>
       </div>
+
+      <DiaryBookModalPortal
+        entries={recentLogs}
+        entryId={diaryModalId}
+        timeEntries={timeEntries}
+        onClose={() => setDiaryModalId(null)}
+      />
     </PageTransition>
   );
 }
