@@ -6,12 +6,8 @@ import {
   ChevronLeft,
   ChevronRight,
   GraduationCap,
-  ImagePlus,
-  MoreHorizontal,
   PencilLine,
-  Smile,
   Trash2,
-  Type,
   X,
 } from "lucide-react";
 import Image from "next/image";
