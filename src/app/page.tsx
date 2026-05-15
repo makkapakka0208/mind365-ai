@@ -877,6 +877,188 @@ export default function HomePage() {
               <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={7} />
             </DashboardCard>
           </div>
+
+          {/* Mobile featured journal entry */}
+          {recentLogs.length > 0 && activeEntry && (
+            <div className="mt-5">
+              <div className="mb-3 flex items-center justify-between px-1">
+                <div className="text-sm font-semibold tracking-[0.12em]" style={{ color: "var(--m-ink2)" }}>
+                  精选记录
+                </div>
+                <div className="flex items-center gap-2">
+                  {recentLogs.length > 1 && (
+                    <>
+                      <button
+                        aria-label="上一条"
+                        className="flex h-8 w-8 items-center justify-center rounded-full border transition disabled:opacity-40"
+                        onClick={() => turnPage("prev")}
+                        style={{ background: "rgba(255,248,238,0.78)", borderColor: "rgba(139,94,60,0.12)", color: "var(--m-accent)" }}
+                        type="button"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      <span className="text-xs tabular-nums" style={{ color: "var(--m-ink3)" }}>
+                        {safeIndex + 1}/{recentLogs.length}
+                      </span>
+                      <button
+                        aria-label="下一条"
+                        className="flex h-8 w-8 items-center justify-center rounded-full border transition disabled:opacity-40"
+                        onClick={() => turnPage("next")}
+                        style={{ background: "rgba(255,248,238,0.78)", borderColor: "rgba(139,94,60,0.12)", color: "var(--m-accent)" }}
+                        type="button"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <Link
+                className="block rounded-[24px] transition-transform active:scale-[0.98]"
+                href={`/journal?id=${activeEntry.id}`}
+                style={{
+                  background: "linear-gradient(135deg, rgba(255,250,240,0.95), rgba(245,235,218,0.88))",
+                  border: "1px solid var(--m-rule)",
+                  boxShadow: "0 4px 16px rgba(139,94,60,0.08)",
+                }}
+              >
+                <div className="relative overflow-hidden rounded-[24px] bg-[#fbf3e7] p-4">
+                  {/* Book spine effect */}
+                  <div className="pointer-events-none absolute inset-y-6 left-1/2 z-10 w-3 -translate-x-1/2 rounded-full bg-[linear-gradient(180deg,rgba(112,72,43,0.82),rgba(192,151,106,0.76),rgba(112,72,43,0.82))]" />
+
+                  <div className="grid min-h-[200px] grid-cols-2 overflow-hidden rounded-[18px] border border-[rgba(139,94,60,0.12)] bg-[#fffaf1]">
+                    {/* Left page */}
+                    <div
+                      className="flex flex-col justify-between px-4 py-5"
+                      style={{
+                        background: "linear-gradient(180deg, rgba(255,251,244,0.98), rgba(248,240,226,0.96))",
+                        boxShadow: "inset -8px 0 16px rgba(122,79,43,0.04)",
+                      }}
+                    >
+                      <div>
+                        <div className="text-2xl font-bold leading-none" style={{ color: "var(--m-ink)" }}>
+                          {activeEntry.date.slice(5).replace("-", "/")}
+                        </div>
+                        <div className="mt-1.5 text-[11px] tracking-[0.2em]" style={{ color: "var(--m-ink3)" }}>
+                          {(() => { const d = new Date(activeEntry.date + "T00:00:00"); return ["周日","周一","周二","周三","周四","周五","周六"][d.getDay()]; })()}
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center gap-2">
+                        <span className="text-lg">
+                          {activeEntry.mood >= 8 ? "😊" : activeEntry.mood >= 6 ? "🙂" : activeEntry.mood >= 4 ? "😐" : "😔"}
+                        </span>
+                        <span className="text-sm font-medium" style={{ color: "var(--m-ink2)" }}>
+                          {activeEntry.mood}/10
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right page */}
+                    <div className="px-4 py-5" style={{ background: "repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(139,94,60,0.04) 27px, rgba(139,94,60,0.04) 28px)" }}>
+                      <p
+                        className="text-[13px] leading-7"
+                        style={{
+                          color: "var(--m-ink2)",
+                          fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                          display: "-webkit-box",
+                          WebkitBoxOrient: "vertical" as const,
+                          WebkitLineClamp: 6,
+                          overflow: "hidden",
+                        }}
+                      >
+                        {activeEntry.thoughts}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex gap-1.5">
+                    {activeEntry.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full px-2.5 py-0.5 text-[11px]"
+                        style={{ background: "rgba(139,94,60,0.06)", color: "var(--m-accent)" }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-xs" style={{ color: "var(--m-ink3)" }}>
+                    点击翻阅 →
+                  </span>
+                </div>
+              </Link>
+            </div>
+          )}
+
+          {/* Mobile trends entry */}
+          <div className="mt-5">
+            <a
+              className="group block rounded-[24px] p-5 transition-transform active:scale-[0.98]"
+              href="#mobile-trends"
+              onClick={(e) => {
+                e.preventDefault();
+                const el = document.getElementById("mobile-trends");
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              style={{
+                background: "linear-gradient(135deg, rgba(255,250,240,0.95), rgba(245,235,218,0.88))",
+                border: "1px solid var(--m-rule)",
+                boxShadow: "0 4px 16px rgba(139,94,60,0.08)",
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <span
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px]"
+                  style={{ background: "rgba(139,94,60,0.10)", color: "var(--m-accent)" }}
+                >
+                  <TrendingUp size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
+                    长期趋势概览
+                  </div>
+                  <div className="mt-0.5 text-sm" style={{ color: "var(--m-ink2)" }}>
+                    {logs.length > 0
+                      ? `已积累 ${logs.length} 条记录，查看情绪 · 学习 · 阅读趋势`
+                      : "开始记录后，这里会长出你的成长曲线"}
+                  </div>
+                </div>
+                <ChevronRight size={18} className="shrink-0 text-[var(--m-ink3)] transition-transform group-hover:translate-x-0.5" />
+              </div>
+
+              {logs.length > 0 && (
+                <div className="mt-4 flex gap-3">
+                  <div className="flex-1 rounded-[14px] px-3 py-2.5 text-center" style={{ background: "rgba(139,94,60,0.06)" }}>
+                    <div className="text-lg font-bold" style={{ color: "var(--m-ink)" }}>
+                      {weeklySummary.entries ? weeklySummary.averageMood.toFixed(1) : "--"}
+                    </div>
+                    <div className="text-[11px]" style={{ color: "var(--m-ink3)" }}>情绪</div>
+                  </div>
+                  <div className="flex-1 rounded-[14px] px-3 py-2.5 text-center" style={{ background: "rgba(74,155,111,0.06)" }}>
+                    <div className="text-lg font-bold" style={{ color: "var(--m-ink)" }}>
+                      {weeklySummary.totalStudyHours.toFixed(1)}h
+                    </div>
+                    <div className="text-[11px]" style={{ color: "var(--m-ink3)" }}>学习</div>
+                  </div>
+                  <div className="flex-1 rounded-[14px] px-3 py-2.5 text-center" style={{ background: "rgba(180,140,80,0.06)" }}>
+                    <div className="text-lg font-bold" style={{ color: "var(--m-ink)" }}>
+                      {weeklySummary.totalReadingHours.toFixed(1)}h
+                    </div>
+                    <div className="text-[11px]" style={{ color: "var(--m-ink3)" }}>阅读</div>
+                  </div>
+                </div>
+              )}
+            </a>
+          </div>
+
+          {/* Mobile trends section (scroll target) */}
+          {logs.length > 0 && (
+            <div className="mt-5" id="mobile-trends">
+              <CombinedTrendChart logs={logs} quotes={quotes} timeEntries={timeEntries} />
+            </div>
+          )}
         </section>
 
         <section className="hidden md:block space-y-6">
