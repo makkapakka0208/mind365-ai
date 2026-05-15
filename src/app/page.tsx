@@ -1250,9 +1250,7 @@ export default function HomePage() {
             <div className="mt-6">
               {activeEntry ? (
                 <>
-                  <div className="cursor-pointer" onClick={() => setDiaryModalId(activeEntry.id)}>
-                    <FeaturedBookPreview entry={activeEntry} />
-                  </div>
+                  <FeaturedBookPreview entry={activeEntry} onClick={() => setDiaryModalId(activeEntry.id)} />
                   <div className="mt-5 flex items-center justify-between gap-4 px-3">
                     <div
                       className="text-sm tracking-[0.28em]"
