@@ -611,12 +611,14 @@ export function DiaryBookModal({
   timeEntries = [],
   onClose,
   onDelete,
+  onEdit,
 }: {
   entries: DailyLog[];
   initialEntryId: string;
   timeEntries?: TimeEntry[];
   onClose: () => void;
   onDelete?: (id: string) => void;
+  onEdit?: (entry: DailyLog) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(() =>
     Math.max(0, entries.findIndex((e) => e.id === initialEntryId)),
@@ -927,6 +929,17 @@ export function DiaryBookModal({
 
                   {/* Edit + Delete */}
                   <div className="mt-auto flex items-center gap-2">
+                    {onEdit ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-75"
+                        style={{ background: "#2D1811", color: "#FAF7F0" }}
+                        onClick={() => { onEdit(entry); onClose(); }}
+                      >
+                        <PencilLine size={14} />
+                        编辑这篇日记
+                      </button>
+                    ) : (
                     <Link
                       href={`/journal?id=${entry.id}`}
                       className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-75"
@@ -936,6 +949,7 @@ export function DiaryBookModal({
                       <PencilLine size={14} />
                       编辑这篇日记
                     </Link>
+                    )}
                     {onDelete && !confirmDelete && (
                       <button
                         type="button"
@@ -1130,17 +1144,19 @@ export function DiaryBookModalPortal({
   timeEntries = [],
   onClose,
   onDelete,
+  onEdit,
 }: {
   entries: DailyLog[];
   entryId: string | null;
   timeEntries?: TimeEntry[];
   onClose: () => void;
   onDelete?: (id: string) => void;
+  onEdit?: (entry: DailyLog) => void;
 }) {
   return (
     <AnimatePresence>
       {entryId && entries.length > 0 && (
-        <DiaryBookModal entries={entries} initialEntryId={entryId} timeEntries={timeEntries} onClose={onClose} onDelete={onDelete} />
+        <DiaryBookModal entries={entries} initialEntryId={entryId} timeEntries={timeEntries} onClose={onClose} onDelete={onDelete} onEdit={onEdit} />
       )}
     </AnimatePresence>
   );
