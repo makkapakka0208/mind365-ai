@@ -420,11 +420,20 @@ function LeftPage({ entry, userImage }: { entry: DailyLog; userImage?: string | 
 
 // ── Homepage card ─────────────────────────────────────────────────────────────
 
-export function FeaturedBookPreview({ entry }: { entry: DailyLog }) {
+export function FeaturedBookPreview({ entry, onClick }: { entry: DailyLog; onClick?: () => void }) {
   const excerpt = getExcerpt(entry.thoughts);
 
+  // When onClick is provided, render as a button instead of a Link
+  const Wrapper = onClick
+    ? ({ children, className }: { children: React.ReactNode; className?: string }) => (
+        <button type="button" className={`${className} w-full text-left`} onClick={onClick}>{children}</button>
+      )
+    : ({ children, className }: { children: React.ReactNode; className?: string }) => (
+        <Link className={className} href={`/journal?id=${entry.id}`}>{children}</Link>
+      );
+
   return (
-    <Link className="group block" href={`/journal?id=${entry.id}`}>
+    <Wrapper className="group block">
       <div className="relative px-2 pb-4 pt-2 md:px-3 md:pb-5">
         <div className="relative overflow-hidden rounded-[40px]">
           <Image alt="" aria-hidden className="pointer-events-none select-none object-fill" fill src="/illustrations/book-cover-shell.svg" />
@@ -458,7 +467,7 @@ export function FeaturedBookPreview({ entry }: { entry: DailyLog }) {
           </div>
         </div>
       </div>
-    </Link>
+    </Wrapper>
   );
 }
 
@@ -602,12 +611,14 @@ export function DiaryBookModal({
   timeEntries = [],
   onClose,
   onDelete,
+  onEdit,
 }: {
   entries: DailyLog[];
   initialEntryId: string;
   timeEntries?: TimeEntry[];
   onClose: () => void;
   onDelete?: (id: string) => void;
+  onEdit?: (entry: DailyLog) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(() =>
     Math.max(0, entries.findIndex((e) => e.id === initialEntryId)),
@@ -918,6 +929,17 @@ export function DiaryBookModal({
 
                   {/* Edit + Delete */}
                   <div className="mt-auto flex items-center gap-2">
+                    {onEdit ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-75"
+                        style={{ background: "#2D1811", color: "#FAF7F0" }}
+                        onClick={() => { onEdit(entry); onClose(); }}
+                      >
+                        <PencilLine size={14} />
+                        编辑这篇日记
+                      </button>
+                    ) : (
                     <Link
                       href={`/journal?id=${entry.id}`}
                       className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-75"
@@ -927,6 +949,7 @@ export function DiaryBookModal({
                       <PencilLine size={14} />
                       编辑这篇日记
                     </Link>
+                    )}
                     {onDelete && !confirmDelete && (
                       <button
                         type="button"
@@ -1121,17 +1144,19 @@ export function DiaryBookModalPortal({
   timeEntries = [],
   onClose,
   onDelete,
+  onEdit,
 }: {
   entries: DailyLog[];
   entryId: string | null;
   timeEntries?: TimeEntry[];
   onClose: () => void;
   onDelete?: (id: string) => void;
+  onEdit?: (entry: DailyLog) => void;
 }) {
   return (
     <AnimatePresence>
       {entryId && entries.length > 0 && (
-        <DiaryBookModal entries={entries} initialEntryId={entryId} timeEntries={timeEntries} onClose={onClose} onDelete={onDelete} />
+        <DiaryBookModal entries={entries} initialEntryId={entryId} timeEntries={timeEntries} onClose={onClose} onDelete={onDelete} onEdit={onEdit} />
       )}
     </AnimatePresence>
   );

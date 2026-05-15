@@ -1,9 +1,11 @@
 "use client";
 
 import { BookOpen, CalendarDays, CheckCircle2, Feather, ImagePlus, NotebookPen } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { MonthCalendarThumb } from "@/components/daily-log/month-calendar-thumb";
+import { DiaryBookModalPortal } from "@/components/dashboard/featured-book-preview";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { Input } from "@/components/ui/input";
@@ -12,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { sortLogsByDate } from "@/lib/analytics";
 import { formatDate, getTodayISODate } from "@/lib/date";
 import { saveDailyLog, updateDailyLog } from "@/lib/storage";
-import { useDailyLogsStore } from "@/lib/storage-store";
+import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
 
 const MOODS = [
@@ -88,12 +90,24 @@ function RecentEntryButton({
 }
 
 export default function DailyLogPage() {
+  return (
+    <Suspense>
+      <DailyLogInner />
+    </Suspense>
+  );
+}
+
+function DailyLogInner() {
   const todayIso = getTodayISODate();
+  const searchParams = useSearchParams();
+  const initialDate = searchParams.get("date") || todayIso;
   const allLogs = useDailyLogsStore();
+  const timeEntries = useTimeEntriesStore();
   const logs = sortLogsByDate(allLogs, "desc");
   const recentLogs = logs.slice(0, 5);
 
-  const [viewingDate, setViewingDate] = useState(todayIso);
+  const [viewingDate, setViewingDate] = useState(initialDate);
+  const [diaryModalId, setDiaryModalId] = useState<string | null>(null);
   const [mood, setMood] = useState(6);
   const [thoughts, setThoughts] = useState("");
   const [tags, setTags] = useState("");
@@ -162,6 +176,7 @@ export default function DailyLogPage() {
   };
 
   return (
+    <>
     <PageTransition className="space-y-6">
       <section
         className="relative overflow-hidden rounded-[30px] px-5 py-6 sm:px-7 lg:px-9"
@@ -206,6 +221,7 @@ export default function DailyLogPage() {
         <StaggerItem index={0}>
           <form
             className="relative overflow-hidden rounded-[32px] p-5 sm:p-7 lg:p-9"
+            id="journal-form"
             onSubmit={onSubmit}
             style={{
               background:
@@ -396,7 +412,7 @@ export default function DailyLogPage() {
                       active={log.date === viewingDate}
                       key={log.id}
                       log={log}
-                      onClick={() => setViewingDate(log.date)}
+                      onClick={() => setDiaryModalId(log.id)}
                     />
                   ))}
                 </div>
@@ -430,5 +446,21 @@ export default function DailyLogPage() {
         </StaggerItem>
       </div>
     </PageTransition>
+
+    <DiaryBookModalPortal
+      entries={recentLogs}
+      entryId={diaryModalId}
+      timeEntries={timeEntries}
+      onClose={() => setDiaryModalId(null)}
+      onEdit={(entry) => {
+        setViewingDate(entry.date);
+        setDiaryModalId(null);
+        // Scroll form into view
+        setTimeout(() => {
+          document.getElementById("journal-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }}
+    />
+    </>
   );
 }
