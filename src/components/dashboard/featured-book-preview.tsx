@@ -725,100 +725,124 @@ export function DiaryBookModal({
       className="fixed inset-0 z-50 overflow-y-auto"
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
-      style={{ background: "rgba(20,12,6,0.58)", backdropFilter: "blur(8px)" }}
+      style={{ background: "rgba(90,70,50,0.12)", backdropFilter: "blur(10px)" }}
       onClick={onClose}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
     >
-      {/* Extra horizontal padding on desktop gives the outside arrows room */}
       <div className="flex min-h-full items-center justify-center px-4 py-10 sm:px-6 md:px-20">
 
-        {/* Position wrapper — NOT overflow-hidden; gives arrows their relative context */}
+        {/* Position wrapper */}
         <div
           className="relative w-full"
-          style={{ maxWidth: 960 }}
+          style={{ maxWidth: 940 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Desktop arrows: live OUTSIDE the card so overflow-hidden can't clip them */}
+          {/* Desktop nav arrows — outside the card */}
           {entries.length > 1 && (
             <>
               <button
                 type="button"
                 aria-label="上一篇日记"
                 disabled={!canPrev}
-                className="absolute -left-14 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg transition-all hover:bg-white disabled:pointer-events-none disabled:opacity-0 md:flex"
-                style={{ color: "#6B4832" }}
+                className="absolute -left-14 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:-translate-y-1/2 hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex"
+                style={{
+                  color: "#9B6B44",
+                  background: "rgba(251,248,243,0.92)",
+                  border: "1px solid #E8DDD2",
+                  boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
+                }}
                 onClick={goPrev}
               >
-                <ChevronLeft size={22} />
+                <ChevronLeft size={20} />
               </button>
               <button
                 type="button"
                 aria-label="下一篇日记"
                 disabled={!canNext}
-                className="absolute -right-14 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-lg transition-all hover:bg-white disabled:pointer-events-none disabled:opacity-0 md:flex"
-                style={{ color: "#6B4832" }}
+                className="absolute -right-14 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:-translate-y-1/2 hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex"
+                style={{
+                  color: "#9B6B44",
+                  background: "rgba(251,248,243,0.92)",
+                  border: "1px solid #E8DDD2",
+                  boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
+                }}
                 onClick={goNext}
               >
-                <ChevronRight size={22} />
+                <ChevronRight size={20} />
               </button>
             </>
           )}
 
-          {/* The card — overflow-hidden for slide animation; pointer events for swipe */}
+          {/* The card */}
           <motion.div
-            animate={{ scale: 1, opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
             className="relative w-full overflow-hidden"
             style={{
-              borderRadius: 16,
-              background: "#FAF7F0",
-              boxShadow: "0 32px 80px rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.10)",
+              borderRadius: 20,
+              background: "#FBF8F3",
+              border: "1px solid rgba(232,221,210,0.6)",
+              boxShadow: [
+                "0 1px 0 rgba(255,255,255,0.5) inset",
+                "0 24px 64px rgba(90,60,30,0.12)",
+                "0 8px 20px rgba(90,60,30,0.06)",
+              ].join(", "),
               userSelect: "none",
             }}
-            exit={{ scale: 0.95, opacity: 0, y: 16 }}
-            initial={{ scale: 0.95, opacity: 0, y: 16 }}
-            transition={{ type: "spring", stiffness: 300, damping: 28 }}
+            exit={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1] }}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
           >
           {/* Close button */}
           <button
-            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-black/5"
-            style={{ color: "#A08060" }}
+            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 hover:bg-[rgba(155,107,68,0.08)] hover:scale-105"
+            style={{ color: "#8C735D" }}
             type="button"
             onClick={(e) => { e.stopPropagation(); onClose(); }}
             aria-label="关闭"
           >
-            <X size={17} />
+            <X size={16} strokeWidth={1.5} />
           </button>
 
-          {/* Mobile arrows: inside the card, md:hidden */}
+          {/* Mobile nav arrows */}
           {entries.length > 1 && (
             <>
               <button
                 type="button"
                 aria-label="上一篇日记"
                 disabled={!canPrev}
-                className="absolute left-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow-md transition-all disabled:pointer-events-none disabled:opacity-0 md:hidden"
-                style={{ color: "#6B4832" }}
+                className="absolute left-3 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-all disabled:pointer-events-none disabled:opacity-0 md:hidden"
+                style={{
+                  color: "#9B6B44",
+                  background: "rgba(251,248,243,0.88)",
+                  border: "1px solid #E8DDD2",
+                  boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
+                }}
                 onClick={(e) => { e.stopPropagation(); goPrev(); }}
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={16} />
               </button>
               <button
                 type="button"
                 aria-label="下一篇日记"
                 disabled={!canNext}
-                className="absolute right-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow-md transition-all disabled:pointer-events-none disabled:opacity-0 md:hidden"
-                style={{ color: "#6B4832" }}
+                className="absolute right-3 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-all disabled:pointer-events-none disabled:opacity-0 md:hidden"
+                style={{
+                  color: "#9B6B44",
+                  background: "rgba(251,248,243,0.88)",
+                  border: "1px solid #E8DDD2",
+                  boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
+                }}
                 onClick={(e) => { e.stopPropagation(); goNext(); }}
               >
-                <ChevronRight size={18} />
+                <ChevronRight size={16} />
               </button>
             </>
           )}
 
-          {/* Content area with slide animation */}
+          {/* Content with slide transition */}
           <AnimatePresence mode="wait" initial={false} custom={slideDir}>
             <motion.div
               key={entry.id}
@@ -827,75 +851,137 @@ export function DiaryBookModal({
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.26, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="grid min-h-[600px] grid-cols-1 md:grid-cols-[2fr_3fr]">
+              <div className="grid min-h-[580px] grid-cols-1 md:grid-cols-[2fr_3fr]">
 
                 {/* ── LEFT PANE ── */}
                 <div
-                  className="flex flex-col gap-5 p-6 md:p-7"
-                  style={{ background: "#F3EDE4", borderRight: "1px solid #E8DDD0" }}
+                  className="flex flex-col gap-6 p-7 md:p-8"
+                  style={{
+                    background: "linear-gradient(180deg, #F5EFE6 0%, #F0E8DC 100%)",
+                    borderRight: "1px solid rgba(232,221,210,0.5)",
+                  }}
                 >
-                  {/* Date + time + mood */}
-                  <div className="space-y-2">
-                    <div className="flex items-baseline gap-2">
-                      <span style={{ fontSize: 26, fontWeight: 700, color: "#2D1811", letterSpacing: "-0.01em", lineHeight: 1.1 }}>
-                        {dateDisplay}
-                      </span>
-                      <span style={{ fontSize: 13, color: "#A08060" }}>
-                        {timeOfDay} {timeHM}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                        style={{ background: mood.bg, color: mood.color }}
+                  {/* Date header */}
+                  <div className="space-y-3">
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          letterSpacing: "0.2em",
+                          color: "#8C735D",
+                          fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                          textTransform: "uppercase",
+                          marginBottom: 6,
+                        }}
                       >
-                        <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: mood.color, flexShrink: 0 }} />
+                        {timeOfDay} · {timeHM}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 28,
+                          fontWeight: 300,
+                          color: "#3A2418",
+                          letterSpacing: "-0.01em",
+                          lineHeight: 1.15,
+                          fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
+                        }}
+                      >
+                        {dateDisplay}
+                      </div>
+                    </div>
+
+                    {/* Mood pill */}
+                    <div className="flex items-center">
+                      <span
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5"
+                        style={{
+                          background: mood.bg,
+                          color: mood.color,
+                          fontSize: 12,
+                          fontWeight: 500,
+                          letterSpacing: "0.02em",
+                        }}
+                      >
+                        <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: mood.color, opacity: 0.7, flexShrink: 0 }} />
                         {mood.label} · {entry.mood}/10
                       </span>
                     </div>
                   </div>
 
-                  {/* Stats cards */}
+                  {/* Thin separator */}
+                  <div style={{ height: 1, background: "linear-gradient(90deg, rgba(155,107,68,0.12), transparent 80%)" }} />
+
+                  {/* Stats — elegant inline */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1 rounded-xl p-3.5" style={{ background: "#FAF7F0", border: "1px solid #E8DDD0" }}>
-                      <BookOpen size={15} style={{ color: "#A08060" }} />
-                      <div style={{ fontSize: 18, fontWeight: 700, color: "#2D1811", lineHeight: 1.2, marginTop: 4 }}>
+                    <div
+                      className="flex flex-col gap-1.5 rounded-2xl px-4 py-3.5"
+                      style={{
+                        background: "rgba(251,248,243,0.7)",
+                        border: "1px solid rgba(232,221,210,0.4)",
+                      }}
+                    >
+                      <BookOpen size={14} style={{ color: "#8C735D" }} />
+                      <div style={{
+                        fontSize: 20,
+                        fontWeight: 300,
+                        color: "#3A2418",
+                        lineHeight: 1.2,
+                        marginTop: 2,
+                        fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                      }}>
                         {readingHoursLabel}
                       </div>
-                      <div style={{ fontSize: 11, color: "#A08060" }}>阅读时长</div>
+                      <div style={{ fontSize: 10, color: "#8C735D", letterSpacing: "0.06em" }}>阅读时长</div>
                     </div>
-                    <div className="flex flex-col gap-1 rounded-xl p-3.5" style={{ background: "#FAF7F0", border: "1px solid #E8DDD0" }}>
-                      <GraduationCap size={15} style={{ color: "#A08060" }} />
-                      <div style={{ fontSize: 18, fontWeight: 700, color: "#2D1811", lineHeight: 1.2, marginTop: 4 }}>
+                    <div
+                      className="flex flex-col gap-1.5 rounded-2xl px-4 py-3.5"
+                      style={{
+                        background: "rgba(251,248,243,0.7)",
+                        border: "1px solid rgba(232,221,210,0.4)",
+                      }}
+                    >
+                      <GraduationCap size={14} style={{ color: "#8C735D" }} />
+                      <div style={{
+                        fontSize: 20,
+                        fontWeight: 300,
+                        color: "#3A2418",
+                        lineHeight: 1.2,
+                        marginTop: 2,
+                        fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                      }}>
                         {studyLabel}
                       </div>
-                      <div style={{ fontSize: 11, color: "#A08060" }}>学习时长</div>
+                      <div style={{ fontSize: 10, color: "#8C735D", letterSpacing: "0.06em" }}>学习时长</div>
                     </div>
                   </div>
 
-                  {/* Image card — clickable */}
+                  {/* Image — polaroid style */}
                   {userImage && (
                     <button
                       type="button"
-                      className="group/img relative overflow-hidden rounded-xl text-left"
-                      style={{ aspectRatio: "4/3", border: "1px solid #E8DDD0" }}
+                      className="group/img relative overflow-hidden rounded-2xl text-left transition-transform duration-300 hover:-translate-y-0.5"
+                      style={{
+                        aspectRatio: "4/3",
+                        background: "#FBF8F3",
+                        padding: 5,
+                        border: "1px solid rgba(232,221,210,0.5)",
+                        boxShadow: "0 4px 16px rgba(122,79,43,0.08), 0 1px 3px rgba(122,79,43,0.04)",
+                      }}
                       onClick={() => setLightboxOpen(0)}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         alt="日记图片"
                         src={userImage}
-                        className="transition-transform duration-200 group-hover/img:scale-[1.03]"
-                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                        className="transition-transform duration-300 group-hover/img:scale-[1.02]"
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", borderRadius: 12 }}
                       />
                       {/* Hover overlay */}
-                      <div
-                        className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-200 group-hover/img:bg-black/10"
-                      >
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                          className="opacity-0 transition-opacity duration-200 group-hover/img:opacity-80 drop-shadow-md"
+                      <div className="pointer-events-none absolute inset-[5px] flex items-center justify-center rounded-xl bg-black/0 transition-colors duration-300 group-hover/img:bg-black/8">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                          className="opacity-0 transition-opacity duration-300 group-hover/img:opacity-70 drop-shadow-sm"
                         >
                           <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /><path d="M11 8v6" /><path d="M8 11h6" />
                         </svg>
@@ -903,8 +989,13 @@ export function DiaryBookModal({
                       {/* Multi-image badge */}
                       {allImages.length > 1 && (
                         <div
-                          className="absolute bottom-2 right-2 rounded-md px-2 py-0.5 text-[11px] font-medium text-white/90"
-                          style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
+                          className="absolute bottom-3 right-3 rounded-full px-2.5 py-1 text-[10px] font-medium"
+                          style={{
+                            background: "rgba(251,248,243,0.85)",
+                            color: "#8C735D",
+                            backdropFilter: "blur(4px)",
+                            border: "1px solid rgba(232,221,210,0.5)",
+                          }}
                         >
                           1/{allImages.length}
                         </div>
@@ -914,12 +1005,17 @@ export function DiaryBookModal({
 
                   {/* Tags */}
                   {entry.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {entry.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs"
-                          style={{ background: "rgba(45,24,17,0.06)", color: "#6B4832", border: "1px solid rgba(45,24,17,0.08)" }}
+                          className="rounded-full px-3 py-1 text-[11px]"
+                          style={{
+                            background: "rgba(155,107,68,0.06)",
+                            color: "#8C735D",
+                            border: "1px solid rgba(155,107,68,0.08)",
+                            letterSpacing: "0.02em",
+                          }}
                         >
                           #{tag}
                         </span>
@@ -927,34 +1023,42 @@ export function DiaryBookModal({
                     </div>
                   )}
 
-                  {/* Edit + Delete */}
-                  <div className="mt-auto flex items-center gap-2">
+                  {/* Edit + Delete — bottom */}
+                  <div className="mt-auto flex items-center gap-2 pt-2">
                     {onEdit ? (
                       <button
                         type="button"
-                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-75"
-                        style={{ background: "#2D1811", color: "#FAF7F0" }}
+                        className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium transition-all duration-200 hover:-translate-y-px hover:shadow-md"
+                        style={{
+                          background: "#9B6B44",
+                          color: "#FBF8F3",
+                          boxShadow: "0 2px 8px rgba(155,107,68,0.2)",
+                        }}
                         onClick={() => { onEdit(entry); onClose(); }}
                       >
-                        <PencilLine size={14} />
+                        <PencilLine size={13} />
                         编辑这篇日记
                       </button>
                     ) : (
                     <Link
                       href={`/journal?id=${entry.id}`}
-                      className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-75"
-                      style={{ background: "#2D1811", color: "#FAF7F0" }}
+                      className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium transition-all duration-200 hover:-translate-y-px hover:shadow-md"
+                      style={{
+                        background: "#9B6B44",
+                        color: "#FBF8F3",
+                        boxShadow: "0 2px 8px rgba(155,107,68,0.2)",
+                      }}
                       onClick={onClose}
                     >
-                      <PencilLine size={14} />
+                      <PencilLine size={13} />
                       编辑这篇日记
                     </Link>
                     )}
                     {onDelete && !confirmDelete && (
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-red-50"
-                        style={{ color: "#B0756A", border: "1px solid rgba(176,117,106,0.3)" }}
+                        className="inline-flex items-center justify-center rounded-full transition-all duration-200 hover:bg-[rgba(176,117,106,0.08)]"
+                        style={{ color: "#B0917A", width: 36, height: 36, border: "1px solid rgba(176,145,122,0.2)" }}
                         onClick={() => setConfirmDelete(true)}
                       >
                         <Trash2 size={14} />
@@ -964,17 +1068,17 @@ export function DiaryBookModal({
                       <div className="inline-flex items-center gap-1.5">
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-medium text-white transition-colors hover:bg-red-700"
-                          style={{ background: "#DC2626" }}
+                          className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-medium text-white transition-colors hover:bg-red-700"
+                          style={{ background: "#C0392B" }}
                           onClick={() => { onDelete(entry.id); onClose(); }}
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={12} />
                           确认删除
                         </button>
                         <button
                           type="button"
-                          className="rounded-xl px-3 py-2.5 text-xs font-medium transition-colors hover:bg-black/5"
-                          style={{ color: "#A08060" }}
+                          className="rounded-full px-3 py-2 text-[11px] font-medium transition-colors hover:bg-[rgba(155,107,68,0.06)]"
+                          style={{ color: "#8C735D" }}
                           onClick={() => setConfirmDelete(false)}
                         >
                           取消
@@ -985,76 +1089,131 @@ export function DiaryBookModal({
                 </div>
 
                 {/* ── RIGHT PANE ── */}
-                <div className="flex min-h-0 flex-col" style={{ background: "#FAF7F0" }}>
-                  <div className="flex shrink-0 items-center justify-between px-7 pb-4 pt-6" style={{ borderBottom: "1px solid #E8DDD0" }}>
-                    <div className="flex items-center gap-2.5">
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#C07A3A", flexShrink: 0 }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "#2D1811", letterSpacing: "0.04em" }}>
+                <div className="flex min-h-0 flex-col" style={{ background: "#FBF8F3" }}>
+                  {/* Header */}
+                  <div className="flex shrink-0 items-center justify-between px-8 pb-5 pt-7">
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          letterSpacing: "0.22em",
+                          color: "#8C735D",
+                          textTransform: "uppercase",
+                          fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Journal Entry
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 400,
+                          color: "#3A2418",
+                          fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
+                          letterSpacing: "0.06em",
+                        }}
+                      >
                         今日记录
-                      </span>
+                      </div>
                     </div>
-                    {/* Navigation counter */}
+                    {/* Counter */}
                     {entries.length > 1 && (
-                      <span style={{ fontSize: 12, color: "#B89878", fontFamily: "ui-sans-serif,sans-serif" }}>
+                      <span
+                        className="rounded-full px-3 py-1"
+                        style={{
+                          fontSize: 11,
+                          color: "#8C735D",
+                          background: "rgba(155,107,68,0.06)",
+                          fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                          letterSpacing: "0.04em",
+                        }}
+                      >
                         {currentIndex + 1} / {entries.length}
                       </span>
                     )}
                   </div>
 
+                  {/* Separator */}
+                  <div className="mx-8" style={{ height: 1, background: "linear-gradient(90deg, #E8DDD2, transparent 70%)" }} />
+
+                  {/* Scrollable content */}
                   <div
-                    className="flex-1 overflow-y-auto px-7 py-6"
+                    className="flex-1 overflow-y-auto px-8 py-7"
                     style={{
                       backgroundImage:
-                        "repeating-linear-gradient(180deg,transparent,transparent 37px,rgba(160,128,96,0.07) 37px,rgba(160,128,96,0.07) 38px)",
+                        "repeating-linear-gradient(180deg,transparent,transparent 38px,rgba(155,107,68,0.04) 38px,rgba(155,107,68,0.04) 39px)",
+                      backgroundPositionY: "38px",
                       minHeight: 0,
                     }}
                   >
-                    {/* ── 日记正文 ── */}
+                    {/* 日记正文 */}
                     {entry.thoughts.trim() ? (
                       <p
                         style={{
                           fontSize: 17,
-                          lineHeight: "2.18",
-                          color: "rgba(45,24,17,0.90)",
-                          fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif',
+                          lineHeight: "2.24",
+                          color: "#3A2418",
+                          fontFamily: '"Noto Serif SC", "Ma Shan Zheng", "STKaiti", "KaiTi", serif',
                           whiteSpace: "pre-wrap",
-                          letterSpacing: "0.03em",
+                          letterSpacing: "0.04em",
                         }}
                       >
                         {entry.thoughts.trim()}
                       </p>
                     ) : (
-                      <p style={{ fontSize: 15, color: "#C0A882", fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif', lineHeight: 2 }}>
-                        （这一天只留下了一段安静的空白）
+                      <p style={{
+                        fontSize: 15,
+                        color: "rgba(140,115,93,0.5)",
+                        fontFamily: '"Noto Serif SC", "Ma Shan Zheng", serif',
+                        lineHeight: 2.2,
+                        fontStyle: "italic",
+                      }}>
+                        这一天只留下了一段安静的空白……
                       </p>
                     )}
 
-                    {/* ── 阅读书单 ── */}
+                    {/* 阅读书单 */}
                     {hasReadingList && (
-                      <div
-                        className="mt-7 rounded-xl px-4 py-4"
-                        style={{ background: "rgba(250,245,237,0.7)", border: "1px solid #E8DDD0" }}
-                      >
+                      <div className="mt-8">
+                        <div style={{ height: 1, background: "linear-gradient(90deg, rgba(155,107,68,0.1), transparent 60%)", marginBottom: 20 }} />
                         <p
-                          className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
-                          style={{ color: "#B89070" }}
+                          className="mb-4 flex items-center gap-2"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 500,
+                            letterSpacing: "0.2em",
+                            color: "#8C735D",
+                            textTransform: "uppercase",
+                            fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                          }}
                         >
-                          <BookOpen size={12} />
-                          今日阅读
+                          <BookOpen size={12} strokeWidth={1.5} />
+                          Today&apos;s Reading
                         </p>
-                        <ul className="space-y-2">
+                        <ul className="space-y-2.5">
                           {legacyReading && (
-                            <li className="flex items-start gap-2">
-                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#C8A07A", marginTop: 8, flexShrink: 0 }} />
-                              <span style={{ fontSize: 14, color: "rgba(45,24,17,0.80)", fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif', lineHeight: 1.8 }}>
+                            <li className="flex items-start gap-3">
+                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#9B6B44", marginTop: 10, flexShrink: 0, opacity: 0.5 }} />
+                              <span style={{
+                                fontSize: 14,
+                                color: "rgba(58,36,24,0.78)",
+                                fontFamily: '"Noto Serif SC", "Ma Shan Zheng", serif',
+                                lineHeight: 1.9,
+                              }}>
                                 {legacyReading}
                               </span>
                             </li>
                           )}
                           {readingNotes.map((note, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#C8A07A", marginTop: 8, flexShrink: 0 }} />
-                              <span style={{ fontSize: 14, color: "rgba(45,24,17,0.80)", fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif', lineHeight: 1.8 }}>
+                            <li key={i} className="flex items-start gap-3">
+                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#9B6B44", marginTop: 10, flexShrink: 0, opacity: 0.5 }} />
+                              <span style={{
+                                fontSize: 14,
+                                color: "rgba(58,36,24,0.78)",
+                                fontFamily: '"Noto Serif SC", "Ma Shan Zheng", serif',
+                                lineHeight: 1.9,
+                              }}>
                                 {note}
                               </span>
                             </li>
@@ -1063,24 +1222,34 @@ export function DiaryBookModal({
                       </div>
                     )}
 
-                    {/* ── 学习笔记 ── */}
+                    {/* 学习笔记 */}
                     {hasStudyNotes && (
-                      <div
-                        className="mt-4 rounded-xl px-4 py-4"
-                        style={{ background: "rgba(245,240,250,0.6)", border: "1px solid #E0D8EC" }}
-                      >
+                      <div className="mt-6">
+                        <div style={{ height: 1, background: "linear-gradient(90deg, rgba(155,107,68,0.08), transparent 50%)", marginBottom: 20 }} />
                         <p
-                          className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
-                          style={{ color: "#9078B0" }}
+                          className="mb-4 flex items-center gap-2"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 500,
+                            letterSpacing: "0.2em",
+                            color: "#8C735D",
+                            textTransform: "uppercase",
+                            fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                          }}
                         >
-                          <GraduationCap size={12} />
-                          今日学习
+                          <GraduationCap size={12} strokeWidth={1.5} />
+                          Today&apos;s Study
                         </p>
-                        <ul className="space-y-2">
+                        <ul className="space-y-2.5">
                           {studyNotes.map((note, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#9878C0", marginTop: 8, flexShrink: 0 }} />
-                              <span style={{ fontSize: 14, color: "rgba(45,24,17,0.80)", fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif', lineHeight: 1.8 }}>
+                            <li key={i} className="flex items-start gap-3">
+                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#9B6B44", marginTop: 10, flexShrink: 0, opacity: 0.4 }} />
+                              <span style={{
+                                fontSize: 14,
+                                color: "rgba(58,36,24,0.78)",
+                                fontFamily: '"Noto Serif SC", "Ma Shan Zheng", serif',
+                                lineHeight: 1.9,
+                              }}>
                                 {note}
                               </span>
                             </li>
@@ -1090,29 +1259,27 @@ export function DiaryBookModal({
                     )}
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-0.5 px-5 py-3" style={{ borderTop: "1px solid #E8DDD0" }}>
-                    {[
-                      { icon: <Smile size={17} />, label: "表情" },
-                      { icon: <ImagePlus size={17} />, label: "图片" },
-                      { icon: <Type size={17} />, label: "样式" },
-                      { icon: <MoreHorizontal size={17} />, label: "更多" },
-                    ].map(({ icon, label }) => (
-                      <button
-                        key={label}
-                        type="button"
-                        aria-label={label}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-black/5"
-                        style={{ color: "#B89070" }}
-                      >
-                        {icon}
-                      </button>
-                    ))}
+                  {/* Bottom bar — minimal */}
+                  <div
+                    className="flex shrink-0 items-center px-8 py-3.5"
+                    style={{ borderTop: "1px solid rgba(232,221,210,0.4)" }}
+                  >
                     {/* Swipe hint (mobile) */}
                     {entries.length > 1 && (
-                      <span className="ml-auto text-[11px] md:hidden" style={{ color: "#C8B098" }}>
+                      <span className="text-[10px] tracking-wider md:hidden" style={{ color: "rgba(140,115,93,0.4)" }}>
                         ← 滑动切换 →
                       </span>
                     )}
+                    <span
+                      className="ml-auto text-[10px] tracking-wider"
+                      style={{
+                        color: "rgba(140,115,93,0.3)",
+                        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+                        letterSpacing: "0.16em",
+                      }}
+                    >
+                      MIND365
+                    </span>
                   </div>
                 </div>
               </div>
