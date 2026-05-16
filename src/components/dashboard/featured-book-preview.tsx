@@ -733,21 +733,21 @@ export function DiaryBookModal({
           style={{ maxWidth: 940 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Desktop nav arrows — outside the card */}
+          {/* Desktop nav arrows — fixed to viewport so they stay visible while scrolling */}
           {entries.length > 1 && (
             <>
               <button
                 type="button"
                 aria-label="上一篇日记"
                 disabled={!canPrev}
-                className="absolute -left-14 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:-translate-y-1/2 hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex"
+                className="fixed left-4 top-1/2 z-[60] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex lg:left-8"
                 style={{
                   color: "#9B6B44",
                   background: "rgba(251,248,243,0.92)",
                   border: "1px solid #E8DDD2",
                   boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
                 }}
-                onClick={goPrev}
+                onClick={(e) => { e.stopPropagation(); goPrev(); }}
               >
                 <ChevronLeft size={20} />
               </button>
@@ -755,14 +755,14 @@ export function DiaryBookModal({
                 type="button"
                 aria-label="下一篇日记"
                 disabled={!canNext}
-                className="absolute -right-14 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:-translate-y-1/2 hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex"
+                className="fixed right-4 top-1/2 z-[60] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex lg:right-8"
                 style={{
                   color: "#9B6B44",
                   background: "rgba(251,248,243,0.92)",
                   border: "1px solid #E8DDD2",
                   boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
                 }}
-                onClick={goNext}
+                onClick={(e) => { e.stopPropagation(); goNext(); }}
               >
                 <ChevronRight size={20} />
               </button>
