@@ -41,8 +41,7 @@ import {
   getAllThemeLabels,
   getThemeIcon,
   groupQuotesByTheme,
-  isBuiltinTheme,
-  removeCustomTheme,
+  removeTheme,
 } from "@/lib/quote-classify";
 import { deleteQuote, refreshNotes, refreshQuotes, saveNote, saveQuote, updateQuote } from "@/lib/storage";
 import { useNotesStore, useQuotesStore } from "@/lib/storage-store";
@@ -771,7 +770,7 @@ function QuoteStackModal({
           <div className="flex gap-2 w-max">
             {themes.map((theme) => {
               const isActive = filterTab === theme;
-              const canDelete = theme !== "全部" && !isBuiltinTheme(theme);
+              const canDelete = theme !== "全部";
               return (
                 <div key={theme} className="relative shrink-0 flex items-center">
                   <button
@@ -794,7 +793,7 @@ function QuoteStackModal({
                       className="absolute right-1.5 flex h-5 w-5 items-center justify-center rounded-full transition-all hover:bg-white/20"
                       onClick={(e) => {
                         e.stopPropagation();
-                        removeCustomTheme(theme);
+                        removeTheme(theme);
                         setThemesVersion((v) => v + 1);
                         if (filterTab === theme) setFilterTab("全部");
                       }}

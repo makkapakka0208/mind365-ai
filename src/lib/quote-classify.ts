@@ -112,30 +112,67 @@ export function saveCustomThemes(themes: string[]): void {
 export function addCustomTheme(theme: string): void {
   const trimmed = theme.trim();
   if (!trimmed) return;
-  // Don't duplicate built-in labels.
-  if (BUILTIN_THEMES.some((t) => t.label === trimmed)) return;
+  // If it's a hidden built-in, just unhide it
+  if (BUILTIN_THEMES.some((t) => t.label === trimmed)) {
+    unhideTheme(trimmed);
+    return;
+  }
   const next = [...new Set([...loadCustomThemes(), trimmed])];
   saveCustomThemes(next);
 }
 
-/** Remove a custom theme. Built-in themes cannot be removed. */
-export function removeCustomTheme(theme: string): void {
-  const trimmed = theme.trim();
-  if (!trimmed) return;
-  // Cannot remove built-in themes
-  if (BUILTIN_THEMES.some((t) => t.label === trimmed)) return;
-  const next = loadCustomThemes().filter((t) => t !== trimmed);
-  saveCustomThemes(next);
+// ── Hidden themes (built-in themes the user chose to hide) ──────────────────
+
+const HIDDEN_THEMES_KEY = "mind365_hidden_themes";
+
+function loadHiddenThemes(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(HIDDEN_THEMES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((t: unknown): t is string => typeof t === "string" && !!t.trim()) : [];
+  } catch {
+    return [];
+  }
 }
 
-/** Check whether a theme label is a built-in (non-deletable) theme. */
+function saveHiddenThemes(themes: string[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(HIDDEN_THEMES_KEY, JSON.stringify([...new Set(themes)]));
+}
+
+function unhideTheme(theme: string): void {
+  saveHiddenThemes(loadHiddenThemes().filter((t) => t !== theme));
+}
+
+/**
+ * Remove a theme from the tab list.
+ * - Custom themes: removed from the custom list.
+ * - Built-in themes: added to the hidden list (can be restored via addCustomTheme).
+ */
+export function removeTheme(theme: string): void {
+  const trimmed = theme.trim();
+  if (!trimmed) return;
+  if (BUILTIN_THEMES.some((t) => t.label === trimmed)) {
+    // Hide built-in
+    saveHiddenThemes([...loadHiddenThemes(), trimmed]);
+  } else {
+    // Remove custom
+    saveCustomThemes(loadCustomThemes().filter((t) => t !== trimmed));
+  }
+}
+
+/** Check whether a theme label is a built-in theme. */
 export function isBuiltinTheme(label: string): boolean {
   return BUILTIN_THEMES.some((t) => t.label === label);
 }
 
-/** All theme labels available for the picker (built-ins + user customs). */
+/** All theme labels available for the picker (visible built-ins + user customs). */
 export function getAllThemeLabels(): string[] {
-  return [...BUILTIN_THEMES.map((t) => t.label), ...loadCustomThemes()];
+  const hidden = new Set(loadHiddenThemes());
+  const builtins = BUILTIN_THEMES.map((t) => t.label).filter((l) => !hidden.has(l));
+  return [...builtins, ...loadCustomThemes()];
 }
 
 // ── Classification ───────────────────────────────────────────────────────────
