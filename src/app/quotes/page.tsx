@@ -20,6 +20,7 @@ import {
   Search,
   Sparkles,
   Tag,
+  Trash2,
   X,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -40,8 +41,10 @@ import {
   getAllThemeLabels,
   getThemeIcon,
   groupQuotesByTheme,
+  isBuiltinTheme,
+  removeCustomTheme,
 } from "@/lib/quote-classify";
-import { refreshNotes, refreshQuotes, saveNote, saveQuote, updateQuote } from "@/lib/storage";
+import { deleteQuote, refreshNotes, refreshQuotes, saveNote, saveQuote, updateQuote } from "@/lib/storage";
 import { useNotesStore, useQuotesStore } from "@/lib/storage-store";
 import type { Note, Quote } from "@/types";
 
@@ -549,12 +552,14 @@ function QuoteStackModal({
   initialId: string;
   onClose: () => void;
 }) {
-  const themes = useMemo(() => ["全部", ...getAllThemeLabels()], []);
+  const [themesVersion, setThemesVersion] = useState(0);
+  const themes = useMemo(() => ["全部", ...getAllThemeLabels()], [themesVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const [filterTab, setFilterTab] = useState<string>("全部");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<{ text: string; author: string; book: string; tags: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const filteredQuotes = useMemo(() => {
     if (filterTab === "全部") return allQuotes;
@@ -719,6 +724,19 @@ function QuoteStackModal({
     setIsEditing(false);
   };
 
+  const handleDelete = async () => {
+    if (!currentQuote) return;
+    await deleteQuote(currentQuote.id);
+    setConfirmDelete(false);
+    // If no quotes left, close modal
+    if (filteredQuotes.length <= 1) {
+      onClose();
+    } else {
+      // Move to next or previous
+      setCurrentIndex((prev) => Math.min(prev, filteredQuotes.length - 2));
+    }
+  };
+
   const CARD_WIDTH = "min(460px, calc(100vw - 72px))";
 
   return (
@@ -753,22 +771,41 @@ function QuoteStackModal({
           <div className="flex gap-2 w-max">
             {themes.map((theme) => {
               const isActive = filterTab === theme;
+              const canDelete = theme !== "全部" && !isBuiltinTheme(theme);
               return (
-                <button
-                  key={theme}
-                  className="shrink-0 rounded-full px-4 py-1.5 text-sm transition-all"
-                  onClick={() => { setFilterTab(theme); setIsEditing(false); }}
-                  type="button"
-                  style={{
-                    background: isActive ? "rgba(250,247,240,0.92)" : "rgba(250,247,240,0.10)",
-                    color: isActive ? "#4A3022" : "rgba(250,247,240,0.60)",
-                    fontFamily: "ui-sans-serif,sans-serif",
-                    border: `1px solid ${isActive ? "transparent" : "rgba(250,247,240,0.10)"}`,
-                    fontWeight: isActive ? 600 : 400,
-                  }}
-                >
-                  {theme === "全部" ? "全部" : `${getThemeIcon(theme)} ${theme}`}
-                </button>
+                <div key={theme} className="relative shrink-0 flex items-center">
+                  <button
+                    className="shrink-0 rounded-full px-4 py-1.5 text-sm transition-all"
+                    onClick={() => { setFilterTab(theme); setIsEditing(false); }}
+                    type="button"
+                    style={{
+                      background: isActive ? "rgba(250,247,240,0.92)" : "rgba(250,247,240,0.10)",
+                      color: isActive ? "#4A3022" : "rgba(250,247,240,0.60)",
+                      fontFamily: "ui-sans-serif,sans-serif",
+                      border: `1px solid ${isActive ? "transparent" : "rgba(250,247,240,0.10)"}`,
+                      fontWeight: isActive ? 600 : 400,
+                      paddingRight: canDelete ? "28px" : undefined,
+                    }}
+                  >
+                    {theme === "全部" ? "全部" : `${getThemeIcon(theme)} ${theme}`}
+                  </button>
+                  {canDelete && (
+                    <button
+                      className="absolute right-1.5 flex h-5 w-5 items-center justify-center rounded-full transition-all hover:bg-white/20"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCustomTheme(theme);
+                        setThemesVersion((v) => v + 1);
+                        if (filterTab === theme) setFilterTab("全部");
+                      }}
+                      type="button"
+                      style={{ color: isActive ? "rgba(74,48,34,0.50)" : "rgba(250,247,240,0.40)" }}
+                      title={`删除"${theme}"标签`}
+                    >
+                      <X size={11} />
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -927,6 +964,20 @@ function QuoteStackModal({
                           <PencilLine size={13} />
                           编辑
                         </button>
+                        <button
+                          className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all hover:opacity-80"
+                          onClick={() => setConfirmDelete(true)}
+                          type="button"
+                          style={{
+                            background: "rgba(250,247,240,0.10)",
+                            border: "1px solid rgba(250,247,240,0.14)",
+                            color: "rgba(220,120,100,0.70)",
+                            fontFamily: "ui-sans-serif,sans-serif",
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          删除
+                        </button>
                       </div>
                       {/* Desktop side arrows */}
                       <div className="hidden items-center gap-1 sm:flex">
@@ -1004,6 +1055,52 @@ function QuoteStackModal({
           }}
           open={pickerOpen}
         />
+
+        {/* Delete confirmation overlay */}
+        <AnimatePresence>
+          {confirmDelete && (
+            <motion.div
+              className="fixed inset-0 z-[60] flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmDelete(false)}
+              style={{ background: "rgba(0,0,0,0.5)" }}
+            >
+              <motion.div
+                className="mx-6 w-full max-w-xs rounded-2xl p-6"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{ background: "#FAF7F0" }}
+              >
+                <p className="mb-1 text-base font-semibold" style={{ color: "#2D1811" }}>确认删除</p>
+                <p className="mb-5 text-sm" style={{ color: "#8C735D" }}>
+                  删除后无法恢复，确定要删除这条金句吗？
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
+                    onClick={handleDelete}
+                    type="button"
+                    style={{ background: "#DC4446", color: "#fff" }}
+                  >
+                    删除
+                  </button>
+                  <button
+                    className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-opacity hover:opacity-70"
+                    onClick={() => setConfirmDelete(false)}
+                    type="button"
+                    style={{ background: "rgba(0,0,0,0.06)", color: "#2D1811" }}
+                  >
+                    取消
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

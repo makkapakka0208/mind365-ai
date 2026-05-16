@@ -118,6 +118,21 @@ export function addCustomTheme(theme: string): void {
   saveCustomThemes(next);
 }
 
+/** Remove a custom theme. Built-in themes cannot be removed. */
+export function removeCustomTheme(theme: string): void {
+  const trimmed = theme.trim();
+  if (!trimmed) return;
+  // Cannot remove built-in themes
+  if (BUILTIN_THEMES.some((t) => t.label === trimmed)) return;
+  const next = loadCustomThemes().filter((t) => t !== trimmed);
+  saveCustomThemes(next);
+}
+
+/** Check whether a theme label is a built-in (non-deletable) theme. */
+export function isBuiltinTheme(label: string): boolean {
+  return BUILTIN_THEMES.some((t) => t.label === label);
+}
+
 /** All theme labels available for the picker (built-ins + user customs). */
 export function getAllThemeLabels(): string[] {
   return [...BUILTIN_THEMES.map((t) => t.label), ...loadCustomThemes()];

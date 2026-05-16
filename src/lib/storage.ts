@@ -787,6 +787,21 @@ export async function updateQuote(quote: Quote): Promise<Quote[]> {
   return updated;
 }
 
+/** Delete a quote by ID from local storage and remote. */
+export async function deleteQuote(id: string): Promise<Quote[]> {
+  const updated = getQuotes().filter((q) => q.id !== id);
+  setQuotes(updated);
+  try {
+    const settings = getSettingsForSync();
+    const client = createMind365SupabaseClient(settings);
+    const config = getSupabaseConfig(settings);
+    if (client && config) {
+      await client.from("quotes").delete().eq("id", id).eq("user_id", config.userId);
+    }
+  } catch {}
+  return updated;
+}
+
 export function getNotes(): Note[] { return readCollection(STORAGE_KEYS.notes, isNote); }
 export function setNotes(notes: Note[]) { writeCollection(STORAGE_KEYS.notes, notes); }
 
