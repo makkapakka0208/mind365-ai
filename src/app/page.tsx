@@ -639,7 +639,8 @@ export default function HomePage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const recentLogs = useMemo(() => sortLogsByDate(logs, "desc").slice(0, 6), [logs]);
+  const allLogsSorted = useMemo(() => sortLogsByDate(logs, "desc"), [logs]);
+  const recentLogs = useMemo(() => allLogsSorted.slice(0, 6), [allLogsSorted]);
   const monthLogs = useMemo(() => sortLogsByDate(getCurrentMonthLogs(logs), "desc"), [logs]);
   const monthQuotes = useMemo(() => getCurrentMonthQuotes(quotes), [quotes]);
   const monthTimeEntries = useMemo(() => getCurrentMonthTimeEntries(timeEntries), [timeEntries]);
@@ -1341,7 +1342,7 @@ export default function HomePage() {
       </div>
 
       <DiaryBookModalPortal
-        entries={recentLogs}
+        entries={allLogsSorted}
         entryId={diaryModalId}
         timeEntries={timeEntries}
         onClose={() => setDiaryModalId(null)}

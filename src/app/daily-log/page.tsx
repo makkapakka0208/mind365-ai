@@ -470,7 +470,7 @@ function DailyLogInner() {
     </PageTransition>
 
     <DiaryBookModalPortal
-      entries={recentLogs}
+      entries={logs}
       entryId={diaryModalId}
       timeEntries={timeEntries}
       onClose={() => setDiaryModalId(null)}
