@@ -1,7 +1,7 @@
 "use client";
 
 import { getAuthSupabaseClient } from "@/lib/auth";
-import { getSupabaseConfig, createMind365SupabaseClient } from "@/lib/supabase";
+import { getSupabaseConfig } from "@/lib/supabase";
 import { getSettings } from "@/lib/storage";
 
 const BUCKET_NAME = "diary-images";
@@ -11,7 +11,7 @@ export function isBase64DataUrl(str: string): boolean {
   return str.startsWith("data:");
 }
 
-/** Convert a base64 data URL to a File/Blob for upload */
+/** Convert a base64 data URL to a Blob for upload */
 function dataUrlToBlob(dataUrl: string): Blob {
   const [header, base64] = dataUrl.split(",");
   const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
@@ -23,17 +23,16 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
-/** Get or create the Supabase client for storage operations */
+/** Get the Supabase client (auth-aware singleton) */
 function getStorageClient() {
   try {
     return getAuthSupabaseClient();
   } catch {
-    const settings = getSettings();
-    return createMind365SupabaseClient(settings);
+    return null;
   }
 }
 
-/** Get the user ID for storage paths */
+/** Get user ID — prefer auth user, then settings user */
 function getStorageUserId(): string | null {
   const settings = getSettings();
   const config = getSupabaseConfig(settings);
@@ -41,15 +40,16 @@ function getStorageUserId(): string | null {
 }
 
 /**
- * Upload a compressed image (File) to Supabase Storage.
+ * Upload a compressed image Blob to Supabase Storage.
  * Returns the public URL of the uploaded image.
+ * Throws on failure — caller must handle the error.
  */
 export async function uploadImageToStorage(file: Blob, filename?: string): Promise<string> {
   const client = getStorageClient();
-  if (!client) throw new Error("Supabase 未配置，无法上传图片");
+  if (!client) throw new Error("Supabase 未配置，无法上传图片。请检查环境变量配置。");
 
   const userId = getStorageUserId();
-  if (!userId) throw new Error("用户未登录，无法上传图片");
+  if (!userId) throw new Error("用户 ID 未找到，无法上传图片。");
 
   const ext = file.type === "image/png" ? "png" : "jpg";
   const name = filename || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -62,7 +62,10 @@ export async function uploadImageToStorage(file: Blob, filename?: string): Promi
       upsert: true,
     });
 
-  if (error) throw new Error(`图片上传失败: ${error.message}`);
+  if (error) {
+    console.error("[image-storage] Upload failed:", error.message);
+    throw new Error(`图片上传失败: ${error.message}`);
+  }
 
   const { data: urlData } = client.storage
     .from(BUCKET_NAME)
@@ -82,7 +85,8 @@ export async function uploadBase64ToStorage(dataUrl: string): Promise<string> {
 
 /**
  * Compress a File to JPEG, then upload to Supabase Storage.
- * Returns the public URL. Falls back to base64 data URL if Supabase is not configured.
+ * Returns the public URL.
+ * Does NOT fall back to base64 — throws on failure so the user sees the actual error.
  */
 export async function compressAndUpload(file: File): Promise<string> {
   const MAX_DIMENSION = 1600;
@@ -122,24 +126,12 @@ export async function compressAndUpload(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 
-  // Try Supabase Storage first, fall back to base64
-  try {
-    return await uploadImageToStorage(blob);
-  } catch {
-    // Supabase not available — fall back to base64 data URL (old behavior)
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error("图片读取失败"));
-      reader.readAsDataURL(blob);
-    });
-  }
+  return await uploadImageToStorage(blob);
 }
 
 /**
  * Migrate base64 images in a DailyLog's images array to Supabase Storage URLs.
- * Returns the updated array (mix of already-URL images and newly uploaded ones).
- * Non-blocking — returns originals for any that fail.
+ * Returns the updated array. Non-blocking — returns originals for any that fail.
  */
 export async function migrateBase64Images(images: string[]): Promise<{ urls: string[]; changed: boolean }> {
   if (!images || images.length === 0) return { urls: images, changed: false };
@@ -168,16 +160,11 @@ export async function migrateBase64Images(images: string[]): Promise<{ urls: str
  * Delete an image from Supabase Storage by its public URL.
  */
 export async function deleteImageFromStorage(publicUrl: string): Promise<void> {
-  if (isBase64DataUrl(publicUrl)) return; // base64 images aren't in storage
+  if (isBase64DataUrl(publicUrl)) return;
 
   const client = getStorageClient();
   if (!client) return;
 
-  const userId = getStorageUserId();
-  if (!userId) return;
-
-  // Extract path from the public URL
-  // URL pattern: https://xxx.supabase.co/storage/v1/object/public/diary-images/userId/filename
   try {
     const url = new URL(publicUrl);
     const pathPrefix = `/storage/v1/object/public/${BUCKET_NAME}/`;

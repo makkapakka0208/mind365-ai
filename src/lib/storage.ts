@@ -128,7 +128,7 @@ function parseDailyLog(value: unknown): DailyLog | null {
     reading: value.reading,
     studyHours: value.studyHours,
     tags: value.tags,
-    images: isStringArray(value.images) ? value.images : [],
+    images: isStringArray(value.images) ? value.images.filter((s) => !s.startsWith("data:")) : [],
   };
 }
 
@@ -326,11 +326,17 @@ function ensureSettingsUserId(settings: Mind365Settings): Mind365Settings {
   return nextSettings;
 }
 
+/** Filter out base64 images before persisting — only keep URL strings */
+function stripBase64Images(images: string[] | undefined): string[] {
+  if (!images) return [];
+  return images.filter((img) => !img.startsWith("data:"));
+}
+
 function serializeDailyLog(log: DailyLog): string {
   return JSON.stringify({
     createdAt: log.createdAt, date: log.date, mood: log.mood,
     reading: log.reading, studyHours: log.studyHours, tags: log.tags,
-    thoughts: log.thoughts, images: log.images ?? [], version: 2,
+    thoughts: log.thoughts, images: stripBase64Images(log.images), version: 2,
   });
 }
 
@@ -778,6 +784,21 @@ export async function updateQuote(quote: Quote): Promise<Quote[]> {
   );
   setQuotes(updated);
   try { await upsertRemoteQuotes([normalized], getSettingsForSync()); } catch {}
+  return updated;
+}
+
+/** Delete a quote by ID from local storage and remote. */
+export async function deleteQuote(id: string): Promise<Quote[]> {
+  const updated = getQuotes().filter((q) => q.id !== id);
+  setQuotes(updated);
+  try {
+    const settings = getSettingsForSync();
+    const client = createMind365SupabaseClient(settings);
+    const config = getSupabaseConfig(settings);
+    if (client && config) {
+      await client.from("quotes").delete().eq("id", id).eq("user_id", config.userId);
+    }
+  } catch {}
   return updated;
 }
 

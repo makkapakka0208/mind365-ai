@@ -15,6 +15,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
+import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -547,15 +548,6 @@ function useYearProgress() {
 function MobileYearWidget() {
   const { year, daysPassed, daysRemaining, pct } = useYearProgress();
 
-  // Arc: semicircle left→top→right, dot at pct position
-  const cx = 52, cy = 52, r = 38;
-  const angleDeg = 180 + (pct / 100) * 180;
-  const angleRad = (angleDeg * Math.PI) / 180;
-  const dotX = cx + r * Math.cos(angleRad);
-  const dotY = cy + r * Math.sin(angleRad);
-  const lx = cx - r, ly = cy, rx = cx + r, ry = cy;
-  const largeArc = pct > 50 ? 1 : 0;
-
   return (
     <div
       className="rounded-[24px] p-5"
@@ -587,19 +579,10 @@ function MobileYearWidget() {
           </div>
         </div>
 
-        {/* Right: arc SVG */}
-        <svg aria-hidden fill="none" style={{ width: 88, flexShrink: 0 }} viewBox="8 12 88 46" xmlns="http://www.w3.org/2000/svg">
-          <path d={`M ${lx},${ly} A ${r},${r} 0 0 0 ${rx},${ry}`}
-            stroke="rgba(139,94,60,0.12)" strokeLinecap="round" strokeWidth="2.5" />
-          {pct > 1 && (
-            <path d={`M ${lx},${ly} A ${r},${r} 0 ${largeArc} 0 ${dotX},${dotY}`}
-              stroke="rgba(139,94,60,0.5)" strokeLinecap="round" strokeWidth="2.5" />
-          )}
-          <circle cx={dotX} cy={dotY} fill="var(--m-accent)" opacity="0.8" r="5" />
-          <circle cx={dotX} cy={dotY} fill="rgba(255,250,242,0.9)" r="2.2" />
-          <text dominantBaseline="middle" fill="rgba(139,94,60,0.45)" fontFamily="system-ui"
-            fontSize="10" textAnchor="middle" x={cx} y={cy - r + 16}>{pct}%</text>
-        </svg>
+        {/* Right: vintage clock + pendulum */}
+        <div className="shrink-0" style={{ width: 92 }}>
+          <TimePendulum />
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -639,7 +622,8 @@ export default function HomePage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const recentLogs = useMemo(() => sortLogsByDate(logs, "desc").slice(0, 6), [logs]);
+  const allLogsSorted = useMemo(() => sortLogsByDate(logs, "desc"), [logs]);
+  const recentLogs = useMemo(() => allLogsSorted.slice(0, 6), [allLogsSorted]);
   const monthLogs = useMemo(() => sortLogsByDate(getCurrentMonthLogs(logs), "desc"), [logs]);
   const monthQuotes = useMemo(() => getCurrentMonthQuotes(quotes), [quotes]);
   const monthTimeEntries = useMemo(() => getCurrentMonthTimeEntries(timeEntries), [timeEntries]);
@@ -784,7 +768,7 @@ export default function HomePage() {
                     {todayLog ? "今天已经记录" : "今日还未记录"}
                   </div>
                   <div className="mt-1 text-sm" style={{ color: "var(--m-ink2)" }}>
-                    {todayLog ? "补充一点细节，AI 会继续帮你整理。" : "写点什么，AI 来帮你整理。"}
+                    {todayLog ? "点击查看或补充今天的记录。" : "写点什么，AI 来帮你整理。"}
                   </div>
                 </div>
               </div>
@@ -1341,7 +1325,7 @@ export default function HomePage() {
       </div>
 
       <DiaryBookModalPortal
-        entries={recentLogs}
+        entries={allLogsSorted}
         entryId={diaryModalId}
         timeEntries={timeEntries}
         onClose={() => setDiaryModalId(null)}
