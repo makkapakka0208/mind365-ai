@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import {
@@ -85,59 +86,6 @@ function useYearProgress() {
   const pct = Math.round((daysPassed / daysInYear) * 100);
 
   return { year, daysPassed, daysRemaining, daysInYear, pct };
-}
-
-// ── Arc SVG (semicircle year meter) ───────────────────────────
-function YearArcSVG({ pct }: { pct: number }) {
-  const cx = 64, cy = 64, r = 50;
-  // Angle: 180° (left) → 360° (right) via 270° (top) in screen coords
-  const angleDeg = 180 + (pct / 100) * 180;
-  const angleRad = (angleDeg * Math.PI) / 180;
-  const dotX = cx + r * Math.cos(angleRad);
-  const dotY = cy + r * Math.sin(angleRad);
-  const lx = cx - r, ly = cy;
-  const rx = cx + r, ry = cy;
-  const largeArc = pct > 50 ? 1 : 0;
-
-  return (
-    <svg
-      aria-hidden
-      fill="none"
-      viewBox="8 12 112 58"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Track */}
-      <path
-        d={`M ${lx},${ly} A ${r},${r} 0 0 0 ${rx},${ry}`}
-        stroke="rgba(139,94,60,0.12)"
-        strokeLinecap="round"
-        strokeWidth="3"
-      />
-      {/* Progress */}
-      {pct > 1 && (
-        <path
-          d={`M ${lx},${ly} A ${r},${r} 0 ${largeArc} 0 ${dotX},${dotY}`}
-          stroke="var(--m-accent)"
-          strokeLinecap="round"
-          strokeOpacity="0.55"
-          strokeWidth="3"
-        />
-      )}
-      {/* Dot */}
-      <circle cx={dotX} cy={dotY} fill="var(--m-accent)" opacity="0.8" r="5.5" />
-      <circle cx={dotX} cy={dotY} fill="var(--m-base-light)" r="2.5" />
-      {/* End ticks */}
-      <line stroke="rgba(139,94,60,0.2)" strokeLinecap="round" strokeWidth="1.5"
-        x1={lx} x2={lx - 5} y1={ly} y2={ly + 4} />
-      <line stroke="rgba(139,94,60,0.2)" strokeLinecap="round" strokeWidth="1.5"
-        x1={rx} x2={rx + 5} y1={ry} y2={ry + 4} />
-      {/* Pct label */}
-      <text dominantBaseline="middle" fill="var(--m-ink3)" fontFamily="system-ui"
-        fontSize="11" textAnchor="middle" x={cx} y={cy - r + 18}>
-        {pct}%
-      </text>
-    </svg>
-  );
 }
 
 // ── Year progress panel ────────────────────────────────────────
@@ -226,9 +174,9 @@ function YearProgressPanel() {
           </div>
         </div>
 
-        {/* Arc */}
+        {/* Vintage clock + pendulum */}
         <div className="hidden w-32 shrink-0 sm:block">
-          <YearArcSVG pct={pct} />
+          <TimePendulum />
         </div>
       </div>
     </Panel>
