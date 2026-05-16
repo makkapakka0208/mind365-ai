@@ -81,11 +81,6 @@ export function TimePendulum({ className }: { className?: string }) {
   };
 
   const angle = eased(tick);
-  const echoes = [
-    { a: eased(tick - 1.4), op: 0.45, w: 1.2 },
-    { a: eased(tick - 2.6), op: 0.3, w: 0.9 },
-    { a: eased(tick - 4.2), op: 0.2, w: 0.6 },
-  ];
 
   // ── 刻度 ────────────────────────────────────────────────────
   const ticks = Array.from({ length: 60 }, (_, i) => {
@@ -119,16 +114,6 @@ export function TimePendulum({ className }: { className?: string }) {
       viewBox="0 0 120 210"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* ── 钟体外壳 ── */}
-      <rect
-        x="4" y="4" width="112" height="124" rx="14"
-        fill="#fdf6ed" stroke="#ddd0bc" strokeWidth="1.2"
-      />
-      <rect
-        x="4" y="4" width="112" height="124" rx="14"
-        fill="none" stroke="rgba(92,64,48,0.04)" strokeWidth="3"
-      />
-
       {/* ── 表圈 ── */}
       <circle cx={cx} cy={cy} r={dialR + 6} fill="#f4e8d4" />
       <circle cx={cx} cy={cy} r={dialR + 6} fill="none" stroke="#c8b4a0" strokeWidth="1.2" />
@@ -213,24 +198,6 @@ export function TimePendulum({ className }: { className?: string }) {
       {/* ── 颈部连接 ── */}
       <rect x={cx - 5} y="124" width="10" height="8" rx="1.5" fill="#c8b4a0" />
       <rect x={cx - 5} y="124" width="10" height="8" rx="1.5" fill="none" stroke="#8b6f5c" strokeWidth="0.5" />
-
-      {/* ── 余影（先画，置底） ── */}
-      {echoes.map((e, i) => {
-        const rad = (e.a * Math.PI) / 180;
-        const tipX = pivotX + Math.sin(rad) * rodLen;
-        const tipY = pivotY + Math.cos(rad) * rodLen;
-        return (
-          <line
-            key={`echo-${i}`}
-            x1={pivotX} y1={pivotY}
-            x2={tipX} y2={tipY}
-            stroke="#8b6f5c"
-            strokeWidth={e.w}
-            opacity={e.op}
-            strokeLinecap="round"
-          />
-        );
-      })}
 
       {/* ── 摆锤组（整体旋转） ── */}
       <g transform={`rotate(${angle}, ${pivotX}, ${pivotY})`}>
