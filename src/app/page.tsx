@@ -768,7 +768,7 @@ export default function HomePage() {
                     {todayLog ? "今天已经记录" : "今日还未记录"}
                   </div>
                   <div className="mt-1 text-sm" style={{ color: "var(--m-ink2)" }}>
-                    {todayLog ? "点击查看或补充今天的记录。" : "写点什么，AI 来帮你整理。"}
+                    {todayLog ? "点击查看或补充今天的记录。" : "记录一下今天的感受与想法。"}
                   </div>
                 </div>
               </div>
