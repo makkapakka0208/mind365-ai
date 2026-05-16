@@ -342,12 +342,13 @@ function TaskRow({
       {!readonly && (
         <button
           aria-label="删除任务"
-          className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+          className="shrink-0 opacity-60 sm:opacity-0 transition-opacity group-hover:opacity-100"
           onClick={onDelete}
           type="button"
           style={{ color: "var(--m-ink3)" }}
         >
-          <Trash2 size={13} />
+          <X size={12} className="sm:hidden" />
+          <Trash2 size={13} className="hidden sm:block" />
         </button>
       )}
     </div>
