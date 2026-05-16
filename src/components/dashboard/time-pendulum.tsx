@@ -49,7 +49,7 @@ export function TimePendulum({ className }: { className?: string }) {
   const yearPctRound = Math.round(yearPct * 100);
 
   // ── 几何参数 ────────────────────────────────────────────────
-  const cx = 60, cy = 62;
+  const cx = 60, cy = 52;
   const dialR = 42;
   const arcR = 32;
 
@@ -70,9 +70,11 @@ export function TimePendulum({ className }: { className?: string }) {
       : "";
 
   // ── 摆锤参数 ────────────────────────────────────────────────
-  const pivotX = cx, pivotY = 130;
+  // bezel 底端 y = cy + dialR + 6 = 100；pivot 紧贴 bezel 下沿
+  const bezelBottomY = cy + dialR + 6; // 100
+  const pivotX = cx, pivotY = bezelBottomY + 6; // 106
   const rodLen = 58;
-  const bobY = pivotY + rodLen;
+  const bobY = pivotY + rodLen; // 164
   const MAX_ANGLE = 18;
 
   const eased = (t: number) => {
@@ -111,7 +113,7 @@ export function TimePendulum({ className }: { className?: string }) {
     <svg
       aria-hidden
       className={className}
-      viewBox="0 0 120 210"
+      viewBox="0 0 120 185"
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* ── 表圈 ── */}
@@ -195,9 +197,22 @@ export function TimePendulum({ className }: { className?: string }) {
       <circle cx={cx} cy={cy} r="3.5" fill="#8b6f5c" />
       <circle cx={cx} cy={cy} r="1.5" fill="#fdf6ed" />
 
-      {/* ── 颈部连接 ── */}
-      <rect x={cx - 5} y="124" width="10" height="8" rx="1.5" fill="#c8b4a0" />
-      <rect x={cx - 5} y="124" width="10" height="8" rx="1.5" fill="none" stroke="#8b6f5c" strokeWidth="0.5" />
+      {/* ── 颈部连接（梯形挂钩，紧贴 bezel 下沿） ── */}
+      <path
+        d={`M ${cx - 7},${bezelBottomY - 1} L ${cx + 7},${bezelBottomY - 1} L ${cx + 4},${pivotY} L ${cx - 4},${pivotY} Z`}
+        fill="#c8b4a0"
+        stroke="#8b6f5c"
+        strokeWidth="0.6"
+        strokeLinejoin="round"
+      />
+      {/* 挂钩横纹 */}
+      <line
+        x1={cx - 5} y1={bezelBottomY + 1.5}
+        x2={cx + 5} y2={bezelBottomY + 1.5}
+        stroke="#8b6f5c"
+        strokeWidth="0.4"
+        opacity="0.5"
+      />
 
       {/* ── 摆锤组（整体旋转） ── */}
       <g transform={`rotate(${angle}, ${pivotX}, ${pivotY})`}>
