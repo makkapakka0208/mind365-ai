@@ -1,63 +1,72 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
 import { getNextAction } from "@/lib/home-insights";
 import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/storage-store";
 
-const TONE_STYLES: Record<"warm" | "alert" | "info", { bg: string; ring: string; ink: string; cta: string }> = {
-  warm: {
-    bg: "rgba(255,236,202,0.55)",
-    ring: "rgba(212,164,42,0.25)",
-    ink: "#7A5F00",
-    cta: "#A77A00",
-  },
-  alert: {
-    bg: "rgba(220,90,60,0.08)",
-    ring: "rgba(220,90,60,0.25)",
-    ink: "#9B3B2A",
-    cta: "#C0392B",
-  },
-  info: {
-    bg: "var(--m-base)",
-    ring: "var(--m-rule)",
-    ink: "var(--m-ink)",
-    cta: "var(--m-accent)",
-  },
-};
-
+// v5 "Calm-style Smart Action" — soft cream-yellow gradient pill at sidebar bottom.
 export function SmartActionCard() {
   const logs = useDailyLogsStore();
   const quotes = useQuotesStore();
   const timeEntries = useTimeEntriesStore();
   const action = useMemo(() => getNextAction(logs, quotes, timeEntries), [logs, quotes, timeEntries]);
-  const tone = TONE_STYLES[action.tone];
 
   return (
     <Link
-      className="group mt-auto block rounded-[20px] p-4 transition-all duration-300 hover:-translate-y-0.5"
+      className="group block rounded-2xl p-4 transition-all"
       href={action.ctaHref}
       style={{
-        background: tone.bg,
-        border: `1px solid ${tone.ring}`,
-        boxShadow: "var(--m-shadow-in)",
+        background: "linear-gradient(135deg, #f7e7c8 0%, #ead4ad 100%)",
+        color: "var(--v5-ink)",
+        boxShadow: "var(--v5-sh-1)",
+        transitionDuration: "var(--v5-dur)",
+        transitionTimingFunction: "var(--v5-ease)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "var(--v5-sh-2)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "var(--v5-sh-1)";
       }}
     >
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: "var(--m-ink3)" }}>
+      <div
+        className="mb-2"
+        style={{
+          fontFamily: "var(--v5-sans)",
+          fontSize: 11,
+          letterSpacing: "0.04em",
+          color: "var(--v5-ink2)",
+        }}
+      >
         下一步
-      </p>
-      <p className="mt-2 text-sm leading-6" style={{ color: tone.ink }}>
+      </div>
+      <div
+        style={{
+          fontFamily: "var(--v5-serif)",
+          fontSize: 14.5,
+          fontWeight: 500,
+          lineHeight: 1.55,
+          color: "var(--v5-ink)",
+        }}
+      >
         {action.message}
-      </p>
-      <span
-        className="mt-3 inline-flex items-center gap-1 text-xs font-semibold transition-transform group-hover:translate-x-0.5"
-        style={{ color: tone.cta }}
+      </div>
+      <div
+        className="mt-3 inline-flex items-center gap-1"
+        style={{
+          fontFamily: "var(--v5-sans)",
+          fontSize: 12.5,
+          fontWeight: 500,
+          color: "var(--v5-accent)",
+        }}
       >
         {action.ctaLabel.replace(/\s*→\s*$/, "")}
-        <ArrowRight size={12} />
-      </span>
+        <span style={{ fontSize: 14 }}>→</span>
+      </div>
     </Link>
   );
 }

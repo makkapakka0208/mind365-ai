@@ -12,23 +12,24 @@ import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
   label: string;
+  shortLabel?: string; // Abbreviated label for mobile tab bar
   href: string;
   icon: LucideIcon;
 }
 
-// Mobile bottom navigation.
+// Mobile bottom navigation (shortLabel shown on tab bar).
 export const mobileNavItems: NavItem[] = [
-  { label: "\u9996\u9875", href: "/", icon: Grid2x2 },
-  { label: "\u8bb0\u5f55", href: "/record", icon: NotebookPen },
-  { label: "\u590d\u76d8", href: "/review", icon: ScanSearch },
-  { label: "\u4e66\u5e93", href: "/library", icon: BookOpen },
-  { label: "\u6211\u7684", href: "/settings", icon: Settings2 },
+  { label: "\u6210\u957f\u6982\u89c8", shortLabel: "\u9996\u9875", href: "/", icon: Grid2x2 },
+  { label: "\u5fc3\u5883\u968f\u7b14", shortLabel: "\u8bb0\u5f55", href: "/daily-log", icon: NotebookPen },
+  { label: "\u590d\u76d8\u62a5\u544a", shortLabel: "\u590d\u76d8", href: "/review", icon: ScanSearch },
+  { label: "\u7075\u611f\u4e66\u5e93", shortLabel: "\u4e66\u5e93", href: "/library", icon: BookOpen },
+  { label: "\u8bbe\u7f6e", shortLabel: "\u6211\u7684", href: "/settings", icon: Settings2 },
 ];
 
-// Desktop sidebar navigation.
+// Desktop sidebar navigation (full label shown).
 export const desktopNavItems: NavItem[] = [
   { label: "\u6210\u957f\u6982\u89c8", href: "/", icon: Grid2x2 },
-  { label: "\u5fc3\u5883\u968f\u7b14", href: "/record", icon: NotebookPen },
+  { label: "\u5fc3\u5883\u968f\u7b14", href: "/daily-log", icon: NotebookPen },
   { label: "\u4eba\u751f\u4e3b\u7ebf", href: "/life-path", icon: Compass },
   { label: "\u53bb\u5e74\u4eca\u65e5", href: "/timeline", icon: Clock },
   { label: "\u7075\u611f\u4e66\u5e93", href: "/library", icon: Quote },

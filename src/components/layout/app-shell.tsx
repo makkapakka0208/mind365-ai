@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -12,7 +10,6 @@ import { OnlineStatus } from "@/components/pwa/online-status";
 import { PWAInstallPrompt } from "@/components/pwa/install-prompt";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 import { useAuth } from "@/lib/auth";
-import { cn } from "@/lib/cn";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -20,7 +17,7 @@ interface AppShellProps {
 
 const PATH_GROUPS: Record<string, string[]> = {
   "/": ["/"],
-  "/record": ["/record", "/daily-log", "/journal"],
+  "/daily-log": ["/daily-log", "/record", "/journal"],
   "/timeline": ["/timeline"],
   "/library": ["/library", "/quotes"],
   "/notes": ["/notes"],
@@ -43,17 +40,14 @@ export function AppShell({ children }: AppShellProps) {
   if (authConfigured && loading) {
     return (
       <div
-        className="flex items-center justify-center"
-        style={{
-          height: "100dvh",
-          background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
-        }}
+        className="v5-page-bg flex items-center justify-center"
+        style={{ height: "100dvh" }}
       >
         <div
           className="h-8 w-8 animate-spin rounded-full border-4"
           style={{
-            borderColor: "var(--m-rule)",
-            borderTopColor: "var(--m-accent)",
+            borderColor: "var(--v5-rule)",
+            borderTopColor: "var(--v5-accent)",
           }}
         />
       </div>
@@ -66,99 +60,106 @@ export function AppShell({ children }: AppShellProps) {
   };
 
   return (
-    <div className="relative overflow-hidden" style={{ color: "var(--m-ink)", height: "100dvh" }}>
-      <div className="mx-auto flex h-full w-full max-w-[1500px] gap-0 md:gap-4 px-0 md:px-4">
-        
-        {/* ── Desktop Sidebar ── */}
+    <div
+      className="v5-page-bg relative overflow-hidden"
+      style={{ color: "var(--v5-ink)", height: "100dvh" }}
+    >
+      <div className="mx-auto flex h-full w-full max-w-[1500px]">
+
+        {/* ── Desktop Sidebar (v5: 240px transparent flat) ── */}
         <aside
-          className="hidden h-full w-72 shrink-0 flex-col overflow-hidden md:my-5 md:flex"
+          aria-label="主导航"
+          className="hidden h-full shrink-0 flex-col md:flex"
           style={{
-            background: "var(--m-base-light)", // 使用基础亮色
-            border: "1px solid var(--m-rule)",
-            borderRadius: "24px",
-            boxShadow: "var(--m-shadow-out)", // 外部浮起阴影
+            width: 240,
+            background: "transparent",
+            padding: "24px 16px",
           }}
         >
-          <div className="flex h-full flex-col px-4 py-4">
-            
-            {/* 顶部品牌卡片 - 采用外凸效果 */}
-            <div
-              className="rounded-[24px] px-5 py-5"
+          {/* Logo */}
+          <div className="flex items-center gap-2.5" style={{ padding: "0 12px 28px" }}>
+            <span
+              className="grid place-items-center"
               style={{
-                background: "var(--m-accent)",
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                background: "var(--v5-accent)",
                 color: "#fff",
-                boxShadow: "var(--m-shadow-out)", 
+                fontFamily: "var(--v5-serif)",
+                fontVariationSettings: '"opsz" 144',
+                fontSize: 16,
+                fontWeight: 500,
+                letterSpacing: "-0.02em",
               }}
             >
-              <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em]" style={{ opacity: 0.9 }}>
-                <BookOpen size={14} />
-                <span>Mind365</span>
-              </div>
-              <div className="mt-3 text-lg font-semibold tracking-tight">Personal Growth</div>
-              <p className="mt-1 text-xs opacity-80">慢一点，写下来，继续成长。</p>
-            </div>
-
-            {/* 导航列表 */}
-            <nav className="mt-4 space-y-0.5 overflow-y-auto">
-              {desktopNavItems.map((item, index) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-
-                return (
-                  <motion.div
-                    animate={{ opacity: 1, y: 0 }}
-                    initial={{ opacity: 0, y: 8 }}
-                    key={item.href}
-                    transition={{ delay: index * 0.03, duration: 0.22, ease: "easeOut" }}
-                  >
-                    <Link
-                      className={cn(
-                        "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300",
-                      )}
-                      href={item.href}
-                      style={
-                        active
-                          ? {
-                              background: "var(--m-base)",
-                              boxShadow: "var(--m-shadow-in)",
-                              color: "var(--m-accent)",
-                            }
-                          : {
-                              color: "var(--m-ink2)",
-                            }
-                      }
-                    >
-                      <span
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px]"
-                        style={{
-                          background: active ? "rgba(139,94,60,0.05)" : "transparent",
-                        }}
-                      >
-                        <Icon size={16} />
-                      </span>
-                      <span className="tracking-[0.01em]">{item.label}</span>
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </nav>
-
-            {/* 底部"下一步"卡片 - 智能给出当前最该做的一个行动 */}
-            <SmartActionCard />
+              M
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--v5-serif)",
+                fontSize: 17,
+                fontWeight: 500,
+                color: "var(--v5-ink)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Mind365
+            </span>
           </div>
+
+          {/* Nav list */}
+          <nav className="grid" style={{ gap: 2 }}>
+            {desktopNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  className="flex items-center"
+                  href={item.href}
+                  key={item.href}
+                  style={{
+                    gap: 12,
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: active ? "1px solid var(--v5-rule)" : "1px solid transparent",
+                    fontFamily: "var(--v5-serif)",
+                    fontSize: 14.5,
+                    fontWeight: active ? 500 : 400,
+                    background: active ? "#fff" : "transparent",
+                    boxShadow: active ? "var(--v5-sh-1)" : "none",
+                    color: active ? "var(--v5-ink)" : "var(--v5-ink2)",
+                    transition:
+                      "background var(--v5-dur-fast) var(--v5-ease), color var(--v5-dur-fast) var(--v5-ease)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = "rgba(75,51,27,0.04)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <Icon
+                    size={16}
+                    color={active ? "var(--v5-accent)" : "var(--v5-ink3)"}
+                  />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div style={{ flex: 1 }} />
+
+          {/* Calm-style Smart Action — soft gradient pill */}
+          <SmartActionCard />
         </aside>
 
         {/* ── Main Content Area ── */}
-        <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden md:py-5">
+        <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
           <main
-            className="m-scroll-hidden h-full flex-1 overflow-y-auto rounded-2xl p-4 pb-28 sm:p-6 md:p-8"
-            style={{
-              background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
-              backgroundImage: [
-                "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
-                "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E\")",
-              ].join(", "),
-            }}
+            className="m-scroll-hidden h-full flex-1 overflow-y-auto px-4 pb-28 pt-5 sm:px-6 md:px-10 md:pb-16 md:pt-8"
           >
             {children}
           </main>

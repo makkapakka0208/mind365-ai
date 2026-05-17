@@ -7,10 +7,10 @@ import { mobileNavItems } from "@/components/layout/nav-items";
 
 const MATCHERS: Record<string, string[]> = {
   "/": ["/"],
-  "/record": ["/record", "/daily-log", "/journal"],
+  "/daily-log": ["/daily-log", "/record", "/journal"],
   "/review": ["/review", "/weekly-review", "/monthly-review", "/yearly-review", "/review-history"],
   "/library": ["/library", "/quotes"],
-  "/me": ["/me", "/settings"],
+  "/settings": ["/settings", "/me"],
 };
 
 export function MobileTabBar() {
@@ -32,7 +32,7 @@ export function MobileTabBar() {
             <span className="m-tab-icon">
               <Icon size={18} />
             </span>
-            <span className="m-tab-label">{tab.label}</span>
+            <span className="m-tab-label">{tab.shortLabel ?? tab.label}</span>
           </Link>
         );
       })}

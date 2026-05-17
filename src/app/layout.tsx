@@ -25,8 +25,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
   themeColor: "#8B5E3C",
 };
@@ -53,6 +51,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Ma+Shan+Zheng&display=swap"
+          rel="stylesheet"
+        />
+        {/* v5 typography — Fraunces variable serif + Inter UI sans */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..800,0..100&family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>

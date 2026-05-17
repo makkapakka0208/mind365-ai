@@ -44,7 +44,8 @@ import {
 } from "@/lib/home-insights";
 import { saveTimeEntry } from "@/lib/storage";
 import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/storage-store";
-import type { DailyLog, TimeEntry } from "@/types";
+import type { DailyLog, Quote, TimeEntry } from "@/types";
+import type { LucideIcon } from "lucide-react";
 
 function getGreeting(date: Date) {
   const hour = date.getHours();
@@ -608,6 +609,492 @@ function MobileYearWidget() {
   );
 }
 
+/* ── v5 helpers ────────────────────────────────────────────────────── */
+
+function getDailyQuote(quotes: Quote[]): Quote | null {
+  if (quotes.length === 0) return null;
+  const today = parseISODate(getTodayISODate());
+  const startOfYear = new Date(today.getFullYear(), 0, 0);
+  const dayNumber = Math.floor((today.getTime() - startOfYear.getTime()) / 86400000);
+  return quotes[dayNumber % quotes.length] ?? null;
+}
+
+function formatShortDate(date: Date) {
+  return `${date.getMonth() + 1}/${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/* ── v5 KPI card ───────────────────────────────────────────────────── */
+
+interface V5KpiCardProps {
+  eyebrow: string;
+  title: string;
+  value: string;
+  unit?: string;
+  icon: LucideIcon;
+  description: string;
+  footerAction?: { label: string; href?: string; onClick?: () => void };
+  children?: React.ReactNode;
+}
+
+function V5KpiCard({ eyebrow, title, value, unit, icon: Icon, description, footerAction, children }: V5KpiCardProps) {
+  const [hov, setHov] = useState(false);
+  const accent = "var(--v5-accent)";
+  return (
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        background: "var(--v5-card)",
+        border: "1px solid var(--v5-rule)",
+        borderRadius: "var(--v5-r-lg)",
+        padding: 28,
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        boxShadow: hov ? "var(--v5-sh-hover)" : "var(--v5-sh-2)",
+        transform: hov ? "translateY(-3px)" : "translateY(0)",
+        transition: "transform var(--v5-dur) var(--v5-ease-out), box-shadow var(--v5-dur) var(--v5-ease-out)",
+      }}
+    >
+      {/* accent corner glow */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          width: 96,
+          height: 96,
+          background: `radial-gradient(circle at top right, rgba(139,94,60,0.13) 0%, transparent 70%)`,
+          opacity: hov ? 1 : 0.6,
+          transition: "opacity var(--v5-dur) var(--v5-ease)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <div className="relative flex items-start justify-between">
+        <div>
+          <div className="v5-eyebrow" style={{ marginBottom: 6 }}>{eyebrow}</div>
+          <div
+            style={{
+              fontSize: 16,
+              fontFamily: "var(--v5-serif)",
+              fontWeight: 500,
+              color: "var(--v5-ink)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {title}
+          </div>
+        </div>
+        <span
+          className="grid place-items-center"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "rgba(139,94,60,0.10)",
+            color: accent,
+            transform: hov ? "scale(1.08) rotate(-4deg)" : "scale(1) rotate(0)",
+            transition: "transform var(--v5-dur) var(--v5-ease-spring)",
+          }}
+        >
+          <Icon size={16} />
+        </span>
+      </div>
+
+      <div className="flex items-baseline" style={{ gap: 6 }}>
+        <span
+          className="v5-numeral"
+          style={{
+            fontSize: 48,
+            fontVariationSettings: '"opsz" 144, "wght" 400',
+            color: "var(--v5-ink)",
+          }}
+        >
+          {value}
+        </span>
+        {unit && (
+          <span
+            style={{
+              paddingBottom: 6,
+              fontSize: 14,
+              fontFamily: "var(--v5-sans)",
+              color: "var(--v5-ink3)",
+            }}
+          >
+            {unit}
+          </span>
+        )}
+      </div>
+
+      <p
+        style={{
+          margin: 0,
+          fontSize: 13,
+          fontFamily: "var(--v5-sans)",
+          lineHeight: 1.65,
+          color: "var(--v5-ink2)",
+        }}
+      >
+        {description}
+      </p>
+
+      {children && (
+        <div
+          style={{
+            marginTop: "auto",
+            transform: hov ? "translateY(-2px)" : "translateY(0)",
+            transition: "transform var(--v5-dur) var(--v5-ease-out)",
+          }}
+        >
+          {children}
+        </div>
+      )}
+
+      {footerAction &&
+        (footerAction.href ? (
+          <Link
+            className="inline-flex items-center self-start"
+            href={footerAction.href}
+            style={{
+              gap: hov ? 8 : 4,
+              fontFamily: "var(--v5-sans)",
+              fontSize: 13,
+              fontWeight: 500,
+              color: accent,
+              transition: "gap var(--v5-dur) var(--v5-ease)",
+            }}
+          >
+            {footerAction.label} <span style={{ fontSize: 14 }}>→</span>
+          </Link>
+        ) : (
+          <button
+            className="inline-flex items-center self-start border-0 bg-transparent p-0"
+            onClick={footerAction.onClick}
+            type="button"
+            style={{
+              gap: hov ? 8 : 4,
+              fontFamily: "var(--v5-sans)",
+              fontSize: 13,
+              fontWeight: 500,
+              color: accent,
+              cursor: "pointer",
+              transition: "gap var(--v5-dur) var(--v5-ease)",
+            }}
+          >
+            {footerAction.label} <span style={{ fontSize: 14 }}>→</span>
+          </button>
+        ))}
+    </div>
+  );
+}
+
+/* ── v5 Hero panel ─────────────────────────────────────────────────── */
+
+interface V5HeroPanelProps {
+  now: Date;
+  greeting: string;
+  weekEntries: number;
+  monthEntries: number;
+  avgMood: number;
+  hasMood: boolean;
+  reviewBadge: string | null;
+  dailyQuote: Quote | null;
+}
+
+function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMood, reviewBadge, dailyQuote }: V5HeroPanelProps) {
+  return (
+    <div
+      className="relative overflow-hidden"
+      style={{
+        borderRadius: 32,
+        padding: "44px 48px",
+        background: "linear-gradient(135deg, #fff 0%, #fef7e8 50%, #f6e5c8 100%)",
+        boxShadow: "var(--v5-sh-3)",
+      }}
+    >
+      {/* breathing decoration */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute"
+        style={{ right: -180, top: "50%", transform: "translateY(-50%)", width: 540, height: 540, opacity: 0.35 }}
+      >
+        <svg viewBox="0 0 480 480" width="100%" height="100%">
+          <defs>
+            <radialGradient cx="50%" cy="50%" id="v5-hero-rg" r="50%">
+              <stop offset="0%" stopColor="#e8a87c" stopOpacity="0.42" />
+              <stop offset="60%" stopColor="#e8a87c" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#e8a87c" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <circle cx="240" cy="240" fill="url(#v5-hero-rg)" r="240">
+            <animate attributeName="r" dur="6s" repeatCount="indefinite" values="240;260;240" />
+            <animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="1;0.7;1" />
+          </circle>
+          <circle cx="240" cy="240" fill="#fff" opacity="0.4" r="160">
+            <animate attributeName="r" dur="6s" repeatCount="indefinite" values="160;180;160" />
+          </circle>
+        </svg>
+      </div>
+
+      <div
+        className="relative grid items-center"
+        style={{ gridTemplateColumns: "minmax(0,1.55fr) minmax(0,1fr)", gap: 48 }}
+      >
+        {/* LEFT */}
+        <div>
+          <div className="v5-eyebrow" style={{ marginBottom: 16 }}>
+            DAILY SYSTEM · {now.getMonth() + 1}月{now.getDate()}日 星期{"日一二三四五六"[now.getDay()]}
+          </div>
+          <h1
+            className="v5-display"
+            style={{
+              margin: 0,
+              fontSize: "clamp(40px, 4.4vw, 56px)",
+              fontVariationSettings: '"opsz" 144, "SOFT" 80',
+              fontWeight: 400,
+              color: "var(--v5-ink)",
+            }}
+          >
+            {greeting}，
+          </h1>
+          <p
+            style={{
+              margin: "24px 0 0",
+              fontFamily: "var(--v5-serif)",
+              fontVariationSettings: '"opsz" 14',
+              fontSize: 16,
+              lineHeight: 1.7,
+              color: "var(--v5-ink2)",
+              fontStyle: "italic",
+              maxWidth: 480,
+            }}
+          >
+            愿你在喧嚣之外，拥有一片自由呼吸的自留地。
+          </p>
+
+          <div className="mt-9 flex flex-wrap" style={{ gap: 12 }}>
+            <Link
+              className="inline-flex items-center justify-center"
+              href="/daily-log"
+              style={{
+                fontFamily: "var(--v5-sans)",
+                fontSize: 14,
+                fontWeight: 500,
+                padding: "12px 22px",
+                borderRadius: 999,
+                background: "var(--v5-ink)",
+                color: "#fff",
+                boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+                transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.background = "var(--v5-accent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.background = "var(--v5-ink)";
+              }}
+            >
+              写一条新记录
+            </Link>
+            <Link
+              className="inline-flex items-center"
+              href="/review"
+              style={{
+                fontFamily: "var(--v5-sans)",
+                fontSize: 14,
+                fontWeight: 500,
+                padding: "12px 22px",
+                borderRadius: 999,
+                border: "1px solid var(--v5-rule-strong)",
+                background: "transparent",
+                color: "var(--v5-ink2)",
+                gap: 8,
+                transition: "background var(--v5-dur) var(--v5-ease)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(75,51,27,0.06)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              进入周 / 月复盘
+              {reviewBadge && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5"
+                  style={{ background: "#C0392B", color: "#fff", fontSize: 10, fontWeight: 600 }}
+                >
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
+                  {reviewBadge}
+                </span>
+              )}
+            </Link>
+            <Link
+              href="/week-plan"
+              style={{
+                fontFamily: "var(--v5-sans)",
+                fontSize: 14,
+                fontWeight: 500,
+                padding: "12px 22px",
+                borderRadius: 999,
+                background: "transparent",
+                color: "var(--v5-ink2)",
+                transition: "background var(--v5-dur) var(--v5-ease)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(75,51,27,0.06)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              本周主线
+            </Link>
+          </div>
+
+          {/* Inline stats */}
+          <div className="mt-7 flex" style={{ gap: 32, fontFamily: "var(--v5-sans)" }}>
+            {[
+              { label: "This week", value: String(weekEntries), unit: "篇" },
+              { label: "This month", value: String(monthEntries), unit: "篇" },
+              { label: "Avg mood", value: hasMood ? avgMood.toFixed(1) : "--", unit: "/ 10" },
+            ].map((stat, i) => (
+              <div className="flex items-stretch" key={stat.label} style={{ gap: 32 }}>
+                {i > 0 && <div style={{ width: 1, background: "var(--v5-rule)" }} />}
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 500,
+                      letterSpacing: "0.06em",
+                      color: "var(--v5-ink3)",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {stat.label}
+                  </div>
+                  <div
+                    className="v5-numeral mt-1"
+                    style={{ fontSize: 26, color: "var(--v5-ink)" }}
+                  >
+                    {stat.value}{" "}
+                    <span style={{ fontSize: 13, color: "var(--v5-ink3)", marginLeft: 2 }}>{stat.unit}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT — Today's Reflection */}
+        <div
+          className="relative flex min-w-0 flex-col"
+          style={{
+            background: "rgba(255, 251, 240, 0.55)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            border: "1px solid rgba(139, 94, 60, 0.10)",
+            borderRadius: 24,
+            padding: "32px 32px 28px",
+            boxShadow: "0 2px 12px rgba(139, 94, 60, 0.06)",
+            gap: 18,
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="v5-eyebrow" style={{ fontSize: 10 }}>Today&apos;s Reflection</span>
+            <span
+              style={{
+                fontFamily: "var(--v5-mono)",
+                fontSize: 10.5,
+                color: "var(--v5-ink3)",
+                letterSpacing: "0.08em",
+              }}
+            >
+              {formatShortDate(now)}
+            </span>
+          </div>
+
+          <p
+            className="relative"
+            style={{
+              margin: 0,
+              fontFamily: "var(--v5-serif)",
+              fontVariationSettings: '"opsz" 144, "SOFT" 60',
+              fontSize: 22,
+              lineHeight: 1.42,
+              color: "var(--v5-ink)",
+              letterSpacing: "-0.015em",
+              paddingLeft: 18,
+            }}
+          >
+            <span
+              aria-hidden
+              className="absolute"
+              style={{
+                left: 0,
+                top: -8,
+                fontFamily: "var(--v5-serif)",
+                fontVariationSettings: '"opsz" 144, "wght" 500',
+                fontSize: 56,
+                lineHeight: 1,
+                color: "var(--v5-accent)",
+                opacity: 0.5,
+              }}
+            >
+              “
+            </span>
+            {dailyQuote?.text ?? "重要的不是被给予了什么，而是如何去使用被给予的东西。"}
+          </p>
+
+          <div className="flex items-center" style={{ gap: 12 }}>
+            <span style={{ width: 24, height: 1, background: "var(--v5-rule-strong)" }} />
+            <span
+              style={{
+                fontFamily: "var(--v5-serif)",
+                fontStyle: "italic",
+                fontSize: 13,
+                color: "var(--v5-ink2)",
+                fontVariationSettings: '"opsz" 14',
+              }}
+            >
+              {dailyQuote
+                ? `${dailyQuote.author || "佚名"}${dailyQuote.book ? ` · ${dailyQuote.book}` : ""}`
+                : "阿德勒 · 被讨厌的勇气"}
+            </span>
+          </div>
+
+          {/* Footer */}
+          <div
+            className="mt-1 flex items-center justify-between"
+            style={{
+              paddingTop: 16,
+              borderTop: "1px dashed var(--v5-rule)",
+              fontFamily: "var(--v5-sans)",
+            }}
+          >
+            <span
+              className="inline-flex items-center"
+              style={{ gap: 6, fontSize: 11.5, color: "var(--v5-ink3)" }}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--v5-accent)" }} />
+              {dailyQuote?.book ? `今日阅读 · 《${dailyQuote.book}》` : "今日还没有摘录"}
+            </span>
+            <Link
+              className="v5-quote-link"
+              href="/library"
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: "var(--v5-accent)",
+              }}
+            >
+              书库 →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const logs = useDailyLogsStore();
   const quotes = useQuotesStore();
@@ -643,6 +1130,7 @@ export default function HomePage() {
   );
   const streak = useMemo(() => getConsecutiveStreak(logs), [logs]);
   const moodSeries = useMemo(() => buildMoodSeries(weeklyLogs), [weeklyLogs]);
+  const dailyQuote = useMemo(() => getDailyQuote(quotes), [quotes]);
 
   // ── Smart factual insights replacing the previous poetic descriptions
   const allTimeBest = useMemo(() => getAllTimeBestStreak(logs), [logs]);
@@ -1047,280 +1535,194 @@ export default function HomePage() {
           )}
         </section>
 
-        <section className="hidden md:block space-y-6">
-          <Panel className="px-8 py-8 lg:px-10">
-            <div className="flex flex-wrap items-start justify-between gap-6 border-b border-dashed pb-6" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
-              <div className="max-w-4xl">
-                <p className="text-xs font-medium tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                  DAILY SYSTEM · {formatHeaderDate(now)}
-                </p>
-                <h1 className="mt-3 text-[2rem] font-semibold leading-tight tracking-[-0.05em]" style={{ color: "var(--m-ink)" }}>
-                  {getGreetingHeadline(now)}
-                </h1>
-                <p className="mt-4 max-w-3xl text-[15px] leading-8" style={{ color: "var(--m-ink2)" }}>
-                  愿你在喧嚣之外，拥有一片自由呼吸的自留地。
-                </p>
-              </div>
-
-              <Link
-                aria-label="查看本周长期趋势"
-                className="flex h-14 w-14 items-center justify-center rounded-[16px] transition-transform hover:-translate-y-0.5"
-                href="#trends"
-                style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
-                title="查看本周长期趋势"
-              >
-                <TrendingUp size={22} />
-              </Link>
-            </div>
+        <section className="mx-auto hidden md:block" style={{ maxWidth: 1240 }}>
+          <div className="grid" style={{ gap: 32 }}>
+            <V5HeroPanel
+              avgMood={weeklySummary.entries ? weeklySummary.averageMood : 0}
+              dailyQuote={dailyQuote}
+              greeting={getGreeting(now)}
+              hasMood={weeklySummary.entries > 0}
+              monthEntries={monthlySummary.entries}
+              now={now}
+              reviewBadge={reviewBadge}
+              weekEntries={weeklySummary.entries}
+            />
 
             {monthEndPrompt && (
               <div
-                className="mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-sm"
+                className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
                 style={{
-                  background: "rgba(212,164,42,0.08)",
+                  background: "rgba(200,137,58,0.08)",
                   color: "#7A5F00",
-                  border: "1px solid rgba(212,164,42,0.25)",
+                  border: "1px solid rgba(200,137,58,0.22)",
+                  fontFamily: "var(--v5-sans)",
                 }}
               >
                 <span>📌 {monthEndPrompt}</span>
               </div>
             )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link href="/record">
-                <Button size="lg" variant="primary">
-                  写一条新记录
-                </Button>
-              </Link>
-              <Link className="relative" href="/review">
-                <Button size="lg" variant="ghost">
-                  进入周 / 月复盘
-                  {reviewBadge && (
-                    <span className="ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: "#C0392B", color: "#fff" }}>
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
-                      {reviewBadge}
-                    </span>
-                  )}
-                </Button>
-              </Link>
-              <Link href="/week-plan">
-                <Button size="lg" variant="ghost">
-                  本周主线
-                </Button>
-              </Link>
+            {/* 4 KPI cards */}
+            <div className="grid" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 18 }}>
+              <V5KpiCard
+                description={streakInsight}
+                eyebrow="STREAK"
+                footerAction={streak === 0 ? { label: "点亮热力图", href: "/daily-log" } : undefined}
+                icon={Flame}
+                title="连续记录"
+                unit="天"
+                value={String(streak)}
+              >
+                <HeatmapMini logs={logs} />
+              </V5KpiCard>
 
-              <div className="ml-auto flex flex-wrap items-center gap-2 text-sm">
-                <span className="rounded-full border px-3 py-2" style={{ borderColor: "rgba(139,94,60,0.12)", color: "var(--m-ink2)" }}>
-                  本周 {weeklySummary.entries} 条记录
-                </span>
-                <span className="rounded-full border px-3 py-2" style={{ borderColor: "rgba(139,94,60,0.12)", color: "var(--m-ink2)" }}>
-                  本月 {monthlySummary.entries} 条沉淀
-                </span>
-              </div>
-            </div>
-          </Panel>
+              <V5KpiCard
+                description={moodInsight}
+                eyebrow="MOOD"
+                footerAction={weeklySummary.entries === 0 ? { label: "写下今天的情绪", href: "/daily-log" } : undefined}
+                icon={Sparkles}
+                title="本周情绪"
+                unit="/10"
+                value={weeklySummary.entries ? weeklySummary.averageMood.toFixed(1) : "--"}
+              >
+                <MoodSparkline values={moodSeries} />
+              </V5KpiCard>
 
-          <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-4 xl:gap-6">
-            <DashboardCard
-              action={
-                streak === 0 ? (
-                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
-                    从今天开始点亮热力图
-                  </Link>
-                ) : null
-              }
-              description={streakInsight}
-              eyebrow="STREAK"
-              icon={Flame}
-              title="连续记录"
-              unit="天"
-              value={String(streak)}
-            >
-              <HeatmapMini logs={logs} />
-            </DashboardCard>
+              <V5KpiCard
+                description={focusInsight}
+                eyebrow="FOCUS"
+                footerAction={{ label: todayStudyHours > 0 ? "再记一点" : "记录学习时间", onClick: () => setTimeDialogType("study") }}
+                icon={NotebookPen}
+                title="学习时长"
+                unit="h"
+                value={weeklySummary.totalStudyHours.toFixed(1)}
+              >
+                <ProgressRing current={weeklySummary.totalStudyHours} label="专注进度" target={10} />
+              </V5KpiCard>
 
-            <DashboardCard
-              action={
-                weeklySummary.entries === 0 ? (
-                  <Link className="text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
-                    写下今天的情绪切片
-                  </Link>
-                ) : null
-              }
-              description={moodInsight}
-              eyebrow="MOOD"
-              icon={Sparkles}
-              title="本周情绪"
-              unit="/10"
-              value={weeklySummary.entries ? weeklySummary.averageMood.toFixed(1) : "--"}
-            >
-              <MoodSparkline values={moodSeries} />
-            </DashboardCard>
-
-            <DashboardCard
-              action={
-                <TimeTextButton done={todayStudyHours > 0} onClick={() => setTimeDialogType("study")}>
-                  给今天记一点学习时间
-                </TimeTextButton>
-              }
-              description={focusInsight}
-              eyebrow="FOCUS"
-              icon={NotebookPen}
-              title="学习时长"
-              unit="h"
-              value={weeklySummary.totalStudyHours.toFixed(1)}
-            >
-              <ProgressRing current={weeklySummary.totalStudyHours} label="专注进度" target={10} />
-            </DashboardCard>
-
-            <DashboardCard
-              action={
-                <TimeTextButton done={todayReadingHours > 0} onClick={() => setTimeDialogType("reading")}>
-                  记录一次阅读片刻
-                </TimeTextButton>
-              }
-              description={readingInsight}
-              eyebrow="READING"
-              icon={BookOpen}
-              title="阅读时长"
-              unit="h"
-              value={weeklySummary.totalReadingHours.toFixed(1)}
-            >
-              <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={7} />
-            </DashboardCard>
-          </div>
-
-          <Panel className="p-7 lg:p-8">
-            <div className="flex items-center justify-between border-b border-dashed pb-5" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
-              <div>
-                <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                  FEATURED · 书页摘录
-                </p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-tight">精选记录</h3>
-              </div>
-
-              {recentLogs.length > 1 ? (
-                <div className="hidden items-center gap-2">
-                  <button
-                    aria-label="上一页"
-                    className="flex h-10 w-10 items-center justify-center rounded-[14px] border"
-                    onClick={() => turnPage("prev")}
-                    style={{
-                      background: "var(--m-base-light)",
-                      borderColor: "rgba(139,94,60,0.12)",
-                      color: "var(--m-accent)",
-                    }}
-                    type="button"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <button
-                    aria-label="下一页"
-                    className="flex h-10 w-10 items-center justify-center rounded-[14px] border"
-                    onClick={() => turnPage("next")}
-                    style={{
-                      background: "var(--m-base-light)",
-                      borderColor: "rgba(139,94,60,0.12)",
-                      color: "var(--m-accent)",
-                    }}
-                    type="button"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-              ) : null}
+              <V5KpiCard
+                description={readingInsight}
+                eyebrow="READING"
+                footerAction={{ label: todayReadingHours > 0 ? "再记一段" : "记录阅读片刻", onClick: () => setTimeDialogType("reading") }}
+                icon={BookOpen}
+                title="阅读时长"
+                unit="h"
+                value={weeklySummary.totalReadingHours.toFixed(1)}
+              >
+                <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={7} />
+              </V5KpiCard>
             </div>
 
-            <div className="mt-6">
-              {activeEntry ? (
-                <>
-                  <FeaturedBookPreview entry={activeEntry} onClick={() => setDiaryModalId(activeEntry.id)} />
-                  <div className="mt-5 flex items-center justify-between gap-4 px-3">
-                    <div
-                      className="text-sm tracking-[0.28em]"
-                      style={{
-                        color: "var(--m-ink2)",
-                        fontFamily: '"Playfair Display", "Noto Serif SC", serif',
-                      }}
-                    >
-                      {String(safeIndex + 1).padStart(2, "0")} / {String(recentLogs.length).padStart(2, "0")}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        aria-label="上一页"
-                        className="flex h-9 w-9 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-40"
-                        disabled={recentLogs.length <= 1}
-                        onClick={() => turnPage("prev")}
-                        style={{
-                          background: "rgba(255,248,238,0.78)",
-                          borderColor: "rgba(139,94,60,0.12)",
-                          color: "var(--m-accent)",
-                        }}
-                        type="button"
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
-                      <button
-                        aria-label="下一页"
-                        className="flex h-9 w-9 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-40"
-                        disabled={recentLogs.length <= 1}
-                        onClick={() => turnPage("next")}
-                        style={{
-                          background: "rgba(255,248,238,0.78)",
-                          borderColor: "rgba(139,94,60,0.12)",
-                          color: "var(--m-accent)",
-                        }}
-                        type="button"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="rounded-[22px] border border-dashed px-6 py-10 text-center" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
-                  <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                    还没有可以展示的精选记录。
+            {/* Featured — original Panel-based layout (per user request) */}
+            <Panel className="p-7 lg:p-8">
+              <div className="flex items-center justify-between border-b border-dashed pb-5" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
+                <div>
+                  <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
+                    FEATURED · 书页摘录
                   </p>
-                  <Link className="mt-4 inline-flex text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
-                    去写今天的第一条记录
-                  </Link>
+                  <h3 className="mt-2 text-2xl font-semibold tracking-tight">精选记录</h3>
                 </div>
-              )}
-            </div>
-          </Panel>
+              </div>
 
-          <section className="space-y-5" id="trends">
-            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div className="mt-6">
+                {activeEntry ? (
+                  <>
+                    <FeaturedBookPreview entry={activeEntry} onClick={() => setDiaryModalId(activeEntry.id)} />
+                    <div className="mt-5 flex items-center justify-between gap-4 px-3">
+                      <div
+                        className="text-sm tracking-[0.28em]"
+                        style={{
+                          color: "var(--m-ink2)",
+                          fontFamily: '"Playfair Display", "Noto Serif SC", serif',
+                        }}
+                      >
+                        {String(safeIndex + 1).padStart(2, "0")} / {String(recentLogs.length).padStart(2, "0")}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          aria-label="上一页"
+                          className="flex h-9 w-9 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={recentLogs.length <= 1}
+                          onClick={() => turnPage("prev")}
+                          style={{
+                            background: "rgba(255,248,238,0.78)",
+                            borderColor: "rgba(139,94,60,0.12)",
+                            color: "var(--m-accent)",
+                          }}
+                          type="button"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button
+                          aria-label="下一页"
+                          className="flex h-9 w-9 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={recentLogs.length <= 1}
+                          onClick={() => turnPage("next")}
+                          style={{
+                            background: "rgba(255,248,238,0.78)",
+                            borderColor: "rgba(139,94,60,0.12)",
+                            color: "var(--m-accent)",
+                          }}
+                          type="button"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-[22px] border border-dashed px-6 py-10 text-center" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
+                    <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+                      还没有可以展示的精选记录。
+                    </p>
+                    <Link className="mt-4 inline-flex text-sm font-medium" href="/daily-log" style={{ color: "var(--m-accent)" }}>
+                      去写今天的第一条记录
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </Panel>
+
+            {/* Trends · 长期趋势 */}
+            <section className="grid" id="trends" style={{ gap: 20 }}>
               <div className="max-w-3xl">
-                <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                  TRENDS · 长期趋势
-                </p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-tight" style={{ color: "var(--m-ink)" }}>
+                <div className="v5-eyebrow">TRENDS · 长期趋势</div>
+                <h3
+                  className="v5-display mt-2"
+                  style={{ fontSize: 30, fontVariationSettings: '"opsz" 144', fontWeight: 400 }}
+                >
                   长期趋势概览
                 </h3>
-                <p className="mt-3 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+                <p
+                  className="mt-3"
+                  style={{ fontFamily: "var(--v5-sans)", fontSize: 14, lineHeight: 1.7, color: "var(--v5-ink2)" }}
+                >
                   将情绪波动、专注投入与阅读节奏整合为连续曲线，帮助你在时间跨度中发现规律、识别转折，看见真实的成长轨迹。
                 </p>
               </div>
-            </div>
 
-            {logs.length === 0 ? (
-              <Panel className="p-7 lg:p-8">
-                <div className="rounded-[22px] border border-dashed px-6 py-10 text-center" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
-                  <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+              {logs.length === 0 ? (
+                <div
+                  className="rounded-[28px] border border-dashed px-6 py-10 text-center"
+                  style={{ borderColor: "var(--v5-rule-strong)", background: "var(--v5-card)" }}
+                >
+                  <p className="text-sm leading-7" style={{ color: "var(--v5-ink2)" }}>
                     先连续记录几天，成长概览里的长期趋势图就会自动长出来。
                   </p>
-                  <Link className="mt-4 inline-flex text-sm font-medium" href="/record" style={{ color: "var(--m-accent)" }}>
+                  <Link
+                    className="mt-4 inline-flex text-sm font-medium"
+                    href="/daily-log"
+                    style={{ color: "var(--v5-accent)" }}
+                  >
                     去写今天的记录
                   </Link>
                 </div>
-              </Panel>
-            ) : (
-              <CombinedTrendChart logs={logs} quotes={quotes} timeEntries={timeEntries} />
-            )}
-          </section>
+              ) : (
+                <CombinedTrendChart logs={logs} quotes={quotes} timeEntries={timeEntries} />
+              )}
+            </section>
+          </div>
         </section>
       </div>
 
