@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CalendarDays, CheckCircle2, Feather, ImagePlus, NotebookPen } from "lucide-react";
+import { CalendarDays, CheckCircle2, Paperclip } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -20,7 +20,7 @@ import { useImageMigration } from "@/lib/use-image-migration";
 import type { DailyLog } from "@/types";
 
 const MOODS = [
-  { emoji: "😞", label: "很低落", value: 2 },
+  { emoji: "😔", label: "很低落", value: 2 },
   { emoji: "😐", label: "平静", value: 4 },
   { emoji: "🙂", label: "还可以", value: 6 },
   { emoji: "😊", label: "开心", value: 8 },
@@ -50,38 +50,35 @@ function RecentEntryButton({
   log: DailyLog;
   onClick: () => void;
 }) {
-  const preview = log.thoughts.trim().replace(/\s+/g, " ").slice(0, 56);
+  const preview = log.thoughts.trim().replace(/\s+/g, " ").slice(0, 82);
 
   return (
     <button
-      className="group w-full rounded-[22px] px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5"
+      className="group w-full rounded-[18px] px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5"
       onClick={onClick}
       style={{
-        background: active ? "rgba(165,106,67,0.12)" : "rgba(255,250,242,0.62)",
-        border: `1px solid ${active ? "rgba(165,106,67,0.28)" : "rgba(139,94,60,0.10)"}`,
-        boxShadow: active ? "0 16px 30px rgba(122,79,43,0.10)" : "0 10px 24px rgba(122,79,43,0.05)",
+        background: active ? "rgba(156, 98, 58, 0.16)" : "rgba(255, 251, 244, 0.56)",
+        border: `1px solid ${active ? "rgba(156, 98, 58, 0.28)" : "rgba(130, 89, 57, 0.10)"}`,
+        boxShadow: active ? "0 14px 26px rgba(110, 72, 43, 0.10)" : "none",
       }}
       type="button"
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="text-xs tracking-[0.16em]" style={{ color: "var(--m-ink3)" }}>
+        <span className="text-xs tracking-[0.14em]" style={{ color: "var(--v5-ink3)" }}>
           {log.date.slice(5).replace("-", "/")}
         </span>
-        <span className="text-xs" style={{ color: "var(--m-accent)" }}>
-          {log.mood}/10
+        <span className="inline-flex items-center gap-1 text-xs italic" style={{ color: "var(--v5-ink2)" }}>
+          <span className="h-2.5 w-2.5 rounded-full" style={{ background: "#99643f" }} />
+          mood {log.mood}/10
         </span>
       </div>
-      <p className="mt-2 line-clamp-2 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
-        {preview || "这一天留下了一页安静的空白。"}
+      <p className="mt-3 line-clamp-2 text-sm leading-7" style={{ color: "var(--v5-ink2)" }}>
+        {preview || "这一页还留着安静的空白。"}
       </p>
       {log.tags.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap gap-2">
           {log.tags.slice(0, 3).map((tag) => (
-            <span
-              className="rounded-full px-2 py-0.5 text-[11px]"
-              key={tag}
-              style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-ink3)" }}
-            >
+            <span className="text-xs italic" key={tag} style={{ color: "var(--v5-accent)" }}>
               #{tag}
             </span>
           ))}
@@ -106,7 +103,7 @@ function DailyLogInner() {
   const allLogs = useDailyLogsStore();
   const timeEntries = useTimeEntriesStore();
   const logs = sortLogsByDate(allLogs, "desc");
-  const recentLogs = logs.slice(0, 5);
+  const recentLogs = logs.slice(0, 4);
 
   const [viewingDate, setViewingDate] = useState(initialDate);
   const [diaryModalId, setDiaryModalId] = useState<string | null>(null);
@@ -117,7 +114,6 @@ function DailyLogInner() {
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Run background migration of base64 images to Supabase Storage
   useImageMigration();
 
   const existingLog = useMemo(
@@ -146,7 +142,6 @@ function DailyLogInner() {
     setImages([]);
   }, [existingLog, viewingDate]);
 
-  // Background migration: convert base64 images to Supabase Storage URLs
   useEffect(() => {
     if (!existingLog) return;
     const hasBase64 = existingLog.images?.some(isBase64DataUrl);
@@ -156,14 +151,15 @@ function DailyLogInner() {
     (async () => {
       const { urls, changed } = await migrateBase64Images(existingLog.images ?? []);
       if (cancelled || !changed) return;
-      // Update the log with new URLs
       await updateDailyLog({ ...existingLog, images: urls });
       setImages(urls);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [existingLog]);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isFuture || isSaving) return;
 
@@ -195,86 +191,63 @@ function DailyLogInner() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [existingLog, images, isFuture, isSaving, mood, tagList, thoughts, viewingDate]);
 
   return (
     <>
-    <PageTransition className="space-y-6">
-      <section
-        className="relative overflow-hidden rounded-[30px] px-5 py-6 sm:px-7 lg:px-9"
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(255,251,244,0.96), rgba(245,234,216,0.84)), radial-gradient(circle at 18% 0%, rgba(255,235,190,0.34), transparent 32%)",
-          border: "1px solid rgba(139,94,60,0.12)",
-          boxShadow: "0 26px 60px rgba(122,79,43,0.12)",
-        }}
-      >
+      <PageTransition className="daily-log-v5 mx-auto max-w-[1460px] space-y-6 pb-8">
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.12]"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E\")",
-          }}
-        />
-
-        <div className="relative flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <p className="flex items-center gap-2 text-xs font-medium tracking-[0.24em]" style={{ color: "var(--m-ink3)" }}>
-              <Feather size={15} />
-              JOURNAL NOTEBOOK
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: "var(--m-ink)" }}>
-              今晚，慢慢写下来
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-              这里不急着提交什么，只是给今天留一页纸。情绪、片段、画面，都可以轻轻放下。
-            </p>
-          </div>
-          <div
-            className="rounded-full px-4 py-2 text-sm"
-            style={{ background: "rgba(255,250,242,0.72)", border: "1px solid rgba(139,94,60,0.12)", color: "var(--m-ink2)" }}
-          >
-            {formatDate(viewingDate)}
-          </div>
+          className="pointer-events-none fixed right-5 top-5 z-10 hidden rounded-full px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-white md:block"
+          style={{ background: "var(--v5-ink)", boxShadow: "0 10px 24px rgba(33, 22, 17, 0.18)" }}
+        >
+          JOURNAL · v5
         </div>
-      </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <StaggerItem index={0}>
-          <form
-            className="relative overflow-hidden rounded-[32px] p-5 sm:p-7 lg:p-9"
-            id="journal-form"
-            onSubmit={onSubmit}
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(255,252,246,0.98), rgba(249,240,225,0.96)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
-              backgroundSize: "auto, 44px 44px",
-              border: "1px solid rgba(139,94,60,0.12)",
-              boxShadow: "0 30px 70px rgba(122,79,43,0.13)",
-            }}
-          >
-            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                  WRITING SPACE
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>
-                  {existingLog ? "继续整理这一页" : "写一页新的日记"}
-                </h2>
+        <section className="daily-log-hero">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div>
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="v5-eyebrow">JOURNAL NOTEBOOK · 心境随笔</span>
+                <span className="hidden h-px w-7 bg-[var(--v5-rule-strong)] sm:block" />
+                <span className="daily-log-date">{formatDate(viewingDate)}</span>
               </div>
-              <Button disabled={isSaving || isFuture} size="lg" type="submit" variant="primary">
-                {isSaving ? "保存中..." : existingLog ? "更新日记" : "保存日记"}
-              </Button>
+              <h1 className="daily-log-title">今晚，慢慢写下来</h1>
+              <p className="daily-log-subtitle">
+                这里不急着提交什么，只是给今天留一页纸。情绪、片段、画面，都可以轻轻放下。
+              </p>
             </div>
+          </div>
+        </section>
 
-            <div className="space-y-8">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_540px]">
+          <StaggerItem index={0}>
+            <form className="daily-log-paper" id="journal-form" onSubmit={onSubmit}>
+              <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="v5-eyebrow">WRITING SPACE</p>
+                  <h2 className="mt-3 text-[28px] font-semibold leading-tight tracking-[-0.02em]" style={{ color: "var(--v5-ink)" }}>
+                    {existingLog ? "继续整理这一页" : "写一页新的日记"}
+                  </h2>
+                </div>
+                <Button
+                  className="rounded-full px-7"
+                  disabled={isSaving || isFuture}
+                  size="lg"
+                  type="submit"
+                  variant="primary"
+                >
+                  <Paperclip className="mr-2" size={16} />
+                  {isSaving ? "保存中..." : existingLog ? "写下来" : "保存日记"}
+                </Button>
+              </div>
+
               <section>
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium" style={{ color: "var(--v5-ink)" }}>
                     今天的心情
                   </p>
-                  <span className="text-xs" style={{ color: "var(--m-ink3)" }}>
-                    {activeMood.label} · {mood}/10
+                  <span className="text-sm italic" style={{ color: "var(--v5-ink3)" }}>
+                    {activeMood.label} · mood {mood}/10
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -282,20 +255,20 @@ function DailyLogInner() {
                     const selected = item.value === activeMood.value;
                     return (
                       <button
-                        className="group rounded-[22px] px-3 py-4 text-center transition duration-300 hover:-translate-y-1"
+                        className="daily-log-mood"
                         key={item.value}
                         onClick={() => setMood(item.value)}
                         style={{
-                          background: selected ? "rgba(255,244,226,0.96)" : "rgba(255,250,242,0.72)",
-                          border: `1px solid ${selected ? "rgba(214,154,84,0.55)" : "rgba(139,94,60,0.10)"}`,
+                          background: selected ? "#fff4df" : "rgba(255, 251, 244, 0.66)",
+                          borderColor: selected ? "rgba(214, 154, 84, 0.58)" : "rgba(139, 94, 60, 0.10)",
                           boxShadow: selected
-                            ? "0 18px 34px rgba(214,154,84,0.18)"
-                            : "0 10px 24px rgba(122,79,43,0.05)",
+                            ? "0 18px 38px rgba(196, 133, 70, 0.18)"
+                            : "0 10px 24px rgba(122, 79, 43, 0.05)",
                         }}
                         type="button"
                       >
-                        <span className="block text-2xl transition duration-300 group-hover:scale-110">{item.emoji}</span>
-                        <span className="mt-2 block text-xs" style={{ color: selected ? "var(--m-accent)" : "var(--m-ink3)" }}>
+                        <span className="block text-2xl">{item.emoji}</span>
+                        <span className="mt-2 block text-sm" style={{ color: selected ? "var(--v5-accent)" : "var(--v5-ink3)" }}>
                           {item.label}
                         </span>
                       </button>
@@ -304,186 +277,122 @@ function DailyLogInner() {
                 </div>
               </section>
 
-              <section>
+              <section className="mt-8">
                 <Textarea
-                  className="min-h-[460px] resize-y rounded-[28px] px-6 py-6 text-[16px] leading-9 sm:min-h-[560px] sm:px-8 sm:py-8"
+                  className="daily-log-textarea"
                   onChange={(event) => setThoughts(event.target.value)}
                   placeholder="今天发生了什么？从一个画面、一句话、一个念头开始就好..."
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(255,253,248,0.92), rgba(250,243,231,0.82)), repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.055) 36px)",
-                    border: "1px solid rgba(139,94,60,0.10)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78)",
-                    fontFamily: '"Noto Serif SC", "Songti SC", serif',
-                  }}
                   value={thoughts}
                 />
-                <div className="mt-3 flex justify-end text-xs" style={{ color: "var(--m-ink3)" }}>
-                  {thoughts.length} 字
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs" style={{ color: "var(--v5-ink3)" }}>
+                  <span>{thoughts.length} 字</span>
+                  {message ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: "rgba(74,155,111,0.08)", color: "var(--m-success)" }}>
+                      <CheckCircle2 size={14} />
+                      {message}
+                    </span>
+                  ) : null}
                 </div>
               </section>
 
-              <section
-                className="rounded-[26px] p-5"
-                style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
-              >
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  <BookOpen size={16} />
-                  标签
-                </div>
-                <Input
-                  onChange={(event) => setTags(event.target.value)}
-                  placeholder="输入自定义标签，用空格或逗号分隔"
-                  type="text"
-                  value={tags}
-                  style={{
-                    background: "rgba(255,253,248,0.68)",
-                    borderRadius: 22,
-                    borderColor: "rgba(139,94,60,0.10)",
-                    boxShadow: "0 8px 18px rgba(122,79,43,0.04)",
-                    padding: "0.85rem 1rem",
-                  }}
-                />
-                {tagList.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {tagList.map((tag) => (
-                      <span
-                        className="rounded-full px-3 py-1.5 text-xs transition duration-300 hover:-translate-y-0.5"
-                        key={tag}
-                        style={{
-                          background: "rgba(172,120,76,0.10)",
-                          border: "1px solid rgba(139,94,60,0.10)",
-                          color: "var(--m-accent)",
-                        }}
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-3 text-xs leading-6" style={{ color: "var(--m-ink3)" }}>
-                    例如：#成长 #阅读 #平静。这里会跟随你的输入生成标签。
+              <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+                <section className="daily-log-soft-panel">
+                  <label className="text-sm font-medium" style={{ color: "var(--v5-ink)" }}>
+                    标签
+                  </label>
+                  <Input
+                    className="mt-3"
+                    onChange={(event) => setTags(event.target.value)}
+                    placeholder="例如：#vibe #coding"
+                    type="text"
+                    value={tags}
+                    style={{
+                      background: "rgba(255,253,248,0.72)",
+                      borderRadius: 16,
+                      borderColor: "rgba(139,94,60,0.10)",
+                    }}
+                  />
+                  {tagList.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {tagList.map((tag) => (
+                        <span className="text-xs italic" key={tag} style={{ color: "var(--v5-accent)" }}>
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </section>
+
+                <section className="daily-log-soft-panel">
+                  <p className="mb-3 text-sm font-medium" style={{ color: "var(--v5-ink)" }}>
+                    今天的画面
                   </p>
-                )}
-              </section>
-
-              <section
-                className="rounded-[26px] p-5"
-                style={{ background: "rgba(255,250,242,0.62)", border: "1px solid rgba(139,94,60,0.10)" }}
-              >
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-                  <ImagePlus size={16} />
-                  今天的画面
-                </div>
-                <ImageUploader images={images} onChange={setImages} />
-              </section>
+                  <ImageUploader images={images} onChange={setImages} />
+                </section>
+              </div>
 
               {isFuture ? (
-                <p className="rounded-[18px] px-4 py-3 text-sm" style={{ background: "rgba(192,57,43,0.06)", color: "#9b463d" }}>
+                <p className="mt-5 rounded-[16px] px-4 py-3 text-sm" style={{ background: "rgba(192,57,43,0.06)", color: "#9b463d" }}>
                   未来的页面还没展开，先回到今天写下这一刻。
                 </p>
               ) : null}
+            </form>
+          </StaggerItem>
 
-              {message ? (
-                <p className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm" style={{ background: "rgba(74,155,111,0.08)", color: "var(--m-success)" }}>
-                  <CheckCircle2 size={16} />
-                  {message}
-                </p>
-              ) : null}
-            </div>
-          </form>
-
-        </StaggerItem>
-
-        <StaggerItem index={1}>
-          <aside className="space-y-5 xl:sticky xl:top-6">
-            <div
-              className="rounded-[28px] p-4"
-              style={{
-                background: "rgba(255,250,242,0.72)",
-                border: "1px solid rgba(139,94,60,0.12)",
-                boxShadow: "0 18px 40px rgba(122,79,43,0.10)",
-              }}
-            >
-              <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
-            </div>
-
-            <div
-              className="rounded-[28px] p-5"
-              style={{
-                background: "rgba(255,250,242,0.72)",
-                border: "1px solid rgba(139,94,60,0.12)",
-                boxShadow: "0 18px 40px rgba(122,79,43,0.08)",
-              }}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                    ARCHIVE
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold" style={{ color: "var(--m-ink)" }}>
-                    最近写下的
-                  </h3>
-                </div>
-                <CalendarDays size={18} style={{ color: "var(--m-accent)" }} />
+          <StaggerItem index={1}>
+            <aside className="space-y-5 xl:sticky xl:top-6">
+              <div className="daily-log-side-card">
+                <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
               </div>
 
-              {recentLogs.length > 0 ? (
-                <div className="space-y-3">
-                  {recentLogs.map((log) => (
-                    <RecentEntryButton
-                      active={log.date === viewingDate}
-                      key={log.id}
-                      log={log}
-                      onClick={() => setDiaryModalId(log.id)}
-                    />
-                  ))}
+              <div className="daily-log-side-card daily-log-archive">
+                <div className="mb-5 flex items-start justify-between">
+                  <div>
+                    <span className="v5-eyebrow" style={{ fontSize: 11 }}>
+                      ARCHIVE
+                    </span>
+                    <h3 className="mt-1 text-[24px] font-semibold leading-tight tracking-[-0.02em]" style={{ color: "var(--v5-ink)" }}>
+                      最近写下的
+                    </h3>
+                  </div>
+                  <CalendarDays size={18} style={{ color: "var(--v5-accent)" }} />
                 </div>
-              ) : (
-                <div
-                  className="rounded-[22px] px-4 py-8 text-center text-sm leading-7"
-                  style={{ background: "rgba(255,253,248,0.58)", color: "var(--m-ink3)" }}
-                >
-                  还没有日记。第一篇会在这里静静出现。
-                </div>
-              )}
-            </div>
 
-            <div
-              className="rounded-[28px] p-5"
-              style={{
-                background: "linear-gradient(135deg, rgba(255,247,235,0.92), rgba(245,231,210,0.72))",
-                border: "1px solid rgba(139,94,60,0.10)",
-                color: "var(--m-ink2)",
-              }}
-            >
-              <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--m-ink)" }}>
-                <NotebookPen size={16} />
-                记录的意义
-              </p>
-              <p className="mt-3 text-sm leading-7">
-                "无论多么微小的情绪或进步，只要被写下来，就是抵抗遗忘的锚点。不要有压力，只写一两句也很好。"
-              </p>
-            </div>
-          </aside>
-        </StaggerItem>
-      </div>
-    </PageTransition>
+                {recentLogs.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentLogs.map((log) => (
+                      <RecentEntryButton
+                        active={log.date === viewingDate}
+                        key={log.id}
+                        log={log}
+                        onClick={() => setDiaryModalId(log.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-[18px] px-4 py-8 text-center text-sm leading-7" style={{ color: "var(--v5-ink3)" }}>
+                    还没有日记。第一篇会在这里安静出现。
+                  </div>
+                )}
+              </div>
+            </aside>
+          </StaggerItem>
+        </div>
+      </PageTransition>
 
-    <DiaryBookModalPortal
-      entries={logs}
-      entryId={diaryModalId}
-      timeEntries={timeEntries}
-      onClose={() => setDiaryModalId(null)}
-      onEdit={(entry) => {
-        setViewingDate(entry.date);
-        setDiaryModalId(null);
-        // Scroll form into view
-        setTimeout(() => {
-          document.getElementById("journal-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 100);
-      }}
-    />
+      <DiaryBookModalPortal
+        entries={logs}
+        entryId={diaryModalId}
+        timeEntries={timeEntries}
+        onClose={() => setDiaryModalId(null)}
+        onEdit={(entry) => {
+          setViewingDate(entry.date);
+          setDiaryModalId(null);
+          setTimeout(() => {
+            document.getElementById("journal-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 100);
+        }}
+      />
     </>
   );
 }

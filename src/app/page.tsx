@@ -811,7 +811,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
       className="relative overflow-hidden"
       style={{
         borderRadius: 32,
-        padding: "44px 48px",
+        padding: "28px 48px",
         background: "linear-gradient(135deg, #fff 0%, #fef7e8 50%, #f6e5c8 100%)",
         boxShadow: "var(--v5-sh-3)",
       }}
@@ -820,7 +820,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
       <div
         aria-hidden
         className="pointer-events-none absolute"
-        style={{ right: -180, top: "50%", transform: "translateY(-50%)", width: 540, height: 540, opacity: 0.35 }}
+        style={{ right: -150, top: "50%", transform: "translateY(-50%)", width: 460, height: 460, opacity: 0.35 }}
       >
         <svg viewBox="0 0 480 480" width="100%" height="100%">
           <defs>
@@ -939,6 +939,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
                 fontWeight: 500,
                 padding: "12px 22px",
                 borderRadius: 999,
+                border: "1px solid var(--v5-rule-strong)",
                 background: "transparent",
                 color: "var(--v5-ink2)",
                 transition: "background var(--v5-dur) var(--v5-ease)",
@@ -993,9 +994,9 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
             WebkitBackdropFilter: "blur(8px)",
             border: "1px solid rgba(139, 94, 60, 0.10)",
             borderRadius: 24,
-            padding: "32px 32px 28px",
+            padding: "24px 24px 20px",
             boxShadow: "0 2px 12px rgba(139, 94, 60, 0.06)",
-            gap: 18,
+            gap: 14,
           }}
         >
           <div className="flex items-center justify-between">

@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowDownNarrowWide,
   ArrowLeft,
   Bookmark,
   Brain,
@@ -9,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Coins,
+  Feather,
   FolderOpen,
   Grid3X3,
   LayoutList,
@@ -19,10 +22,14 @@ import {
   Save,
   Search,
   Sparkles,
+  Shuffle,
+  Sprout,
   Tag,
+  Target,
   Trash2,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -75,38 +82,49 @@ function isInThisWeek(iso: string): boolean {
   return d.getTime() >= monday.getTime() && d.getTime() <= sunday.getTime();
 }
 
-// ── Tab segmented control ──────────────────────────────────────
+// ── Tab segmented control (v5 pill) ────────────────────────────
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
-  const tabs: { id: Tab; label: string; Icon: typeof Lightbulb }[] = [
-    { id: "quotes", label: "书海拾金", Icon: Lightbulb },
-    { id: "notes", label: "阅读笔记", Icon: Brain },
+  const tabs: { id: Tab; label: string; Icon: LucideIcon }[] = [
+    { id: "quotes", label: "书海拾金", Icon: QuoteIcon },
+    { id: "notes", label: "阅读笔记", Icon: Feather },
     { id: "archive", label: "收藏归档", Icon: FolderOpen },
   ];
 
   return (
     <div
-      className="inline-flex rounded-xl p-1"
-      style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
+      className="inline-flex self-start"
+      style={{
+        padding: 4,
+        borderRadius: 14,
+        background: "var(--v5-card)",
+        border: "1px solid var(--v5-rule)",
+        boxShadow: "var(--v5-sh-1)",
+      }}
     >
       {tabs.map(({ id, label, Icon }) => {
         const isActive = active === id;
         return (
           <button
-            className="inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-sm font-medium transition-all duration-200"
+            className="inline-flex items-center"
             key={id}
             onClick={() => onChange(id)}
-            style={
-              isActive
-                ? {
-                    background: "var(--m-base-light)",
-                    boxShadow: "var(--m-shadow-out)",
-                    color: "var(--m-accent)",
-                  }
-                : { color: "var(--m-ink3)" }
-            }
             type="button"
+            style={{
+              gap: 7,
+              padding: "10px 18px",
+              borderRadius: 10,
+              border: 0,
+              fontFamily: "var(--v5-serif)",
+              fontSize: 14,
+              fontWeight: isActive ? 500 : 400,
+              cursor: "pointer",
+              background: isActive ? "var(--v5-accent)" : "transparent",
+              color: isActive ? "#fff" : "var(--v5-ink2)",
+              boxShadow: isActive ? "0 2px 8px rgba(139,94,60,0.18)" : "none",
+              transition: "background var(--v5-dur-fast) var(--v5-ease), color var(--v5-dur-fast) var(--v5-ease)",
+            }}
           >
-            <Icon size={14} />
+            <Icon size={13} />
             {label}
           </button>
         );
@@ -1106,6 +1124,510 @@ function QuoteStackModal({
 }
 
 // ── Archive section (folders + search + cognitive card) ───────
+/* ──────────────────────────────────────────────────────────────────
+ * v5 Archive helpers: ThemeCard palette, SearchBar, WeeklyInsight,
+ * ThemeCard. Used by ArchiveSection desktop branch.
+ * ────────────────────────────────────────────────────────────────── */
+
+interface V5ThemeMeta {
+  accent: string;
+  Icon: LucideIcon;
+}
+
+function getThemeMeta(label: string): V5ThemeMeta {
+  // Map known built-in themes to a tinted accent + Lucide icon.
+  // Falls back to cocoa primary for custom themes.
+  switch (label) {
+    case "赚钱":
+      return { accent: "#a8853c", Icon: Coins };
+    case "行动":
+      return { accent: "#b96845", Icon: Target };
+    case "情绪与认知":
+      return { accent: "#8b5e3c", Icon: Brain };
+    case "成长":
+      return { accent: "#6a8554", Icon: Sprout };
+    case "未分类":
+      return { accent: "#a89580", Icon: FolderOpen };
+    default:
+      return { accent: "var(--v5-accent)", Icon: FolderOpen };
+  }
+}
+
+function V5SearchBar({ value, onChange }: { value: string; onChange: (s: string) => void }) {
+  return (
+    <label
+      className="inline-flex w-full items-center"
+      style={{
+        gap: 10,
+        padding: "10px 16px",
+        borderRadius: 999,
+        background: "var(--v5-card)",
+        border: "1px solid var(--v5-rule)",
+        maxWidth: 560,
+      }}
+    >
+      <Search size={15} style={{ color: "var(--v5-ink3)", flexShrink: 0 }} />
+      <input
+        className="flex-1 border-0 bg-transparent outline-none"
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="搜索金句、阅读笔记、标签…"
+        style={{
+          fontFamily: "var(--v5-serif)",
+          fontSize: 14,
+          color: "var(--v5-ink)",
+          minWidth: 0,
+        }}
+        type="text"
+        value={value}
+      />
+      <span
+        className="inline-flex items-center"
+        style={{
+          gap: 3,
+          padding: "2px 8px",
+          border: "1px solid var(--v5-rule-strong)",
+          borderRadius: 6,
+          fontFamily: "var(--v5-mono)",
+          fontSize: 10.5,
+          color: "var(--v5-ink3)",
+          letterSpacing: "0.04em",
+        }}
+      >
+        ⌘ K
+      </span>
+    </label>
+  );
+}
+
+// Same heuristic as the legacy WeeklyCognitiveCard.generate()
+const COGNITIVE_LINES: Record<string, string> = {
+  "成长": "长期主义正在形成",
+  "情绪与认知": "对自我情绪的觉察更细腻",
+  "行动": "从想法到落地的距离在缩短",
+  "赚钱": "商业与价值的判断力在累积",
+  "关系": "对人与人的连接在重新审视",
+  "智慧": "对底层规律的兴趣在加深",
+};
+function buildCognitiveSummary(topThemes: { label: string; count: number }[]): string[] {
+  return topThemes.slice(0, 3).map((t) => COGNITIVE_LINES[t.label] ?? `「${t.label}」正在成为本周的关注点`);
+}
+
+function V5WeeklyInsight({
+  weekQuotes,
+  buckets,
+}: {
+  weekQuotes: Quote[];
+  buckets: ReturnType<typeof groupQuotesByTheme>;
+}) {
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - 6);
+  const dateRange = `${weekStart.getMonth() + 1}/${String(weekStart.getDate()).padStart(2, "0")} — ${now.getMonth() + 1}/${String(now.getDate()).padStart(2, "0")}`;
+
+  // Per-theme weekly counts
+  const weekByTheme = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const q of weekQuotes) {
+      const label = classifyQuote(q);
+      m.set(label, (m.get(label) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [weekQuotes]);
+
+  const topTheme = weekByTheme[0];
+  const maxCount = topTheme?.[1] ?? 0;
+
+  // Cognitive summary (lazy-built on click, same heuristic as WeeklyCognitiveCard)
+  const [summary, setSummary] = useState<string[] | null>(null);
+  const generateSummary = () => {
+    setSummary(buildCognitiveSummary(weekByTheme.map(([label, count]) => ({ label, count }))));
+  };
+
+  return (
+    <div
+      className="relative overflow-hidden grid"
+      style={{
+        gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
+        gap: 32,
+        borderRadius: 28,
+        padding: "32px 36px",
+        background: "linear-gradient(135deg, var(--v5-card) 0%, #faecc8 100%)",
+        boxShadow: "var(--v5-sh-2)",
+      }}
+    >
+      {/* Left column */}
+      <div>
+        <div className="flex items-center" style={{ gap: 14 }}>
+          <span className="v5-eyebrow">WEEKLY INSIGHT · 本周收藏</span>
+          <span style={{ width: 24, height: 1, background: "var(--v5-rule-strong)" }} />
+          <span
+            style={{
+              fontFamily: "var(--v5-mono)",
+              fontSize: 11,
+              color: "var(--v5-ink3)",
+              letterSpacing: "0.06em",
+            }}
+          >
+            {dateRange}
+          </span>
+        </div>
+
+        <h3
+          style={{
+            margin: "16px 0 0",
+            fontFamily: "var(--v5-serif)",
+            fontVariationSettings: '"opsz" 144, "SOFT" 60',
+            fontSize: 26,
+            fontWeight: 400,
+            lineHeight: 1.4,
+            color: "var(--v5-ink)",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          本周收藏了{" "}
+          <span style={{ color: "var(--v5-accent)", fontStyle: "italic" }}>{weekQuotes.length} 条</span>{" "}
+          金句
+        </h3>
+
+        <p
+          style={{
+            margin: "10px 0 0",
+            fontFamily: "var(--v5-serif)",
+            fontStyle: "italic",
+            fontVariationSettings: '"opsz" 14',
+            fontSize: 14,
+            lineHeight: 1.7,
+            color: "var(--v5-ink2)",
+          }}
+        >
+          {topTheme
+            ? `主要集中在 ${topTheme[0]} (${topTheme[1]})，慢慢拼出你这周关心的事。`
+            : "本周还没有新的收藏。今天读到的句子，可以试着记下来。"}
+        </p>
+
+        {summary ? (
+          <div
+            className="mt-5"
+            style={{
+              borderRadius: 16,
+              padding: "16px 18px",
+              background: "rgba(139,94,60,0.05)",
+              border: "1px solid rgba(139,94,60,0.10)",
+            }}
+          >
+            <div className="v5-eyebrow" style={{ fontSize: 10 }}>
+              本周核心认知
+            </div>
+            <ol className="m-0 mt-3 list-none p-0" style={{ display: "grid", gap: 8 }}>
+              {summary.map((line, i) => (
+                <li
+                  key={i}
+                  style={{
+                    fontFamily: "var(--v5-serif)",
+                    fontSize: 14,
+                    lineHeight: 1.75,
+                    color: "var(--v5-ink)",
+                  }}
+                >
+                  <span style={{ color: "var(--v5-accent)", marginRight: 6, fontWeight: 600 }}>
+                    {i + 1}.
+                  </span>
+                  {line}
+                </li>
+              ))}
+            </ol>
+            <button
+              className="mt-3 inline-flex items-center"
+              onClick={() => setSummary(null)}
+              type="button"
+              style={{
+                border: 0,
+                background: "transparent",
+                padding: 0,
+                color: "var(--v5-ink3)",
+                fontFamily: "var(--v5-sans)",
+                fontSize: 12,
+                cursor: "pointer",
+                gap: 4,
+              }}
+            >
+              重新生成
+            </button>
+          </div>
+        ) : (
+          <button
+            className="mt-5 inline-flex items-center"
+            disabled={weekByTheme.length === 0}
+            onClick={generateSummary}
+            type="button"
+            style={{
+              gap: 6,
+              padding: "10px 18px",
+              borderRadius: 999,
+              border: 0,
+              background: "var(--v5-ink)",
+              color: "#fff",
+              fontFamily: "var(--v5-sans)",
+              fontSize: 13.5,
+              fontWeight: 500,
+              cursor: weekByTheme.length === 0 ? "not-allowed" : "pointer",
+              opacity: weekByTheme.length === 0 ? 0.5 : 1,
+              boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+              transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
+            }}
+            onMouseEnter={(e) => {
+              if (weekByTheme.length === 0) return;
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.background = "var(--v5-accent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.background = "var(--v5-ink)";
+            }}
+          >
+            <Sparkles size={14} />
+            生成认知总结
+          </button>
+        )}
+      </div>
+
+      {/* Right column: distribution viz */}
+      <div className="flex flex-col" style={{ gap: 12 }}>
+        <div
+          className="v5-eyebrow"
+          style={{ fontSize: 10 }}
+        >
+          Distribution
+        </div>
+        {weekByTheme.length === 0 ? (
+          <p style={{ margin: 0, fontFamily: "var(--v5-sans)", fontSize: 12.5, color: "var(--v5-ink3)" }}>
+            本周还没有数据。
+          </p>
+        ) : (
+          weekByTheme.slice(0, 5).map(([label, count]) => {
+            const { accent } = getThemeMeta(label);
+            const pct = Math.max(8, (count / Math.max(1, maxCount)) * 100);
+            return (
+              <div className="flex items-center" key={label} style={{ gap: 10 }}>
+                <span
+                  style={{
+                    flex: "0 0 90px",
+                    fontFamily: "var(--v5-serif)",
+                    fontSize: 13,
+                    color: "var(--v5-ink2)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {label}
+                </span>
+                <div className="flex-1" style={{ height: 4, background: "rgba(75,51,27,0.06)", borderRadius: 999 }}>
+                  <div
+                    style={{
+                      width: `${pct}%`,
+                      height: "100%",
+                      background: accent,
+                      borderRadius: 999,
+                      transition: "width var(--v5-dur-slow) var(--v5-ease-out)",
+                    }}
+                  />
+                </div>
+                <span
+                  style={{
+                    flex: "0 0 auto",
+                    fontFamily: "var(--v5-mono)",
+                    fontSize: 12,
+                    color: "var(--v5-ink2)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {count}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function V5ThemeCard({
+  bucket,
+  weekCount,
+  onOpen,
+}: {
+  bucket: ReturnType<typeof groupQuotesByTheme>[number];
+  weekCount: number;
+  onOpen: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  const { accent, Icon } = getThemeMeta(bucket.label);
+  const preview = bucket.items[0];
+
+  return (
+    <button
+      className="relative overflow-hidden text-left"
+      onClick={onOpen}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      type="button"
+      style={{
+        background: "var(--v5-card)",
+        border: "1px solid var(--v5-rule)",
+        borderRadius: 22,
+        padding: 22,
+        boxShadow: hov ? "var(--v5-sh-hover)" : "var(--v5-sh-2)",
+        transform: hov ? "translateY(-3px)" : "translateY(0)",
+        transition: "transform var(--v5-dur) var(--v5-ease-out), box-shadow var(--v5-dur) var(--v5-ease-out)",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
+        minHeight: 200,
+      }}
+    >
+      {/* accent corner glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute"
+        style={{
+          top: 0,
+          right: 0,
+          width: 96,
+          height: 96,
+          background: `radial-gradient(circle at top right, color-mix(in oklab, ${accent}, transparent 78%) 0%, transparent 70%)`,
+          opacity: hov ? 1 : 0.6,
+          transition: "opacity var(--v5-dur) var(--v5-ease)",
+        }}
+      />
+
+      {/* Top row */}
+      <div className="relative flex items-start justify-between" style={{ gap: 10 }}>
+        <div className="flex items-start" style={{ gap: 12, minWidth: 0 }}>
+          <span
+            className="grid place-items-center"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 11,
+              background: `color-mix(in oklab, ${accent}, transparent 86%)`,
+              border: `1px solid color-mix(in oklab, ${accent}, transparent 70%)`,
+              color: accent,
+              transform: hov ? "scale(1.06) rotate(-4deg)" : "scale(1) rotate(0)",
+              transition: "transform var(--v5-dur) var(--v5-ease-spring)",
+              flexShrink: 0,
+            }}
+          >
+            <Icon size={17} strokeWidth={1.7} />
+          </span>
+          <div className="min-w-0">
+            <div className="v5-eyebrow" style={{ fontSize: 10 }}>Collection</div>
+            <div
+              style={{
+                marginTop: 2,
+                fontFamily: "var(--v5-serif)",
+                fontSize: 18,
+                fontWeight: 500,
+                color: "var(--v5-ink)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {bucket.label}
+            </div>
+          </div>
+        </div>
+        <ChevronRight size={16} style={{ color: "var(--v5-ink-mute)", flexShrink: 0 }} />
+      </div>
+
+      {/* Mid row */}
+      <div className="flex items-baseline justify-between" style={{ gap: 10 }}>
+        <div className="flex items-baseline" style={{ gap: 4 }}>
+          <span
+            className="v5-numeral"
+            style={{
+              fontSize: 32,
+              fontVariationSettings: '"opsz" 144, "wght" 400',
+              color: "var(--v5-ink)",
+            }}
+          >
+            {bucket.items.length}
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--v5-sans)",
+              fontSize: 12,
+              color: "var(--v5-ink3)",
+            }}
+          >
+            条
+          </span>
+        </div>
+        {weekCount > 0 && (
+          <span
+            style={{
+              padding: "3px 10px",
+              borderRadius: 999,
+              background: `color-mix(in oklab, ${accent}, transparent 84%)`,
+              color: accent,
+              fontFamily: "var(--v5-sans)",
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >
+            本周 +{weekCount}
+          </span>
+        )}
+      </div>
+
+      {/* Bottom preview */}
+      <div
+        className="mt-auto"
+        style={{
+          paddingTop: 12,
+          borderTop: "1px dashed var(--v5-rule)",
+        }}
+      >
+        {preview ? (
+          <>
+            <p
+              style={{
+                margin: 0,
+                fontFamily: "var(--v5-serif)",
+                fontStyle: "italic",
+                fontSize: 12.5,
+                lineHeight: 1.55,
+                color: "var(--v5-ink2)",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              “{preview.text}”
+            </p>
+            <p
+              style={{
+                margin: "6px 0 0",
+                fontFamily: "var(--v5-serif)",
+                fontSize: 11.5,
+                color: "var(--v5-ink3)",
+              }}
+            >
+              — {preview.author || "佚名"}
+            </p>
+          </>
+        ) : (
+          <p style={{ margin: 0, fontFamily: "var(--v5-sans)", fontSize: 12, color: "var(--v5-ink-mute)" }}>
+            暂未归类
+          </p>
+        )}
+      </div>
+    </button>
+  );
+}
+
 function ArchiveSection({
   quotes,
   notes,
@@ -1234,8 +1756,88 @@ function ArchiveSection({
     );
   }
 
+  // v5 desktop: weekly quotes + per-theme week counts
+  const weekQuotes = useMemo(
+    () => quotes.filter((q) => isInThisWeek(q.createdAt.slice(0, 10))),
+    [quotes],
+  );
+  const themeWeekCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const q of weekQuotes) {
+      const label = classifyQuote(q);
+      m.set(label, (m.get(label) ?? 0) + 1);
+    }
+    return m;
+  }, [weekQuotes]);
+
   return (
-    <div className="space-y-5">
+    <>
+    {/* ── Desktop v5 layout ── */}
+    <section className="hidden md:block">
+      <div className="grid" style={{ gap: 28 }}>
+        <V5SearchBar onChange={setQuery} value={query} />
+
+        {isSearching ? (
+          /* When searching, fall through to mobile-style results below */
+          <div
+            className="rounded-[20px] border border-dashed px-6 py-10 text-center"
+            style={{ borderColor: "var(--v5-rule-strong)", background: "var(--v5-card)" }}
+          >
+            <p style={{ margin: 0, fontFamily: "var(--v5-sans)", fontSize: 13, color: "var(--v5-ink3)" }}>
+              在下方查看搜索结果（共 {matchingQuotes.length + matchingNotes.length} 条匹配）。
+            </p>
+          </div>
+        ) : buckets.length === 0 ? (
+          <EmptyState
+            description="保存第一条金句后，AI 会自动按主题分类，这里会形成你的认知文件夹。"
+            icon={FolderOpen}
+            illustrationAlt="empty archive"
+            illustrationSrc="/illustrations/relaxed-reading.svg"
+            title="还没有归档内容"
+          />
+        ) : (
+          <>
+            <V5WeeklyInsight buckets={buckets} weekQuotes={weekQuotes} />
+
+            <div>
+              <div className="mb-5 flex flex-wrap items-end justify-between" style={{ gap: 16 }}>
+                <div>
+                  <div className="v5-eyebrow">COLLECTIONS · 主题归档</div>
+                  <h2
+                    className="v5-display mt-2"
+                    style={{
+                      margin: 0,
+                      fontSize: 28,
+                      fontVariationSettings: '"opsz" 144',
+                      fontWeight: 400,
+                      color: "var(--v5-ink)",
+                    }}
+                  >
+                    按主题翻阅
+                  </h2>
+                </div>
+              </div>
+              <div
+                className="grid"
+                style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 18 }}
+              >
+                {buckets.map((b) => (
+                  <V5ThemeCard
+                    bucket={b}
+                    key={b.label}
+                    onOpen={() => setOpenFolder(b.label)}
+                    weekCount={themeWeekCounts.get(b.label) ?? 0}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+
+    {/* ── Mobile (existing layout) ── */}
+    <div className="md:hidden space-y-5">
       {/* Search */}
       <div className="relative">
         <Search
@@ -1409,6 +2011,1047 @@ function ArchiveSection({
         </>
       )}
     </div>
+    </>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * v5 Library helpers: PageHeader, TodaysPick, FilterBar,
+ * QuoteCard variants, AddQuoteModal
+ * ────────────────────────────────────────────────────────────────── */
+
+function V5PageHeader() {
+  return (
+    <div>
+      <div className="v5-eyebrow">LIBRARY · 灵感书库</div>
+      <h1
+        className="v5-display mt-2"
+        style={{
+          margin: 0,
+          fontSize: "clamp(34px, 4vw, 48px)",
+          fontVariationSettings: '"opsz" 144, "SOFT" 60',
+          fontWeight: 400,
+          color: "var(--v5-ink)",
+        }}
+      >
+        灵感书库
+      </h1>
+      <p
+        className="mt-3"
+        style={{
+          margin: "12px 0 0",
+          fontFamily: "var(--v5-serif)",
+          fontVariationSettings: '"opsz" 14',
+          fontSize: 16,
+          lineHeight: 1.7,
+          color: "var(--v5-ink2)",
+          fontStyle: "italic",
+          maxWidth: 520,
+        }}
+      >
+        把值得反复回看的句子和阅读笔记，收进同一座灵感书库里。
+      </p>
+    </div>
+  );
+}
+
+function V5TodaysPick({
+  quote,
+  onShuffle,
+  onSaveToday,
+}: {
+  quote: Quote | null;
+  onShuffle: () => void;
+  onSaveToday: () => void;
+}) {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 0);
+  const dayNumber = Math.floor((now.getTime() - startOfYear.getTime()) / 86400000);
+  const dateLabel = `${now.getMonth() + 1}月${now.getDate()}日`;
+
+  return (
+    <div
+      className="relative overflow-hidden"
+      style={{
+        borderRadius: 32,
+        padding: "clamp(28px, 4vw, 48px) clamp(28px, 4.5vw, 56px)",
+        background: "linear-gradient(135deg, var(--v5-card) 0%, #faecc8 100%)",
+        boxShadow: "var(--v5-sh-3)",
+      }}
+    >
+      {/* Decorative giant glyph */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute"
+        style={{
+          right: 32,
+          top: -40,
+          fontFamily: "var(--v5-serif)",
+          fontVariationSettings: '"opsz" 144, "wght" 500',
+          fontSize: 280,
+          lineHeight: 1,
+          color: "var(--v5-accent)",
+          opacity: 0.08,
+          userSelect: "none",
+        }}
+      >
+        “
+      </span>
+
+      {/* Top eyebrow row */}
+      <div className="relative flex items-center" style={{ gap: 16 }}>
+        <span className="v5-eyebrow">TODAY&apos;S PICK · 今日金句</span>
+        <span style={{ width: 24, height: 1, background: "var(--v5-rule-strong)" }} />
+        <span
+          style={{
+            fontFamily: "var(--v5-mono)",
+            fontSize: 11,
+            color: "var(--v5-ink3)",
+            letterSpacing: "0.08em",
+          }}
+        >
+          {dateLabel} · 第 {dayNumber} 日
+        </span>
+      </div>
+
+      {/* Quote text */}
+      <p
+        className="relative"
+        style={{
+          margin: "28px 0 0",
+          fontFamily: "var(--v5-serif)",
+          fontVariationSettings: '"opsz" 144, "SOFT" 60',
+          fontSize: "clamp(24px, 3.4vw, 42px)",
+          fontWeight: 400,
+          lineHeight: 1.35,
+          color: "var(--v5-ink)",
+          letterSpacing: "-0.015em",
+          maxWidth: 880,
+        }}
+      >
+        {quote?.text ?? "重要的不是被给予了什么，而是如何去使用被给予的东西。"}
+      </p>
+
+      {/* Footer row */}
+      <div
+        className="relative mt-8 flex flex-wrap items-center justify-between"
+        style={{ gap: 16 }}
+      >
+        <div className="flex items-center" style={{ gap: 14, minWidth: 0 }}>
+          <span style={{ width: 28, height: 1, background: "var(--v5-rule-strong)", flexShrink: 0 }} />
+          <span
+            style={{
+              fontFamily: "var(--v5-serif)",
+              fontStyle: "italic",
+              fontSize: 15,
+              color: "var(--v5-ink2)",
+              fontVariationSettings: '"opsz" 14',
+            }}
+          >
+            {quote
+              ? `${quote.author || "佚名"}${quote.book ? ` · 《${quote.book}》` : ""}`
+              : "阿德勒 · 《被讨厌的勇气》"}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center" style={{ gap: 10 }}>
+          <button
+            className="inline-flex items-center"
+            onClick={onShuffle}
+            type="button"
+            style={{
+              gap: 6,
+              padding: "10px 18px",
+              borderRadius: 999,
+              border: "1px solid var(--v5-rule-strong)",
+              background: "transparent",
+              color: "var(--v5-ink2)",
+              fontFamily: "var(--v5-sans)",
+              fontSize: 13.5,
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "background var(--v5-dur) var(--v5-ease)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(75,51,27,0.06)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Shuffle size={14} />
+            换一句
+          </button>
+          <button
+            className="inline-flex items-center"
+            disabled={!quote}
+            onClick={onSaveToday}
+            type="button"
+            style={{
+              gap: 6,
+              padding: "10px 18px",
+              borderRadius: 999,
+              border: 0,
+              background: "var(--v5-ink)",
+              color: "#fff",
+              fontFamily: "var(--v5-sans)",
+              fontSize: 13.5,
+              fontWeight: 500,
+              cursor: quote ? "pointer" : "not-allowed",
+              opacity: quote ? 1 : 0.5,
+              boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+              transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
+            }}
+            onMouseEnter={(e) => {
+              if (!quote) return;
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.background = "var(--v5-accent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.background = "var(--v5-ink)";
+            }}
+          >
+            <Bookmark size={14} />
+            收藏到今日
+          </button>
+        </div>
+      </div>
+
+      {/* Tag chips */}
+      {quote && quote.tags && quote.tags.length > 0 && (
+        <div className="relative mt-5 flex flex-wrap" style={{ gap: 8 }}>
+          {quote.tags.slice(0, 5).map((tag) => (
+            <span
+              key={tag}
+              style={{
+                padding: "5px 12px",
+                borderRadius: 999,
+                background: "rgba(139,94,60,0.07)",
+                color: "var(--v5-ink2)",
+                fontFamily: "var(--v5-serif)",
+                fontStyle: "italic",
+                fontSize: 12.5,
+              }}
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── v5 Filter bar ─────────────────────────────────────────────── */
+
+interface V5FilterBarProps {
+  onAdd: () => void;
+  search: string;
+  onSearch: (s: string) => void;
+  allTags: string[];
+  activeTags: Set<string>;
+  onToggleTag: (t: string) => void;
+  onClearTags: () => void;
+  sort: SortMode;
+  onSortChange: (s: SortMode) => void;
+}
+
+type SortMode = "recent" | "author" | "tag";
+
+const SORT_LABELS: Record<SortMode, string> = {
+  recent: "最新收藏",
+  author: "按作者",
+  tag: "按标签",
+};
+
+function V5FilterBar({
+  onAdd,
+  search,
+  onSearch,
+  allTags,
+  activeTags,
+  onToggleTag,
+  onClearTags,
+  sort,
+  onSortChange,
+}: V5FilterBarProps) {
+  const [showAllTags, setShowAllTags] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const visibleTags = showAllTags ? allTags : allTags.slice(0, 7);
+  const overflowCount = Math.max(0, allTags.length - 7);
+
+  return (
+    <div className="flex flex-wrap items-center" style={{ gap: 12 }}>
+      {/* Add button */}
+      <button
+        className="inline-flex items-center"
+        onClick={onAdd}
+        type="button"
+        style={{
+          gap: 6,
+          padding: "9px 18px",
+          borderRadius: 999,
+          border: 0,
+          background: "var(--v5-ink)",
+          color: "#fff",
+          fontFamily: "var(--v5-sans)",
+          fontSize: 13.5,
+          fontWeight: 500,
+          cursor: "pointer",
+          boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+          transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-1px)";
+          e.currentTarget.style.background = "var(--v5-accent)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.background = "var(--v5-ink)";
+        }}
+      >
+        <Plus size={14} />
+        添加新金句
+      </button>
+
+      {/* Search input */}
+      <label
+        className="inline-flex items-center"
+        style={{
+          gap: 8,
+          padding: "8px 14px",
+          borderRadius: 999,
+          background: "var(--v5-card)",
+          border: "1px solid var(--v5-rule)",
+          flex: "1 1 220px",
+          maxWidth: 320,
+          minWidth: 0,
+        }}
+      >
+        <Search size={14} style={{ color: "var(--v5-ink3)", flexShrink: 0 }} />
+        <input
+          className="flex-1 border-0 bg-transparent outline-none"
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder="搜索金句、作者或标签…"
+          style={{
+            fontFamily: "var(--v5-serif)",
+            fontSize: 13.5,
+            color: "var(--v5-ink)",
+            minWidth: 0,
+            width: "100%",
+          }}
+          type="text"
+          value={search}
+        />
+      </label>
+
+      {/* Tag chips */}
+      <div className="flex flex-wrap items-center" style={{ gap: 6, flex: "1 1 auto", minWidth: 0 }}>
+        {visibleTags.map((tag) => {
+          const active = activeTags.has(tag);
+          return (
+            <button
+              className="inline-flex items-center"
+              key={tag}
+              onClick={() => onToggleTag(tag)}
+              type="button"
+              style={{
+                gap: 4,
+                padding: "5px 11px",
+                borderRadius: 999,
+                border: 0,
+                background: active ? "var(--v5-accent)" : "rgba(139,94,60,0.07)",
+                color: active ? "#fff" : "var(--v5-ink2)",
+                fontFamily: "var(--v5-serif)",
+                fontStyle: "italic",
+                fontSize: 12.5,
+                cursor: "pointer",
+                transition: "background var(--v5-dur-fast) var(--v5-ease), color var(--v5-dur-fast) var(--v5-ease)",
+              }}
+            >
+              #{tag}
+              {active && <X size={11} />}
+            </button>
+          );
+        })}
+        {overflowCount > 0 && (
+          <button
+            className="inline-flex items-center"
+            onClick={() => setShowAllTags((v) => !v)}
+            type="button"
+            style={{
+              gap: 3,
+              padding: "5px 10px",
+              borderRadius: 999,
+              border: 0,
+              background: "transparent",
+              color: "var(--v5-ink3)",
+              fontFamily: "var(--v5-sans)",
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            {showAllTags ? "收起" : `+${overflowCount}`}
+            <ChevronDown
+              size={11}
+              style={{ transform: showAllTags ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+            />
+          </button>
+        )}
+      </div>
+
+      {/* Sort dropdown */}
+      <div className="relative">
+        <button
+          className="inline-flex items-center"
+          onClick={() => setSortOpen((v) => !v)}
+          type="button"
+          style={{
+            gap: 6,
+            padding: "8px 14px",
+            borderRadius: 999,
+            background: "var(--v5-card)",
+            border: "1px solid var(--v5-rule)",
+            color: "var(--v5-ink2)",
+            fontFamily: "var(--v5-sans)",
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          <ArrowDownNarrowWide size={13} />
+          {SORT_LABELS[sort]}
+          <ChevronDown size={12} />
+        </button>
+        {sortOpen && (
+          <>
+            <div
+              className="fixed inset-0"
+              onClick={() => setSortOpen(false)}
+              style={{ zIndex: 40 }}
+            />
+            <div
+              className="absolute right-0 mt-2"
+              style={{
+                zIndex: 41,
+                minWidth: 140,
+                borderRadius: 12,
+                background: "var(--v5-card)",
+                border: "1px solid var(--v5-rule)",
+                boxShadow: "var(--v5-sh-3)",
+                padding: 4,
+              }}
+            >
+              {(Object.keys(SORT_LABELS) as SortMode[]).map((opt) => (
+                <button
+                  className="block w-full text-left"
+                  key={opt}
+                  onClick={() => {
+                    onSortChange(opt);
+                    setSortOpen(false);
+                  }}
+                  type="button"
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    background: opt === sort ? "rgba(139,94,60,0.08)" : "transparent",
+                    color: opt === sort ? "var(--v5-accent)" : "var(--v5-ink2)",
+                    fontFamily: "var(--v5-sans)",
+                    fontSize: 13,
+                    border: 0,
+                    cursor: "pointer",
+                  }}
+                >
+                  {SORT_LABELS[opt]}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Active filters indicator */}
+      {activeTags.size > 0 && (
+        <div
+          className="flex items-center"
+          style={{
+            gap: 8,
+            padding: "6px 12px",
+            borderRadius: 999,
+            background: "rgba(139,94,60,0.06)",
+            fontSize: 12,
+            color: "var(--v5-ink2)",
+            fontFamily: "var(--v5-sans)",
+          }}
+        >
+          筛选 ({activeTags.size})
+          <button
+            onClick={onClearTags}
+            type="button"
+            style={{
+              border: 0,
+              background: "transparent",
+              color: "var(--v5-accent)",
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 500,
+              padding: 0,
+            }}
+          >
+            清除
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── v5 Quote card with 3 variants ─────────────────────────────── */
+
+type QuoteVariant = "plain" | "pullquote" | "featured";
+
+function pickVariant(q: Quote, index: number): QuoteVariant {
+  const len = q.text?.length ?? 0;
+  if (len < 25 && q.tags && q.tags.length > 0) return "pullquote";
+  if (len > 120 || /[。！？!?]\s*\S/.test(q.text ?? "")) return "plain";
+  return index % 4 === 3 ? "featured" : "plain";
+}
+
+function formatSavedDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}/${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function V5QuoteCard({
+  quote,
+  variant,
+  onOpen,
+}: {
+  quote: Quote;
+  variant: QuoteVariant;
+  onOpen: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  const author = quote.author?.trim() || "佚名";
+  const book = quote.book?.trim();
+  const tags = quote.tags ?? [];
+  const savedAt = formatSavedDate(quote.createdAt);
+
+  const baseCardStyle: React.CSSProperties = {
+    breakInside: "avoid",
+    marginBottom: 18,
+    padding: "26px 24px 20px",
+    borderRadius: 20,
+    cursor: "pointer",
+    boxShadow: hov ? "var(--v5-sh-hover)" : "var(--v5-sh-2)",
+    transform: hov ? "translateY(-3px)" : "translateY(0)",
+    transition: "transform var(--v5-dur) var(--v5-ease-out), box-shadow var(--v5-dur) var(--v5-ease-out)",
+    position: "relative",
+    overflow: "hidden",
+  };
+
+  if (variant === "featured") {
+    return (
+      <div
+        onClick={onOpen}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          ...baseCardStyle,
+          background: "linear-gradient(135deg, var(--v5-accent) 0%, #6b4628 100%)",
+          color: "#fff",
+        }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute"
+          style={{
+            right: 18,
+            top: -22,
+            fontFamily: "var(--v5-serif)",
+            fontVariationSettings: '"opsz" 144, "wght" 500',
+            fontSize: 88,
+            lineHeight: 1,
+            color: "#fff",
+            opacity: 0.18,
+            userSelect: "none",
+          }}
+        >
+          “
+        </span>
+        <p
+          className="relative"
+          style={{
+            margin: 0,
+            fontFamily: "var(--v5-serif)",
+            fontVariationSettings: '"opsz" 144, "SOFT" 60',
+            fontSize: 23,
+            fontWeight: 400,
+            lineHeight: 1.42,
+            color: "#fff",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {quote.text}
+        </p>
+        <div
+          className="mt-5 flex items-center justify-between"
+          style={{
+            paddingTop: 14,
+            borderTop: "1px solid rgba(255,255,255,0.18)",
+            gap: 10,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--v5-serif)",
+              fontStyle: "italic",
+              fontSize: 13,
+              color: "rgba(255,250,243,0.92)",
+            }}
+          >
+            {author}{book ? ` · 《${book}》` : ""}
+          </span>
+          <Bookmark size={14} style={{ color: "rgba(255,250,243,0.7)" }} />
+        </div>
+        {tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap" style={{ gap: 6 }}>
+            {tags.slice(0, 4).map((t) => (
+              <span
+                key={t}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: "rgba(255,250,243,0.12)",
+                  color: "#fff",
+                  fontFamily: "var(--v5-serif)",
+                  fontStyle: "italic",
+                  fontSize: 12,
+                }}
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (variant === "pullquote") {
+    return (
+      <div
+        onClick={onOpen}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          ...baseCardStyle,
+          background: "var(--v5-card)",
+          border: "1px solid var(--v5-rule)",
+        }}
+      >
+        <span
+          aria-hidden
+          className="absolute"
+          style={{
+            left: 18,
+            top: -6,
+            fontFamily: "var(--v5-serif)",
+            fontVariationSettings: '"opsz" 144, "wght" 500',
+            fontSize: 46,
+            lineHeight: 1,
+            color: "var(--v5-accent)",
+            opacity: 0.45,
+            userSelect: "none",
+          }}
+        >
+          “
+        </span>
+        <p
+          className="relative"
+          style={{
+            margin: "20px 0 0",
+            fontFamily: "var(--v5-serif)",
+            fontVariationSettings: '"opsz" 144, "SOFT" 50',
+            fontStyle: "italic",
+            fontSize: 20,
+            fontWeight: 400,
+            lineHeight: 1.42,
+            color: "var(--v5-ink)",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {quote.text}
+        </p>
+        <div
+          className="mt-5 flex items-center justify-between"
+          style={{
+            paddingTop: 12,
+            borderTop: "1px dashed var(--v5-rule)",
+            gap: 8,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--v5-serif)",
+              fontSize: 12.5,
+              color: "var(--v5-ink2)",
+            }}
+          >
+            — {author}{book ? ` · 《${book}》` : ""}
+          </span>
+          {savedAt && (
+            <span
+              style={{
+                fontFamily: "var(--v5-mono)",
+                fontSize: 11,
+                color: "var(--v5-ink3)",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {savedAt}
+            </span>
+          )}
+        </div>
+        {tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap" style={{ gap: 6 }}>
+            {tags.slice(0, 4).map((t) => (
+              <span
+                key={t}
+                style={{
+                  padding: "3px 9px",
+                  borderRadius: 999,
+                  background: "rgba(139,94,60,0.07)",
+                  color: "var(--v5-ink2)",
+                  fontFamily: "var(--v5-serif)",
+                  fontStyle: "italic",
+                  fontSize: 11.5,
+                }}
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Variant A · plain
+  return (
+    <div
+      onClick={onOpen}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        ...baseCardStyle,
+        background: "var(--v5-card)",
+        border: "1px solid var(--v5-rule)",
+      }}
+    >
+      <div className="flex items-start justify-between" style={{ gap: 12 }}>
+        <span
+          className="v5-eyebrow"
+          style={{ fontSize: 10, lineHeight: 1.4 }}
+        >
+          {author}
+        </span>
+        <Bookmark size={12} style={{ color: "var(--v5-ink-mute)", flexShrink: 0 }} />
+      </div>
+      <p
+        style={{
+          margin: "12px 0 0",
+          fontFamily: "var(--v5-serif)",
+          fontVariationSettings: '"opsz" 14',
+          fontSize: 15,
+          lineHeight: 1.78,
+          color: "var(--v5-ink)",
+        }}
+      >
+        {quote.text}
+      </p>
+      <div
+        className="mt-4 flex items-center justify-between"
+        style={{
+          paddingTop: 12,
+          borderTop: "1px solid var(--v5-rule)",
+          gap: 8,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--v5-serif)",
+            fontStyle: "italic",
+            fontSize: 13,
+            color: "var(--v5-ink2)",
+          }}
+        >
+          {book ? `《${book}》` : "未注明出处"}
+        </span>
+        {tags.length > 0 && (
+          <div className="flex flex-wrap items-center" style={{ gap: 6 }}>
+            {tags.slice(0, 2).map((t) => (
+              <span
+                key={t}
+                style={{
+                  padding: "3px 9px",
+                  borderRadius: 999,
+                  background: "rgba(139,94,60,0.07)",
+                  color: "var(--v5-ink2)",
+                  fontFamily: "var(--v5-serif)",
+                  fontStyle: "italic",
+                  fontSize: 11.5,
+                }}
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── v5 Add Quote Modal ────────────────────────────────────────── */
+
+function V5AddQuoteModal({
+  open,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (data: { text: string; author: string; book: string; tags: string[] }) => Promise<void> | void;
+}) {
+  const [text, setText] = useState("");
+  const [author, setAuthor] = useState("");
+  const [book, setBook] = useState("");
+  const [tags, setTags] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setText(""); setAuthor(""); setBook(""); setTags("");
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const tagList = tags
+    .split(/[,\s，、]+/)
+    .map((t) => t.trim().replace(/^#/, ""))
+    .filter(Boolean);
+
+  const submit = async () => {
+    if (!text.trim() || saving) return;
+    setSaving(true);
+    try {
+      await onSave({ text: text.trim(), author: author.trim(), book: book.trim(), tags: tagList });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center"
+      onClick={onClose}
+      style={{
+        zIndex: 100,
+        background: "rgba(33,22,17,0.45)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        style={{
+          width: "min(560px, 100%)",
+          background: "var(--v5-card)",
+          borderRadius: 24,
+          padding: 32,
+          boxShadow: "0 24px 60px rgba(33,22,17,0.35)",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span className="v5-eyebrow">NEW QUOTE · 记录新金句</span>
+          <button
+            aria-label="关闭"
+            onClick={onClose}
+            type="button"
+            style={{
+              border: 0,
+              background: "transparent",
+              color: "var(--v5-ink3)",
+              cursor: "pointer",
+              padding: 4,
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <h2
+          className="v5-display mt-3"
+          style={{
+            margin: "12px 0 0",
+            fontSize: 24,
+            fontVariationSettings: '"opsz" 144',
+            fontWeight: 400,
+            color: "var(--v5-ink)",
+          }}
+        >
+          写下那句打动你的话
+        </h2>
+
+        <textarea
+          autoFocus
+          className="mt-5 w-full resize-y outline-none"
+          onChange={(e) => setText(e.target.value)}
+          placeholder="在这里写下那句金句…"
+          style={{
+            minHeight: 130,
+            padding: "14px 16px",
+            background: "rgba(75,51,27,0.04)",
+            border: "1px solid var(--v5-rule)",
+            borderRadius: 14,
+            fontFamily: "var(--v5-serif)",
+            fontSize: 15,
+            lineHeight: 1.7,
+            color: "var(--v5-ink)",
+          }}
+          value={text}
+        />
+
+        <div className="mt-4 grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <input
+            className="w-full outline-none"
+            onChange={(e) => setAuthor(e.target.value)}
+            placeholder="作者"
+            style={{
+              padding: "12px 14px",
+              background: "rgba(75,51,27,0.04)",
+              border: "1px solid var(--v5-rule)",
+              borderRadius: 12,
+              fontFamily: "var(--v5-serif)",
+              fontSize: 14,
+              color: "var(--v5-ink)",
+            }}
+            type="text"
+            value={author}
+          />
+          <input
+            className="w-full outline-none"
+            onChange={(e) => setBook(e.target.value)}
+            placeholder="出处 · 书 / 文 / 演讲"
+            style={{
+              padding: "12px 14px",
+              background: "rgba(75,51,27,0.04)",
+              border: "1px solid var(--v5-rule)",
+              borderRadius: 12,
+              fontFamily: "var(--v5-serif)",
+              fontSize: 14,
+              color: "var(--v5-ink)",
+            }}
+            type="text"
+            value={book}
+          />
+        </div>
+
+        <input
+          className="mt-3 w-full outline-none"
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="标签 · 用空格分隔，例：勇气 成长 当下"
+          style={{
+            padding: "12px 14px",
+            background: "rgba(75,51,27,0.04)",
+            border: "1px solid var(--v5-rule)",
+            borderRadius: 12,
+            fontFamily: "var(--v5-serif)",
+            fontSize: 14,
+            color: "var(--v5-ink)",
+          }}
+          type="text"
+          value={tags}
+        />
+
+        {tagList.length > 0 && (
+          <div className="mt-3 flex flex-wrap" style={{ gap: 6 }}>
+            {tagList.map((t) => (
+              <span
+                key={t}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: "rgba(139,94,60,0.08)",
+                  color: "var(--v5-ink2)",
+                  fontFamily: "var(--v5-serif)",
+                  fontStyle: "italic",
+                  fontSize: 12,
+                }}
+              >
+                #{t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-7 flex items-center justify-end" style={{ gap: 10 }}>
+          <button
+            onClick={onClose}
+            type="button"
+            style={{
+              padding: "10px 18px",
+              borderRadius: 999,
+              border: "1px solid var(--v5-rule-strong)",
+              background: "transparent",
+              color: "var(--v5-ink2)",
+              fontFamily: "var(--v5-sans)",
+              fontSize: 13.5,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            取消
+          </button>
+          <button
+            className="inline-flex items-center"
+            disabled={!text.trim() || saving}
+            onClick={submit}
+            type="button"
+            style={{
+              gap: 6,
+              padding: "10px 18px",
+              borderRadius: 999,
+              border: 0,
+              background: "var(--v5-ink)",
+              color: "#fff",
+              fontFamily: "var(--v5-sans)",
+              fontSize: 13.5,
+              fontWeight: 500,
+              cursor: text.trim() && !saving ? "pointer" : "not-allowed",
+              opacity: text.trim() && !saving ? 1 : 0.5,
+              boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+            }}
+          >
+            <Bookmark size={14} />
+            {saving ? "收藏中…" : "收藏这句话"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1452,8 +3095,143 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
     setMessage("已保存到你的灵感书库。");
   };
 
+  // v5 desktop state — modal + filters
+  const [addOpen, setAddOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  const [sortMode, setSortMode] = useState<SortMode>("recent");
+
+  const allTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const q of quotes) for (const t of q.tags ?? []) counts.set(t, (counts.get(t) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+  }, [quotes]);
+
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    let out = quotes.filter((q) => {
+      if (activeTags.size > 0 && !(q.tags ?? []).some((t) => activeTags.has(t))) return false;
+      if (!needle) return true;
+      const hay = `${q.text} ${q.author} ${q.book} ${(q.tags ?? []).join(" ")}`.toLowerCase();
+      return hay.includes(needle);
+    });
+    if (sortMode === "author") {
+      out = [...out].sort((a, b) => (a.author || "").localeCompare(b.author || "", "zh-Hans-CN"));
+    } else if (sortMode === "tag") {
+      out = [...out].sort((a, b) => (b.tags?.length ?? 0) - (a.tags?.length ?? 0));
+    } else {
+      out = [...out].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+    return out;
+  }, [quotes, search, activeTags, sortMode]);
+
+  const handleAdd = async (data: { text: string; author: string; book: string; tags: string[] }) => {
+    await saveQuote({
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      text: data.text,
+      author: data.author,
+      book: data.book,
+      readingHours: 0,
+      tags: data.tags,
+    });
+  };
+
+  const toggleTag = (t: string) => {
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
+      return next;
+    });
+  };
+
   return (
-    <div className="space-y-6">
+    <>
+      {/* ── Desktop (v5 redesign) ── */}
+      <section className="hidden md:block">
+        <div className="grid" style={{ gap: 32 }}>
+          {/* Section header */}
+          <div className="flex flex-wrap items-end justify-between" style={{ gap: 16 }}>
+            <div>
+              <div className="v5-eyebrow">MY LIBRARY · 我的金句库</div>
+              <h2
+                className="v5-display mt-2"
+                style={{
+                  margin: 0,
+                  fontSize: 30,
+                  fontVariationSettings: '"opsz" 144',
+                  fontWeight: 400,
+                  color: "var(--v5-ink)",
+                }}
+              >
+                回看那些打动过你的句子
+              </h2>
+            </div>
+            <span
+              style={{
+                fontFamily: "var(--v5-mono)",
+                fontSize: 12,
+                color: "var(--v5-ink3)",
+                letterSpacing: "0.06em",
+              }}
+            >
+              共 {quotes.length} 句 · {allTags.length} 条标签
+            </span>
+          </div>
+
+          <V5FilterBar
+            activeTags={activeTags}
+            allTags={allTags}
+            onAdd={() => setAddOpen(true)}
+            onClearTags={() => setActiveTags(new Set())}
+            onSearch={setSearch}
+            onSortChange={setSortMode}
+            onToggleTag={toggleTag}
+            search={search}
+            sort={sortMode}
+          />
+
+          {/* Masonry grid */}
+          {filtered.length === 0 ? (
+            quotes.length === 0 ? (
+              <EmptyState
+                description="保存第一条金句后，这里会逐渐变成你的私人灵感墙。"
+                icon={Sparkles}
+                illustrationAlt="relaxed reading illustration"
+                illustrationSrc="/illustrations/relaxed-reading.svg"
+                title="还没有收藏金句"
+              />
+            ) : (
+              <div
+                className="rounded-[20px] border border-dashed px-6 py-10 text-center"
+                style={{ borderColor: "var(--v5-rule-strong)", background: "var(--v5-card)" }}
+              >
+                <p className="text-sm leading-7" style={{ color: "var(--v5-ink2)" }}>
+                  没有匹配的金句。试试换一个关键词或清除筛选。
+                </p>
+              </div>
+            )
+          ) : (
+            <div className="v5-quote-masonry">
+              {filtered.map((quote, i) => (
+                <div id={`quote-${quote.id}`} key={quote.id}>
+                  <V5QuoteCard
+                    onOpen={() => onOpenQuote(quote.id)}
+                    quote={quote}
+                    variant={pickVariant(quote, i)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <V5AddQuoteModal onClose={() => setAddOpen(false)} onSave={handleAdd} open={addOpen} />
+      </section>
+
+      {/* ── Mobile (existing form-based layout) ── */}
+      <div className="md:hidden space-y-6">
       {/* ── Quote editor — journal-style writing surface ── */}
       <StaggerItem index={0}>
         <form
@@ -1631,7 +3409,8 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
           </div>
         </StaggerItem>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -1889,6 +3668,7 @@ export default function LibraryPage() {
   const [scrollToId, setScrollToId] = useState<string | null>(null);
   const [quoteModalId, setQuoteModalId] = useState<string | null>(null);
   const [quoteModalKey, setQuoteModalKey] = useState(0);
+  const [todayPickIndex, setTodayPickIndex] = useState(0);
   const quotes = useQuotesStore();
   const notes = useNotesStore();
 
@@ -1902,15 +3682,35 @@ export default function LibraryPage() {
     setQuoteModalKey((k) => k + 1);
   };
 
+  const dailyQuote = getDailyQuote(quotes);
+  const todaysPick = quotes.length > 0
+    ? (todayPickIndex === 0 ? dailyQuote : quotes[todayPickIndex % quotes.length])
+    : null;
+
   return (
     <>
+      {/* Desktop (v5) header + TodaysPick — sit above tabs */}
+      <div className="hidden md:block" style={{ marginBottom: 32 }}>
+        <div className="grid" style={{ gap: 32 }}>
+          <V5PageHeader />
+          <V5TodaysPick
+            onSaveToday={() => todaysPick && onOpenQuote(todaysPick.id)}
+            onShuffle={() => setTodayPickIndex((i) => i + 1)}
+            quote={todaysPick}
+          />
+        </div>
+      </div>
+
       <PageTransition className="space-y-6">
-        <PageTitle
-          description="把值得反复回看的句子和阅读笔记，收进同一座灵感书库里。"
-          eyebrow="灵感书库"
-          icon={Lightbulb}
-          title="灵感书库"
-        />
+        {/* Mobile keeps the old PageTitle header */}
+        <div className="md:hidden">
+          <PageTitle
+            description="把值得反复回看的句子和阅读笔记，收进同一座灵感书库里。"
+            eyebrow="灵感书库"
+            icon={Lightbulb}
+            title="灵感书库"
+          />
+        </div>
 
         <TabBar active={activeTab} onChange={(t) => { setActiveTab(t); setScrollToId(null); }} />
 
