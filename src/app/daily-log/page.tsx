@@ -392,6 +392,7 @@ function DailyLogInner() {
               ) : null}
             </div>
           </form>
+
         </StaggerItem>
 
         <StaggerItem index={1}>

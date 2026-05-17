@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate Mind365 PWA Icons</title></head>
+<body>
+<h2>Mind365 Icon Generator</h2>
+<p>Right-click each image → Save As to download PNG icons.</p>
+<div style="display:flex;gap:20px;flex-wrap:wrap">
+  <div>
+    <h3>192x192</h3>
+    <canvas id="c192" width="192" height="192"></canvas>
+  </div>
+  <div>
+    <h3>512x512</h3>
+    <canvas id="c512" width="512" height="512"></canvas>
+  </div>
+</div>
+<script>
+function drawIcon(canvas) {
+  const ctx = canvas.getContext('2d');
+  const s = canvas.width;
+  const r = s * 0.22;
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, s, s);
+  grad.addColorStop(0, '#A0764A');
+  grad.addColorStop(1, '#6B4228');
+
+  // Rounded rect
+  ctx.beginPath();
+  ctx.roundRect(0, 0, s, s, r);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // "M" letter
+  ctx.fillStyle = '#FDF6EB';
+  ctx.font = `bold ${s * 0.29}px Georgia, serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('M', s/2, s * 0.43);
+
+  // "365" text
+  ctx.fillStyle = 'rgba(253,246,235,0.75)';
+  ctx.font = `500 ${s * 0.145}px Georgia, serif`;
+  ctx.fillText('365', s/2, s * 0.7);
+
+  // Convert to image for easy save
+  const img = new Image();
+  img.src = canvas.toDataURL('image/png');
+  canvas.parentElement.appendChild(img);
+  img.style.display = 'block';
+  img.style.marginTop = '10px';
+  img.style.border = '1px solid #ccc';
+}
+
+drawIcon(document.getElementById('c192'));
+drawIcon(document.getElementById('c512'));
+</script>
+</body>
+</html>

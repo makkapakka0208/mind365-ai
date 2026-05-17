@@ -221,7 +221,7 @@ function studyDistribution(series: DayPoint[]) {
     labels: ["高效 (≥3h)", "专注 (1-3h)", "较少 (<1h)"],
     values: [high, mid, low],
     pcts: [Math.round(high / total * 100), Math.round(mid / total * 100), Math.round(low / total * 100)],
-    colors: ["rgba(74,155,111,0.75)", "rgba(74,155,111,0.42)", "rgba(74,155,111,0.18)"],
+    colors: ["rgba(179,98,58,0.72)", "rgba(179,98,58,0.42)", "rgba(179,98,58,0.18)"],
   };
 }
 
@@ -235,7 +235,7 @@ function readingDistribution(series: DayPoint[]) {
     labels: ["≥2h", "1-2h", "<1h"],
     values: [high, mid, low],
     pcts: [Math.round(high / total * 100), Math.round(mid / total * 100), Math.round(low / total * 100)],
-    colors: ["rgba(180,140,80,0.72)", "rgba(180,140,80,0.40)", "rgba(180,140,80,0.16)"],
+    colors: ["rgba(212,160,124,0.72)", "rgba(212,160,124,0.42)", "rgba(212,160,124,0.18)"],
   };
 }
 
@@ -275,52 +275,99 @@ function generateInsight(series: DayPoint[]): string {
   return "保持记录的习惯，数据会慢慢帮你看见自己的成长节奏。";
 }
 
-/* ── Stat card ── */
-function StatCard({ icon: Icon, label, value, unit, delta, deltaUnit, color }: {
+/* ── Stat card (v5 refined: tinted icon chip + delta footer) ── */
+function StatCard({ icon: Icon, label, value, unit, delta, deltaUnit, accent }: {
   icon: typeof Smile;
   label: string;
   value: string;
   unit: string;
   delta: number;
   deltaUnit?: string;
-  color: string;
+  accent: string;
 }) {
   const isUp = delta > 0;
   const isDown = delta < 0;
   return (
     <div
-      className="relative overflow-hidden rounded-[20px] p-5"
+      className="relative flex flex-col"
       style={{
-        background: "var(--m-base-light)",
-        border: "1px solid var(--m-rule)",
-        boxShadow: "0 2px 8px rgba(139,94,60,0.04)",
+        gap: 14,
+        padding: "22px 22px 20px",
+        borderRadius: 20,
+        background: "var(--v5-card)",
+        border: "1px solid var(--v5-rule)",
+        boxShadow: "var(--v5-sh-2)",
       }}
     >
-      <div
-        className="mb-3 flex h-10 w-10 items-center justify-center rounded-full"
-        style={{ background: color }}
-      >
-        <Icon size={18} style={{ color: "var(--m-base-light)" }} />
+      <div className="flex items-center justify-between">
+        <span
+          style={{
+            fontFamily: "var(--v5-sans)",
+            fontSize: 10.5,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: "var(--v5-ink3)",
+            fontWeight: 500,
+          }}
+        >
+          {label}
+        </span>
+        <div
+          className="grid place-items-center"
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 9,
+            background: `color-mix(in oklab, ${accent}, transparent 88%)`,
+            border: `1px solid color-mix(in oklab, ${accent}, transparent 72%)`,
+            color: accent,
+          }}
+        >
+          <Icon size={14} strokeWidth={1.7} />
+        </div>
       </div>
-      <p className="text-xs tracking-wide" style={{ color: "var(--m-ink3)" }}>
-        {label}
-      </p>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="text-[28px] font-bold leading-none tracking-tight" style={{ color: "var(--m-ink)" }}>
+
+      <div className="flex items-baseline" style={{ gap: 4 }}>
+        <span
+          style={{
+            fontFamily: "var(--v5-serif)",
+            fontVariationSettings: '"opsz" 144, "wght" 400',
+            fontWeight: 400,
+            fontSize: 34,
+            lineHeight: 1,
+            letterSpacing: "-0.04em",
+            color: "var(--v5-ink)",
+            fontFeatureSettings: '"tnum" 1',
+          }}
+        >
           {value}
         </span>
-        <span className="text-sm" style={{ color: "var(--m-ink3)" }}>{unit}</span>
+        <span style={{ fontSize: 13, color: "var(--v5-ink3)", fontFamily: "var(--v5-sans)" }}>{unit}</span>
       </div>
-      {delta !== 0 && (
-        <p className="mt-2 text-xs" style={{ color: isUp ? "rgba(74,155,111,0.9)" : isDown ? "rgba(200,100,80,0.85)" : "var(--m-ink3)" }}>
-          较上周期 {isUp ? "↑" : "↓"} {Math.abs(delta)}{deltaUnit ?? ""}
-        </p>
-      )}
-      {delta === 0 && (
-        <p className="mt-2 text-xs" style={{ color: "var(--m-ink3)" }}>
-          与上周期持平
-        </p>
-      )}
+
+      <div
+        className="flex items-center"
+        style={{ gap: 6, paddingTop: 4, borderTop: "1px solid var(--v5-rule)" }}
+      >
+        {delta !== 0 && (
+          <span
+            className="inline-flex items-center"
+            style={{
+              gap: 3,
+              fontSize: 11,
+              fontFamily: "var(--v5-sans)",
+              fontWeight: 600,
+              color: isUp ? "var(--v5-accent)" : isDown ? "var(--v5-rose)" : "var(--v5-ink3)",
+            }}
+          >
+            <span style={{ fontSize: 10 }}>{isUp ? "↑" : "↓"}</span>
+            {Math.abs(delta)}{deltaUnit ?? ""}
+          </span>
+        )}
+        <span style={{ fontSize: 11, color: "var(--v5-ink3)", fontFamily: "var(--v5-sans)" }}>
+          {delta === 0 ? "与上周期持平" : "vs 上周期"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -401,8 +448,8 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         type: "bar" as const,
         label: "学习时长 (h)",
         data: series.map((p) => p.study),
-        backgroundColor: "rgba(74,155,111,0.50)",
-        hoverBackgroundColor: "rgba(74,155,111,0.80)",
+        backgroundColor: "rgba(179,98,58,0.42)",
+        hoverBackgroundColor: "rgba(179,98,58,0.75)",
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.7,
@@ -413,8 +460,8 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         type: "bar" as const,
         label: "阅读时长 (h)",
         data: series.map((p) => p.reading),
-        backgroundColor: "rgba(180,140,80,0.45)",
-        hoverBackgroundColor: "rgba(180,140,80,0.75)",
+        backgroundColor: "rgba(212,160,124,0.42)",
+        hoverBackgroundColor: "rgba(212,160,124,0.78)",
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.7,
@@ -540,7 +587,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
       {/* ── Summary stat cards ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          color="rgba(139,94,60,0.65)"
+          accent="rgba(139,94,60,0.85)"
           delta={stats.deltaMood}
           icon={Smile}
           label="平均情绪"
@@ -548,7 +595,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
           value={stats.avgMood ? stats.avgMood.toFixed(1) : "--"}
         />
         <StatCard
-          color="rgba(74,155,111,0.65)"
+          accent="rgba(179,98,58,0.85)"
           delta={stats.deltaStudy}
           deltaUnit="h"
           icon={GraduationCap}
@@ -557,7 +604,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
           value={stats.totalStudy.toFixed(1)}
         />
         <StatCard
-          color="rgba(180,140,80,0.65)"
+          accent="rgba(212,160,124,0.85)"
           delta={stats.deltaReading}
           deltaUnit="h"
           icon={BookOpen}
@@ -566,7 +613,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
           value={stats.totalReading.toFixed(1)}
         />
         <StatCard
-          color="rgba(200,170,120,0.60)"
+          accent="rgba(196,165,117,0.85)"
           delta={stats.deltaRecordDays}
           icon={CalendarCheck}
           label="记录天数"
