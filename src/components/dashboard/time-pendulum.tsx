@@ -31,12 +31,14 @@ export function TimePendulum({ className }: { className?: string }) {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();         // 0-11
+  const monthNumber = month + 1;
   const day = now.getDate();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   // 时针（年进度）— 月+当月小数 / 12
-  const progress = (month + day / daysInMonth) / 12;
-  const hourAngleDeg = progress * 360 - 90;
+  const monthDialProgress = (monthNumber % 12) / 12;
+  const hourAngleDeg = monthDialProgress * 360 - 90;
+  const activeMonthTick = (monthNumber % 12) * 5;
 
   // 分针（月进度）
   const minuteProgress = day / daysInMonth;
@@ -88,6 +90,7 @@ export function TimePendulum({ className }: { className?: string }) {
   const ticks = Array.from({ length: 60 }, (_, i) => {
     const a = (i / 60) * 360 - 90;
     const isHour = i % 5 === 0;
+    const isActiveMonth = i === activeMonthTick;
     const inner = dialR - (isHour ? 5 : 2.5);
     const outer = dialR - 1;
     const rad = (a * Math.PI) / 180;
@@ -96,7 +99,8 @@ export function TimePendulum({ className }: { className?: string }) {
       y1: cy + Math.sin(rad) * inner,
       x2: cx + Math.cos(rad) * outer,
       y2: cy + Math.sin(rad) * outer,
-      width: isHour ? 1.2 : 0.5,
+      width: isActiveMonth ? 2 : isHour ? 1.2 : 0.5,
+      active: isActiveMonth,
       key: i,
     };
   });
@@ -143,7 +147,7 @@ export function TimePendulum({ className }: { className?: string }) {
         <line
           key={t.key}
           x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-          stroke="#8b6f5c"
+          stroke={t.active ? "#9a5f3b" : "#8b6f5c"}
           strokeWidth={t.width}
           strokeLinecap="round"
         />

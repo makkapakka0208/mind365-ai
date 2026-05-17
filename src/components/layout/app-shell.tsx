@@ -58,7 +58,6 @@ export function AppShell({ children }: AppShellProps) {
     const matchers = PATH_GROUPS[href] ?? [href];
     return matchers.some((matcher) => (matcher === "/" ? pathname === "/" : pathname.startsWith(matcher)));
   };
-
   return (
     <div
       className="v5-page-bg relative overflow-hidden"
@@ -127,8 +126,10 @@ export function AppShell({ children }: AppShellProps) {
                     fontFamily: "var(--v5-serif)",
                     fontSize: 14.5,
                     fontWeight: active ? 500 : 400,
-                    background: active ? "#fff" : "transparent",
-                    boxShadow: active ? "var(--v5-sh-1)" : "none",
+                    background: active ? "rgba(244,228,200,0.45)" : "transparent",
+                    boxShadow: active
+                      ? "inset 2.5px 2.5px 5px rgba(75,51,27,0.11), inset -2px -2px 4px rgba(255,255,255,0.85)"
+                      : "none",
                     color: active ? "var(--v5-ink)" : "var(--v5-ink2)",
                     transition:
                       "background var(--v5-dur-fast) var(--v5-ease), color var(--v5-dur-fast) var(--v5-ease)",
@@ -156,11 +157,9 @@ export function AppShell({ children }: AppShellProps) {
           <SmartActionCard />
         </aside>
 
-        {/* ── Main Content Area ── */}
+        {/* ── Main Content Area — floating card on desktop, edge-to-edge on mobile ── */}
         <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-          <main
-            className="m-scroll-hidden h-full flex-1 overflow-y-auto px-4 pb-28 pt-5 sm:px-6 md:px-10 md:pb-16 md:pt-8"
-          >
+          <main className="v5-main-card m-scroll-hidden h-full flex-1 overflow-y-auto px-4 pb-28 pt-5 sm:px-6 md:pb-16 md:pt-8">
             {children}
           </main>
         </div>

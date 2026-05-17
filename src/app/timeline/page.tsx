@@ -1,20 +1,29 @@
 "use client";
 
 import {
+  Activity,
   ArrowRight,
+  BookOpen,
+  Bookmark,
   CalendarDays,
   Hash,
+  History,
+  MessageSquare,
   Moon,
   RefreshCw,
+  RotateCcw,
+  Shuffle,
   Sparkles,
   Waves,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
+import { parseISODate } from "@/lib/date";
 import {
   buildMemoryCards,
   type MemoryCard,
@@ -332,6 +341,477 @@ function EmptyState({ message }: { message: string }) {
 }
 
 // ── Page ───────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────
+ * v5 Timeline components — TimeHero (+BigPendulum), RecallChips,
+ * MemoryCard variants (featured / pullquote / plain)
+ * ────────────────────────────────────────────────────────────────── */
+
+function V5TimelineHeader() {
+  return (
+    <div>
+      <div className="v5-eyebrow">MEMORY · 旧日回响</div>
+      <h1
+        className="v5-display mt-2"
+        style={{
+          margin: 0,
+          fontSize: "clamp(34px, 4vw, 48px)",
+          fontVariationSettings: '"opsz" 144, "SOFT" 60',
+          fontWeight: 400,
+          color: "var(--v5-ink)",
+        }}
+      >
+        去年今日
+      </h1>
+      <p
+        style={{
+          margin: "12px 0 0",
+          fontFamily: "var(--v5-serif)",
+          fontStyle: "italic",
+          fontVariationSettings: '"opsz" 14',
+          fontSize: 16,
+          lineHeight: 1.7,
+          color: "var(--v5-ink2)",
+          maxWidth: 540,
+        }}
+      >
+        你已经走了很远，偶尔让旧日记来提醒你从哪里出发。
+      </p>
+    </div>
+  );
+}
+
+function V5BigPendulum() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const monthNumber = now.getMonth() + 1;
+  const monthAngle = ((monthNumber % 12) / 12) * Math.PI * 2 - Math.PI / 2;
+  const monthHandX = 90 + Math.cos(monthAngle) * 34;
+  const monthHandY = 80 + Math.sin(monthAngle) * 34;
+  const monthTickIndex = monthNumber % 12;
+
+  return (
+    <svg height="220" viewBox="0 0 180 220" width="180">
+      <defs>
+        <radialGradient cx="50%" cy="40%" id="v5-clock-face" r="60%">
+          <stop offset="0%" stopColor="#fffbf2" />
+          <stop offset="100%" stopColor="#f3e5cb" />
+        </radialGradient>
+      </defs>
+      {/* clock face */}
+      <circle cx="90" cy="80" fill="url(#v5-clock-face)" r="58" stroke="var(--v5-accent)" strokeWidth="1.5" />
+      {/* hour ticks */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+        const active = i === monthTickIndex;
+        const x1 = 90 + Math.cos(a) * 52;
+        const y1 = 80 + Math.sin(a) * 52;
+        const x2 = 90 + Math.cos(a) * 56;
+        const y2 = 80 + Math.sin(a) * 56;
+        return (
+          <line
+            key={i}
+            stroke={active ? "var(--v5-accent)" : "var(--v5-ink2)"}
+            strokeLinecap="round"
+            strokeWidth={active ? "2.2" : "1"}
+            x1={x1}
+            x2={x2}
+            y1={y1}
+            y2={y2}
+          />
+        );
+      })}
+      {/* center label */}
+      <text
+        dominantBaseline="middle"
+        style={{
+          fontFamily: "var(--v5-serif)",
+          fontStyle: "italic",
+          fontSize: 10,
+          fill: "var(--v5-ink3)",
+        }}
+        textAnchor="middle"
+        x="90"
+        y="100"
+      >
+        {year}
+      </text>
+      {/* month hand */}
+      <line stroke="var(--v5-ink)" strokeLinecap="round" strokeWidth="2.5" x1="90" x2={monthHandX} y1="80" y2={monthHandY} />
+      {/* fixed reference hand */}
+      <line stroke="var(--v5-accent)" strokeLinecap="round" strokeWidth="1.5" x1="90" x2="116" y1="80" y2="80" />
+      {/* center dot */}
+      <circle cx="90" cy="80" fill="var(--v5-ink)" r="2.5" />
+      {/* pendulum (swinging) */}
+      <g style={{ transformOrigin: "90px 80px", animation: "v5-pendulum-swing 4s ease-in-out infinite" }}>
+        <line stroke="var(--v5-accent)" strokeOpacity="0.6" strokeWidth="1" x1="90" x2="90" y1="140" y2="200" />
+        <circle cx="90" cy="200" fill="var(--v5-accent)" r="9" />
+      </g>
+    </svg>
+  );
+}
+
+function V5TimeHero() {
+  const { year, daysPassed, daysRemaining, pct } = useYearProgress();
+  return (
+    <div
+      className="relative overflow-hidden grid"
+      style={{
+        gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
+        gap: 32,
+        borderRadius: 28,
+        padding: "36px 44px",
+        background: "linear-gradient(135deg, var(--v5-card) 0%, #faecc8 100%)",
+        boxShadow: "var(--v5-sh-3)",
+      }}
+    >
+      {/* Left column */}
+      <div>
+        <div className="flex items-center justify-between" style={{ gap: 16 }}>
+          <span className="v5-eyebrow">TIME · 时间摆</span>
+        </div>
+
+        <h2
+          className="v5-display mt-4"
+          style={{
+            margin: "12px 0 0",
+            fontSize: "clamp(36px, 4.4vw, 52px)",
+            fontVariationSettings: '"opsz" 144, "SOFT" 60',
+            fontWeight: 400,
+            color: "var(--v5-ink)",
+          }}
+        >
+          {year} 年
+        </h2>
+
+        <div className="mt-4 flex items-stretch" style={{ gap: 24 }}>
+          <div>
+            <div
+              className="v5-numeral"
+              style={{ fontSize: 36, color: "var(--v5-ink)" }}
+            >
+              {daysPassed}
+            </div>
+            <div style={{ marginTop: 2, fontFamily: "var(--v5-sans)", fontSize: 11.5, color: "var(--v5-ink3)" }}>
+              天已过
+            </div>
+          </div>
+          <div style={{ width: 1, background: "var(--v5-rule)" }} />
+          <div>
+            <div className="v5-numeral" style={{ fontSize: 36, color: "var(--v5-ink)" }}>
+              {daysRemaining}
+            </div>
+            <div style={{ marginTop: 2, fontFamily: "var(--v5-sans)", fontSize: 11.5, color: "var(--v5-ink3)" }}>
+              天未至
+            </div>
+          </div>
+        </div>
+
+        <p
+          style={{
+            margin: "16px 0 0",
+            fontFamily: "var(--v5-serif)",
+            fontStyle: "italic",
+            fontVariationSettings: '"opsz" 14',
+            fontSize: 13.5,
+            lineHeight: 1.7,
+            color: "var(--v5-ink2)",
+            maxWidth: 460,
+          }}
+        >
+          已陪你走过 {daysPassed} 天，还有 {daysRemaining} 个明天等着你写下来。
+        </p>
+
+        {/* Progress bar */}
+        <div className="mt-5">
+          <div
+            style={{
+              position: "relative",
+              height: 3,
+              borderRadius: 999,
+              background: "rgba(75,51,27,0.08)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${pct}%`,
+                height: "100%",
+                background: "linear-gradient(90deg, var(--v5-accent-soft), var(--v5-accent))",
+                transition: "width var(--v5-dur-slow) var(--v5-ease-out)",
+              }}
+            />
+          </div>
+          <div
+            className="mt-2 flex items-center justify-between"
+            style={{
+              fontFamily: "var(--v5-mono)",
+              fontSize: 11,
+              color: "var(--v5-ink3)",
+              letterSpacing: "0.04em",
+            }}
+          >
+            <span>1 月</span>
+            <span style={{ color: "var(--v5-ink2)" }}>已走完 {pct}%</span>
+            <span>12 月</span>
+          </div>
+        </div>
+
+        <Link
+          className="mt-5 inline-flex items-center"
+          href="/year-review"
+          style={{
+            gap: 4,
+            fontFamily: "var(--v5-sans)",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "var(--v5-accent)",
+          }}
+        >
+          翻开 {year} 年度总结 <ArrowRight size={13} />
+        </Link>
+      </div>
+
+      {/* Right column: BigPendulum */}
+      <div className="grid place-items-center">
+        <V5BigPendulum />
+      </div>
+    </div>
+  );
+}
+
+/* Recall modes — client-side filtering on top of buildMemoryCards */
+
+type RecallMode = "all" | "similar" | "lastweek" | "year1" | "year3" | "random";
+
+const RECALL_CHIPS: { id: RecallMode; label: string; Icon: LucideIcon }[] = [
+  { id: "all", label: "全部", Icon: Sparkles },
+  { id: "similar", label: "心情相似", Icon: Activity },
+  { id: "lastweek", label: "上周这天", Icon: CalendarDays },
+  { id: "year1", label: "1 年前", Icon: RotateCcw },
+  { id: "year3", label: "3 年前", Icon: History },
+  { id: "random", label: "随机", Icon: Shuffle },
+];
+
+function V5RecallChips({
+  active,
+  onChange,
+}: {
+  active: RecallMode;
+  onChange: (m: RecallMode) => void;
+}) {
+  return (
+    <div className="flex flex-wrap" style={{ gap: 8 }}>
+      {RECALL_CHIPS.map(({ id, label, Icon }) => {
+        const isActive = id === active;
+        return (
+          <button
+            className="inline-flex items-center"
+            key={id}
+            onClick={() => onChange(id)}
+            type="button"
+            style={{
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 999,
+              border: 0,
+              background: isActive ? "var(--v5-accent)" : "var(--v5-card)",
+              color: isActive ? "#fff" : "var(--v5-ink2)",
+              fontFamily: "var(--v5-serif)",
+              fontStyle: "italic",
+              fontSize: 13,
+              fontWeight: isActive ? 500 : 400,
+              cursor: "pointer",
+              boxShadow: isActive
+                ? "0 2px 8px rgba(139,94,60,0.20)"
+                : "var(--v5-sh-1)",
+              transition: "background var(--v5-dur-fast) var(--v5-ease), color var(--v5-dur-fast) var(--v5-ease)",
+            }}
+          >
+            <Icon size={12} strokeWidth={1.8} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+type MemoryVariant = "plain" | "pullquote" | "featured";
+
+function pickMemoryVariant(card: MemoryCard, index: number): MemoryVariant {
+  const len = card.entry.thoughts?.length ?? 0;
+  if (card.trigger.type === "long_forgotten" || index % 4 === 0) return "featured";
+  if (len < 40) return "pullquote";
+  return "plain";
+}
+
+const TRIGGER_ICON_MAP: Record<MemoryTriggerType, LucideIcon> = {
+  on_this_day: RotateCcw,
+  mood_echo: Activity,
+  long_forgotten: Moon,
+  tag_resonance: Hash,
+};
+
+function yearsAgoOf(iso: string): number {
+  const d = parseISODate(iso);
+  const now = new Date();
+  const years = now.getFullYear() - d.getFullYear();
+  // Adjust if not yet past anniversary this year
+  const anniversaryPassed =
+    now.getMonth() > d.getMonth() ||
+    (now.getMonth() === d.getMonth() && now.getDate() >= d.getDate());
+  return Math.max(0, anniversaryPassed ? years : years - 1);
+}
+
+function V5MemoryCard({
+  card,
+  variant,
+}: {
+  card: MemoryCard;
+  variant: MemoryVariant;
+}) {
+  const [hov, setHov] = useState(false);
+  const Icon = TRIGGER_ICON_MAP[card.trigger.type];
+  const date = parseISODate(card.entry.date);
+  const dateLabel = `${date.getMonth() + 1}/${String(date.getDate()).padStart(2, "0")}`;
+  const yrs = yearsAgoOf(card.entry.date);
+  const text = card.entry.thoughts?.trim() || "这一天没有写下文字，只留下一段安静的空白。";
+  const id = card.entry.id;
+
+  const base: React.CSSProperties = {
+    position: "relative",
+    overflow: "hidden",
+    breakInside: "avoid",
+    marginBottom: 18,
+    padding: "24px 24px 20px",
+    borderRadius: 22,
+    cursor: "pointer",
+    boxShadow: hov ? "var(--v5-sh-hover)" : "var(--v5-sh-2)",
+    transform: hov ? "translateY(-3px)" : "translateY(0)",
+    transition:
+      "transform var(--v5-dur) var(--v5-ease-out), box-shadow var(--v5-dur) var(--v5-ease-out)",
+  };
+
+  const isFeatured = variant === "featured";
+  const ink = isFeatured ? "rgba(255,250,243,0.96)" : "var(--v5-ink)";
+  const ink2 = isFeatured ? "rgba(255,250,243,0.78)" : "var(--v5-ink2)";
+  const ink3 = isFeatured ? "rgba(255,250,243,0.58)" : "var(--v5-ink3)";
+  const ruleColor = isFeatured ? "rgba(255,255,255,0.18)" : "var(--v5-rule)";
+
+  const baseBg: string = isFeatured
+    ? "linear-gradient(135deg, var(--v5-accent) 0%, #6b4628 100%)"
+    : "var(--v5-card)";
+
+  const bodyFont: React.CSSProperties = (() => {
+    if (variant === "featured") {
+      return {
+        fontFamily: "var(--v5-serif)",
+        fontVariationSettings: '"opsz" 144, "SOFT" 60',
+        fontSize: 24,
+        fontWeight: 400,
+        lineHeight: 1.45,
+        letterSpacing: "-0.01em",
+      };
+    }
+    if (variant === "pullquote") {
+      return {
+        fontFamily: "var(--v5-serif)",
+        fontStyle: "italic",
+        fontVariationSettings: '"opsz" 144, "SOFT" 50',
+        fontSize: 17,
+        fontWeight: 400,
+        lineHeight: 1.55,
+      };
+    }
+    return {
+      fontFamily: "var(--v5-serif)",
+      fontVariationSettings: '"opsz" 14',
+      fontSize: 14.5,
+      lineHeight: 1.78,
+    };
+  })();
+
+  return (
+    <Link
+      href={`/journal?id=${id}`}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{ ...base, background: baseBg, color: ink, display: "block" }}
+    >
+      {/* Mode chip */}
+      <div className="flex items-center" style={{ gap: 6, marginBottom: 12 }}>
+        <Icon size={13} strokeWidth={1.8} style={{ color: isFeatured ? "rgba(255,250,243,0.78)" : "var(--v5-accent)" }} />
+        <span
+          style={{
+            fontFamily: "var(--v5-serif)",
+            fontStyle: "italic",
+            fontSize: 12.5,
+            color: ink2,
+          }}
+        >
+          {card.trigger.label}
+        </span>
+      </div>
+
+      {/* Body */}
+      <p
+        style={{
+          ...bodyFont,
+          margin: 0,
+          color: ink,
+          display: "-webkit-box",
+          WebkitLineClamp: variant === "featured" ? 4 : 5,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {text}
+      </p>
+
+      {/* Footer with dashed/solid top */}
+      <div
+        className="mt-4 flex items-center justify-between"
+        style={{
+          gap: 10,
+          paddingTop: 12,
+          borderTop: `1px ${isFeatured ? "solid" : "dashed"} ${ruleColor}`,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--v5-mono)",
+            fontSize: 11,
+            color: ink3,
+            letterSpacing: "0.04em",
+          }}
+        >
+          {yrs > 0 && (
+            <span style={{ color: isFeatured ? "rgba(255,250,243,0.85)" : "var(--v5-accent)", fontWeight: 600 }}>
+              {yrs} 年前 ·{" "}
+            </span>
+          )}
+          {dateLabel}
+        </span>
+        <span
+          className="flex items-center"
+          style={{
+            gap: 8,
+            opacity: hov ? 1 : 0,
+            transition: "opacity var(--v5-dur) var(--v5-ease)",
+            color: ink3,
+          }}
+        >
+          <BookOpen size={13} />
+          <MessageSquare size={13} />
+          <Bookmark size={13} />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function TimelinePage() {
   const logs = useDailyLogsStore();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -344,9 +824,108 @@ export default function TimelinePage() {
 
   const isEmpty = logs.length === 0;
 
+  // v5 recall mode filter
+  const [recallMode, setRecallMode] = useState<RecallMode>("all");
+  const filteredCards = useMemo(() => {
+    if (recallMode === "all") return cards;
+    if (recallMode === "similar") return cards.filter((c) => c.trigger.type === "mood_echo");
+    if (recallMode === "lastweek") return cards.filter((c) => c.trigger.type === "on_this_day" && yearsAgoOf(c.entry.date) === 0);
+    if (recallMode === "year1") return cards.filter((c) => yearsAgoOf(c.entry.date) === 1);
+    if (recallMode === "year3") return cards.filter((c) => yearsAgoOf(c.entry.date) >= 3);
+    if (recallMode === "random") return [...cards].sort(() => Math.random() - 0.5);
+    return cards;
+  }, [cards, recallMode]);
+
   return (
     <PageTransition>
-      <div className="w-full space-y-5 md:space-y-6">
+      {/* ── Desktop (v5) ── */}
+      <section className="hidden md:block">
+        <div className="grid" style={{ gap: 32 }}>
+          <V5TimelineHeader />
+          <V5TimeHero />
+
+          <div>
+            <div className="mb-5 flex flex-wrap items-end justify-between" style={{ gap: 16 }}>
+              <div>
+                <div className="v5-eyebrow">RECALL · 记忆碎片</div>
+                <h2
+                  className="v5-display mt-2"
+                  style={{
+                    margin: 0,
+                    fontSize: 28,
+                    fontVariationSettings: '"opsz" 144',
+                    fontWeight: 400,
+                    color: "var(--v5-ink)",
+                  }}
+                >
+                  今日触发的旧日记
+                </h2>
+              </div>
+              {!isEmpty && cards.length > 0 && (
+                <button
+                  className="group inline-flex items-center"
+                  onClick={() => setRefreshKey((k) => k + 1)}
+                  type="button"
+                  style={{
+                    gap: 6,
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    border: "1px solid var(--v5-rule-strong)",
+                    background: "transparent",
+                    color: "var(--v5-ink2)",
+                    fontFamily: "var(--v5-sans)",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  <RefreshCw className="transition-transform duration-300 group-hover:rotate-180" size={12} />
+                  再翻一翻
+                </button>
+              )}
+            </div>
+
+            {!isEmpty && cards.length > 0 && (
+              <div className="mb-5">
+                <V5RecallChips active={recallMode} onChange={setRecallMode} />
+              </div>
+            )}
+
+            {isEmpty ? (
+              <div
+                className="rounded-[22px] border border-dashed px-6 py-14 text-center"
+                style={{ borderColor: "var(--v5-rule-strong)", background: "var(--v5-card)" }}
+              >
+                <p style={{ margin: 0, fontFamily: "var(--v5-serif)", fontStyle: "italic", fontSize: 14, color: "var(--v5-ink2)" }}>
+                  还没有足够的记录。继续写下去，未来的你会感谢现在的你。
+                </p>
+              </div>
+            ) : filteredCards.length === 0 ? (
+              <div
+                className="rounded-[22px] border border-dashed px-6 py-10 text-center"
+                style={{ borderColor: "var(--v5-rule-strong)", background: "var(--v5-card)" }}
+              >
+                <p style={{ margin: 0, fontFamily: "var(--v5-serif)", fontStyle: "italic", fontSize: 14, color: "var(--v5-ink3)" }}>
+                  这个角度还没浮现内容，试试其他记忆滤镜。
+                </p>
+              </div>
+            ) : (
+              <div className="v5-memory-masonry">
+                {filteredCards.map((card, i) => (
+                  <V5MemoryCard
+                    card={card}
+                    key={`${card.entry.id}-${card.trigger.type}-${i}`}
+                    variant={pickMemoryVariant(card, i)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Mobile (existing layout) ── */}
+      <div className="md:hidden w-full space-y-5">
 
         {/* ── Page header ─────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-4 px-1 py-2">
