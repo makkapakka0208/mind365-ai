@@ -211,7 +211,7 @@ function DailyLogInner() {
                 <span className="hidden h-px w-7 bg-[var(--v5-rule-strong)] sm:block" />
                 <span className="daily-log-date">{formatDate(viewingDate)}</span>
               </div>
-              <h1 className="daily-log-title">今晚，慢慢写下来</h1>
+              <h1 className="daily-log-title">Hi，今天发生了什么</h1>
               <p className="daily-log-subtitle">
                 这里不急着提交什么，只是给今天留一页纸。情绪、片段、画面，都可以轻轻放下。
               </p>

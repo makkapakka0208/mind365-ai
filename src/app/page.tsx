@@ -1062,34 +1062,6 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
             </span>
           </div>
 
-          {/* Footer */}
-          <div
-            className="mt-1 flex items-center justify-between"
-            style={{
-              paddingTop: 16,
-              borderTop: "1px dashed var(--v5-rule)",
-              fontFamily: "var(--v5-sans)",
-            }}
-          >
-            <span
-              className="inline-flex items-center"
-              style={{ gap: 6, fontSize: 11.5, color: "var(--v5-ink3)" }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--v5-accent)" }} />
-              {dailyQuote?.book ? `今日阅读 · 《${dailyQuote.book}》` : "今日还没有摘录"}
-            </span>
-            <Link
-              className="v5-quote-link"
-              href="/library"
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--v5-accent)",
-              }}
-            >
-              书库 →
-            </Link>
-          </div>
         </div>
       </div>
     </div>
