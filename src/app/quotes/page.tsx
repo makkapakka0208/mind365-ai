@@ -1672,6 +1672,20 @@ function ArchiveSection({
     return [...all].filter((t) => t.toLowerCase().includes(searchLower));
   }, [quotes, notes, searchLower, isSearching]);
 
+  // v5 desktop: weekly quotes + per-theme week counts (must be before any early return)
+  const weekQuotes = useMemo(
+    () => quotes.filter((q) => isInThisWeek(q.createdAt.slice(0, 10))),
+    [quotes],
+  );
+  const themeWeekCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const q of weekQuotes) {
+      const label = classifyQuote(q);
+      m.set(label, (m.get(label) ?? 0) + 1);
+    }
+    return m;
+  }, [weekQuotes]);
+
   // ── Note detail view ─────────────────────────────────────────
   if (selectedNote) {
     return (
@@ -1755,20 +1769,6 @@ function ArchiveSection({
       </div>
     );
   }
-
-  // v5 desktop: weekly quotes + per-theme week counts
-  const weekQuotes = useMemo(
-    () => quotes.filter((q) => isInThisWeek(q.createdAt.slice(0, 10))),
-    [quotes],
-  );
-  const themeWeekCounts = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const q of weekQuotes) {
-      const label = classifyQuote(q);
-      m.set(label, (m.get(label) ?? 0) + 1);
-    }
-    return m;
-  }, [weekQuotes]);
 
   return (
     <>

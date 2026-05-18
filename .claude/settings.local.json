@@ -26,7 +26,8 @@
       "mcp__74e4d5d2-4d20-4658-bdfe-9b660efa734c__execute_sql",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
       "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
-      "Bash(grep -E \"\\\\.tsx?$\")"
+      "Bash(grep -E \"\\\\.tsx?$\")",
+      "Bash(git pull *)"
     ]
   }
 }
