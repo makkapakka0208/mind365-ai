@@ -56,7 +56,7 @@ function getGreeting(date: Date) {
   if (hour < 14) return "中午好 ";    // 原：中午好
   if (hour < 18) return "下午好 ";    // 原：下午好
   if (hour < 21) return "晚上好 ";    // 原：晚上好
-  return "月色入户，";
+  return "晚安，愿你好梦相伴";
 }
 
 function getGreetingHeadline(date: Date) {
