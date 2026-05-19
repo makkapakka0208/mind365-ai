@@ -859,7 +859,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
               color: "var(--v5-ink)",
             }}
           >
-            {greeting}，
+            {greeting}
           </h1>
           <p
             style={{
