@@ -18,33 +18,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!authConfigured) {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center px-4"
-        style={{
-          background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
-          color: "var(--m-ink)",
-          fontFamily: "'Noto Serif SC', serif",
-        }}
-      >
-        <Panel className="w-full max-w-sm p-8">
-          <div className="mb-5 text-center">
-            <h1 className="text-xl font-semibold" style={{ color: "var(--m-ink)" }}>
-              本地模式已启用
-            </h1>
-            <p className="mt-2 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
-              当前未配置 Supabase 登录。默认数据会保存在本地缓存，可直接进入应用使用。
-            </p>
-          </div>
-          <Button className="w-full" onClick={() => router.replace("/")} size="lg" type="button">
-            进入应用
-          </Button>
-        </Panel>
-      </div>
-    );
-  }
-
   if (!loading && user) {
     router.replace("/");
     return null;
