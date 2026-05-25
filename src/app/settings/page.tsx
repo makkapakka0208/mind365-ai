@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2, Cloud, CloudOff, Download, HardDrive, Settings2, Shield, Smartphone, Upload } from "lucide-react";
+import { CheckCircle2, Cloud, CloudOff, Download, HardDrive, LogIn, Settings2, Shield, Smartphone, Upload } from "lucide-react";
+import Link from "next/link";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -143,6 +144,16 @@ export default function SettingsPage() {
                   <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: syncConfigured ? "var(--m-success)" : "var(--m-ink3)" }}>
                     {syncConfigured ? <><CheckCircle2 size={12} /> 自动同步中</> : <><CloudOff size={12} /> 未连接</>}
                   </p>
+                  {!syncConfigured && (
+                    <Link
+                      href="/login"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
+                      style={{ background: "var(--m-accent)", color: "#fff" }}
+                    >
+                      <LogIn size={12} />
+                      登录 / 注册开启云同步
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

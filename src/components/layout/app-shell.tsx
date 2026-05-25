@@ -1,5 +1,6 @@
 "use client";
 
+import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -29,7 +30,7 @@ const PATH_GROUPS: Record<string, string[]> = {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const { loading, authConfigured } = useAuth();
+  const { loading, authConfigured, user } = useAuth();
 
   // Login page should render without the shell
   if (pathname === "/login") {
@@ -152,6 +153,22 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
 
           <div style={{ flex: 1 }} />
+
+          {/* Login / register nudge when not signed in */}
+          {authConfigured && !loading && !user && (
+            <Link
+              href="/login"
+              className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors hover:opacity-80"
+              style={{
+                background: "rgba(139,94,60,0.08)",
+                color: "var(--v5-accent)",
+                border: "1px solid rgba(139,94,60,0.15)",
+              }}
+            >
+              <LogIn size={15} />
+              登录 / 注册
+            </Link>
+          )}
 
           {/* Calm-style Smart Action — soft gradient pill */}
           <SmartActionCard />
