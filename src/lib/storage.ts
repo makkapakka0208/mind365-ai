@@ -22,6 +22,34 @@ export const STORAGE_KEYS = {
   timeEntries: "time_entries",
 } as const;
 
+const DELETED_QUOTE_IDS_KEY = "mind365-deleted-quote-ids";
+
+function getDeletedQuoteIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(DELETED_QUOTE_IDS_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(arr) ? (arr as string[]).filter((v) => typeof v === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function addDeletedQuoteId(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const ids = getDeletedQuoteIds();
+    ids.add(id);
+    window.localStorage.setItem(DELETED_QUOTE_IDS_KEY, JSON.stringify([...ids]));
+  } catch {}
+}
+
+/** Called after a successful import — clears the tombstone list so previously-deleted quotes can be restored. */
+function clearDeletedQuoteIds() {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.removeItem(DELETED_QUOTE_IDS_KEY); } catch {}
+}
+
 export const STORAGE_CHANGE_EVENT = "mind365:storage";
 
 type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -641,8 +669,13 @@ export async function refreshQuotes(): Promise<Quote[]> {
   const local = getQuotes();
   try {
     const remote = await fetchRemoteQuotes(settings);
+    const deleted = getDeletedQuoteIds();
     const merged = new Map<string, Quote>();
-    for (const q of remote) merged.set(q.id, q);
+    // Remote goes in first; local overwrites. Tombstoned IDs are skipped so
+    // deleted quotes are never resurrected from Supabase.
+    for (const q of remote) {
+      if (!deleted.has(q.id)) merged.set(q.id, q);
+    }
     for (const q of local) merged.set(q.id, q);
     const mergedArr = [...merged.values()];
     setQuotes(mergedArr);
@@ -791,6 +824,8 @@ export async function updateQuote(quote: Quote): Promise<Quote[]> {
 export async function deleteQuote(id: string): Promise<Quote[]> {
   const updated = getQuotes().filter((q) => q.id !== id);
   setQuotes(updated);
+  // Record tombstone so refreshQuotes won't restore this quote from Supabase.
+  addDeletedQuoteId(id);
   try {
     const settings = getSettingsForSync();
     const client = createMind365SupabaseClient(settings);
@@ -902,6 +937,8 @@ export function importMind365Backup(raw: string): BackupImportResult {
     ? importLifePathBackupData(parsed.life_path)
     : { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0 };
 
+  // Clear tombstones so quotes in the imported backup can be restored from Supabase.
+  clearDeletedQuoteIds();
   window.localStorage.setItem(STORAGE_KEYS.dailyLogs, JSON.stringify(dailyLogs));
   window.localStorage.setItem(STORAGE_KEYS.quotes, JSON.stringify(quotes));
   window.localStorage.setItem(STORAGE_KEYS.notes, JSON.stringify(notes));
