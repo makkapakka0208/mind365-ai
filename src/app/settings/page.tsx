@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Cloud, CloudOff, Download, HardDrive, LogIn, Settings2, Shield, Smartphone, Upload } from "lucide-react";
+import { CheckCircle2, Cloud, CloudOff, Download, HardDrive, LogIn, LogOut, Settings2, Shield, Smartphone, Upload } from "lucide-react";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
+import { useAuth } from "@/lib/auth";
 import { createDefaultSupabaseUserId } from "@/lib/supabase";
 import {
   downloadMind365Backup,
@@ -28,6 +29,7 @@ const EMPTY_STATUS: CloudSyncStatus = {
 };
 
 export default function SettingsPage() {
+  const { user, signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -144,7 +146,20 @@ export default function SettingsPage() {
                   <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: syncConfigured ? "var(--m-success)" : "var(--m-ink3)" }}>
                     {syncConfigured ? <><CheckCircle2 size={12} /> 自动同步中</> : <><CloudOff size={12} /> 未连接</>}
                   </p>
-                  {!syncConfigured && (
+                  {user ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="text-xs" style={{ color: "var(--m-ink3)" }}>{user.email}</span>
+                      <button
+                        type="button"
+                        onClick={() => void signOut()}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
+                        style={{ background: "rgba(192,57,43,0.08)", color: "#c0392b", border: "1px solid rgba(192,57,43,0.2)" }}
+                      >
+                        <LogOut size={12} />
+                        退出登录
+                      </button>
+                    </div>
+                  ) : (
                     <Link
                       href="/login"
                       className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
