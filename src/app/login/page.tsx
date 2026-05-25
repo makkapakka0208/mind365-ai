@@ -144,6 +144,28 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* 登录 / 注册 Tab */}
+        <div className="mb-6 flex rounded-xl p-1" style={{ background: "rgba(0,0,0,0.05)" }}>
+          {(["login", "register"] as const).map((mode) => {
+            const active = mode === "login" ? !isSignUp : isSignUp;
+            return (
+              <button
+                key={mode}
+                type="button"
+                className="flex-1 rounded-lg py-2 text-sm font-medium transition-all duration-200"
+                style={{
+                  background: active ? "var(--m-base-light)" : "transparent",
+                  color: active ? "var(--m-ink)" : "var(--m-ink2)",
+                  boxShadow: active ? "var(--m-shadow-out)" : "none",
+                }}
+                onClick={() => { setIsSignUp(mode === "register"); setError(null); }}
+              >
+                {mode === "login" ? "登录" : "注册"}
+              </button>
+            );
+          })}
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
@@ -202,26 +224,15 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-4">
           <Button
-            className="mb-3 w-full"
+            className="w-full"
             onClick={() => router.replace("/")}
             type="button"
             variant="secondary"
           >
             先进入本地模式
           </Button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-            }}
-            className="text-sm transition-colors duration-200"
-            style={{ color: "var(--m-accent)" }}
-          >
-            {isSignUp ? "已有账号？点此登录" : "没有账号？点此注册"}
-          </button>
         </div>
       </Panel>
     </div>
