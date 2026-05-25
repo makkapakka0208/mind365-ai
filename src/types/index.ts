@@ -47,6 +47,8 @@ export interface Mind365Settings {
   supabaseUrl: string;
   supabaseAnonKey: string;
   supabaseUserId: string;
+  weeklyStudyTarget: number;
+  weeklyReadingTarget: number;
 }
 
 export interface ReviewReport {

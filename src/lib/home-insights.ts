@@ -111,7 +111,7 @@ export function getMoodInsight(logs: DailyLog[]): string {
 
 const WEEKDAY_CN = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 
-export function getFocusInsight(logs: DailyLog[], timeEntries: TimeEntry[] = []): string {
+export function getFocusInsight(logs: DailyLog[], timeEntries: TimeEntry[] = [], studyTarget = STUDY_WEEKLY_TARGET): string {
   const thisWeek = getCurrentWeekLogs(logs);
   const weekTimeEntries = getCurrentWeekTimeEntries(timeEntries);
   const total =
@@ -119,7 +119,7 @@ export function getFocusInsight(logs: DailyLog[], timeEntries: TimeEntry[] = [])
     weekTimeEntries.filter((entry) => entry.type === "study").reduce((s, entry) => s + entry.hours, 0);
   if (total === 0) return "本周还未投入学习时长";
 
-  if (total >= STUDY_WEEKLY_TARGET) return `已超过本周目标 ${STUDY_WEEKLY_TARGET}h`;
+  if (total >= studyTarget) return `已超过本周目标 ${studyTarget}h`;
 
   // Find peak weekday
   const byDay = new Map<string, number>();
@@ -139,14 +139,14 @@ export function getFocusInsight(logs: DailyLog[], timeEntries: TimeEntry[] = [])
   }
   if (peakValue > 0 && peakDate) {
     const wd = WEEKDAY_CN[parseISODate(peakDate).getDay()];
-    return `${wd}最投入 (${peakValue.toFixed(1)}h) · 还差 ${(STUDY_WEEKLY_TARGET - total).toFixed(1)}h`;
+    return `${wd}最投入 (${peakValue.toFixed(1)}h) · 还差 ${(studyTarget - total).toFixed(1)}h`;
   }
-  return `还差 ${(STUDY_WEEKLY_TARGET - total).toFixed(1)}h 达本周目标`;
+  return `还差 ${(studyTarget - total).toFixed(1)}h 达本周目标`;
 }
 
 // ── Reading insight ──────────────────────────────────────────────────────────
 
-export function getReadingInsight(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[] = []): string {
+export function getReadingInsight(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[] = [], readingTarget = READING_WEEKLY_TARGET): string {
   const weekLogs = getCurrentWeekLogs(logs);
   const weekQuotes = getCurrentWeekQuotes(quotes);
   const weekTimeEntries = getCurrentWeekTimeEntries(timeEntries);
@@ -154,9 +154,9 @@ export function getReadingInsight(logs: DailyLog[], quotes: Quote[], timeEntries
   const total = summary.totalReadingHours;
 
   if (total === 0) return "本周还未开始阅读";
-  const pct = Math.round((total / READING_WEEKLY_TARGET) * 100);
+  const pct = Math.round((total / readingTarget) * 100);
   if (pct >= 100) return `已超过本周目标 (${pct}%)`;
-  const remaining = READING_WEEKLY_TARGET - total;
+  const remaining = readingTarget - total;
   return `已完成 ${pct}% · 距达标只剩 ${remaining.toFixed(1)}h`;
 }
 
@@ -212,7 +212,7 @@ export interface NextAction {
  *   4. Reading target far behind      → 进入书库
  *   5. Default                        → 写一条新记录
  */
-export function getNextAction(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[] = [], reference: Date = new Date()): NextAction {
+export function getNextAction(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[] = [], reference: Date = new Date(), studyTarget = STUDY_WEEKLY_TARGET, readingTarget = READING_WEEKLY_TARGET): NextAction {
   const todayIso = getTodayISODate();
   const todayLog = logs.find((l) => l.date === todayIso);
   const gap = daysSinceLastLog(logs);
@@ -271,7 +271,7 @@ export function getNextAction(logs: DailyLog[], quotes: Quote[], timeEntries: Ti
     const studyTotal =
       weekLogs.reduce((s, l) => s + l.studyHours, 0) +
       weekTimeEntries.filter((entry) => entry.type === "study").reduce((s, entry) => s + entry.hours, 0);
-    const studyRemaining = STUDY_WEEKLY_TARGET - studyTotal;
+    const studyRemaining = studyTarget - studyTotal;
     if (studyRemaining >= 6) {
       return {
         message: `本周学习还差 ${studyRemaining.toFixed(1)}h 达标`,
@@ -286,7 +286,7 @@ export function getNextAction(logs: DailyLog[], quotes: Quote[], timeEntries: Ti
   if (weekday >= 4) {
     const weekQuotes = getCurrentWeekQuotes(quotes);
     const summary = computeSummary(weekLogs, weekQuotes, weekTimeEntries);
-    const readingRemaining = READING_WEEKLY_TARGET - summary.totalReadingHours;
+    const readingRemaining = readingTarget - summary.totalReadingHours;
     if (readingRemaining >= 4) {
       return {
         message: `本周阅读还差 ${readingRemaining.toFixed(1)}h 达标`,

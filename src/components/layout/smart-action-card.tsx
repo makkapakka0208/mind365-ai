@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { getNextAction } from "@/lib/home-insights";
+import { getSettings } from "@/lib/storage";
 import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/storage-store";
 
 // Tone variants — each maps to a pill background + eyebrow label + CTA color
@@ -35,7 +36,8 @@ export function SmartActionCard() {
   const logs = useDailyLogsStore();
   const quotes = useQuotesStore();
   const timeEntries = useTimeEntriesStore();
-  const action = useMemo(() => getNextAction(logs, quotes, timeEntries), [logs, quotes, timeEntries]);
+  const { weeklyStudyTarget, weeklyReadingTarget } = useMemo(() => getSettings(), []);
+  const action = useMemo(() => getNextAction(logs, quotes, timeEntries, new Date(), weeklyStudyTarget, weeklyReadingTarget), [logs, quotes, timeEntries, weeklyStudyTarget, weeklyReadingTarget]);
   const variant = TONE_VARIANTS[action.tone];
 
   return (

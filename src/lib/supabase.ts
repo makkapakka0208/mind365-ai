@@ -7,6 +7,8 @@ export const DEFAULT_SETTINGS: Mind365Settings = {
   supabaseUrl: "",
   supabaseAnonKey: "",
   supabaseUserId: "",
+  weeklyStudyTarget: 10,
+  weeklyReadingTarget: 7,
 };
 
 const UUID_PATTERN =
@@ -47,11 +49,18 @@ export function normalizeMind365Settings(value: unknown): Mind365Settings {
   const record = value as Record<string, unknown>;
   const supabaseUserId = asString(record.supabaseUserId);
 
+  const weeklyStudyTarget = typeof record.weeklyStudyTarget === "number" && record.weeklyStudyTarget > 0
+    ? record.weeklyStudyTarget : DEFAULT_SETTINGS.weeklyStudyTarget;
+  const weeklyReadingTarget = typeof record.weeklyReadingTarget === "number" && record.weeklyReadingTarget > 0
+    ? record.weeklyReadingTarget : DEFAULT_SETTINGS.weeklyReadingTarget;
+
   return {
     enableSupabaseSync: Boolean(record.enableSupabaseSync),
     supabaseUrl: asString(record.supabaseUrl),
     supabaseAnonKey: asString(record.supabaseAnonKey),
     supabaseUserId: isUuid(supabaseUserId) ? supabaseUserId : "",
+    weeklyStudyTarget,
+    weeklyReadingTarget,
   };
 }
 

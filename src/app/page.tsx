@@ -42,7 +42,7 @@ import {
   getReviewBadge,
   getStreakInsight,
 } from "@/lib/home-insights";
-import { saveTimeEntry } from "@/lib/storage";
+import { getSettings, saveTimeEntry } from "@/lib/storage";
 import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog, Quote, TimeEntry } from "@/types";
 import type { LucideIcon } from "lucide-react";
@@ -1076,6 +1076,7 @@ export default function HomePage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [timeDialogType, setTimeDialogType] = useState<TimeEntry["type"] | null>(null);
   const [diaryModalId, setDiaryModalId] = useState<string | null>(null);
+  const { weeklyStudyTarget, weeklyReadingTarget } = useMemo(() => getSettings(), []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60000);
@@ -1109,8 +1110,8 @@ export default function HomePage() {
   const allTimeBest = useMemo(() => getAllTimeBestStreak(logs), [logs]);
   const streakInsight = useMemo(() => getStreakInsight(logs, streak, allTimeBest), [logs, streak, allTimeBest]);
   const moodInsight = useMemo(() => getMoodInsight(logs), [logs]);
-  const focusInsight = useMemo(() => getFocusInsight(logs, timeEntries), [logs, timeEntries]);
-  const readingInsight = useMemo(() => getReadingInsight(logs, quotes, timeEntries), [logs, quotes, timeEntries]);
+  const focusInsight = useMemo(() => getFocusInsight(logs, timeEntries, weeklyStudyTarget), [logs, timeEntries, weeklyStudyTarget]);
+  const readingInsight = useMemo(() => getReadingInsight(logs, quotes, timeEntries, weeklyReadingTarget), [logs, quotes, timeEntries, weeklyReadingTarget]);
   const reviewBadge = useMemo(() => getReviewBadge(now), [now]);
   const monthEndPrompt = useMemo(() => getMonthEndPrompt(logs, 20, now), [logs, now]);
   const safeIndex = recentLogs.length === 0 ? 0 : Math.min(activeIndex, recentLogs.length - 1);
@@ -1304,7 +1305,7 @@ export default function HomePage() {
               unit="h"
               value={weeklySummary.totalStudyHours.toFixed(1)}
             >
-              <ProgressRing current={weeklySummary.totalStudyHours} label="专注进度" target={10} />
+              <ProgressRing current={weeklySummary.totalStudyHours} label="专注进度" target={weeklyStudyTarget} />
             </DashboardCard>
 
             <DashboardCard
@@ -1320,7 +1321,7 @@ export default function HomePage() {
               unit="h"
               value={weeklySummary.totalReadingHours.toFixed(1)}
             >
-              <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={7} />
+              <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={weeklyReadingTarget} />
             </DashboardCard>
           </div>
 
@@ -1570,7 +1571,7 @@ export default function HomePage() {
                 unit="h"
                 value={weeklySummary.totalStudyHours.toFixed(1)}
               >
-                <ProgressRing current={weeklySummary.totalStudyHours} label="专注进度" target={10} />
+                <ProgressRing current={weeklySummary.totalStudyHours} label="专注进度" target={weeklyStudyTarget} />
               </V5KpiCard>
 
               <V5KpiCard
@@ -1582,7 +1583,7 @@ export default function HomePage() {
                 unit="h"
                 value={weeklySummary.totalReadingHours.toFixed(1)}
               >
-                <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={7} />
+                <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={weeklyReadingTarget} />
               </V5KpiCard>
             </div>
 

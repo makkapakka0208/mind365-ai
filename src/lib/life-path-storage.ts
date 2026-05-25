@@ -102,13 +102,13 @@ function localKeyFor(kind: Kind): string {
 /** Read settings directly from localStorage — avoids circular dep with storage.ts. */
 function getSettingsSafe(): Mind365Settings {
   if (typeof window === "undefined") {
-    return { enableSupabaseSync: false, supabaseUrl: "", supabaseAnonKey: "", supabaseUserId: "" };
+    return normalizeMind365Settings({});
   }
   try {
     const raw = localStorage.getItem("settings");
     return normalizeMind365Settings(raw ? (JSON.parse(raw) as unknown) : {});
   } catch {
-    return { enableSupabaseSync: false, supabaseUrl: "", supabaseAnonKey: "", supabaseUserId: "" };
+    return normalizeMind365Settings({});
   }
 }
 

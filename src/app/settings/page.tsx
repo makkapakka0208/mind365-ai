@@ -1,10 +1,11 @@
 "use client";
 
-import { CheckCircle2, Cloud, CloudOff, Download, HardDrive, LogIn, LogOut, Settings2, Shield, Smartphone, Upload } from "lucide-react";
+import { CheckCircle2, Cloud, CloudOff, Download, HardDrive, LogIn, LogOut, Settings2, Shield, Smartphone, Target, Upload } from "lucide-react";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -34,6 +35,9 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState<CloudSyncStatus>(EMPTY_STATUS);
+  const [studyTarget, setStudyTarget] = useState(10);
+  const [readingTarget, setReadingTarget] = useState(7);
+  const [targetSaved, setTargetSaved] = useState(false);
 
   useEffect(() => {
     const settings = getSettings();
@@ -41,7 +45,20 @@ export default function SettingsPage() {
       saveSettings({ ...settings, supabaseUserId: createDefaultSupabaseUserId() });
     }
     setStatus(getCloudSyncStatus());
+    setStudyTarget(settings.weeklyStudyTarget);
+    setReadingTarget(settings.weeklyReadingTarget);
   }, []);
+
+  const onSaveTargets = () => {
+    const s = studyTarget > 0 ? studyTarget : 10;
+    const r = readingTarget > 0 ? readingTarget : 7;
+    const settings = getSettings();
+    saveSettings({ ...settings, weeklyStudyTarget: s, weeklyReadingTarget: r });
+    setStudyTarget(s);
+    setReadingTarget(r);
+    setTargetSaved(true);
+    setTimeout(() => setTargetSaved(false), 2000);
+  };
 
   const onExport = () => {
     try {
@@ -184,8 +201,64 @@ export default function SettingsPage() {
         </Panel>
       </StaggerItem>
 
-      {/* ── 数据备份 ── */}
+      {/* ── 每周目标 ── */}
       <StaggerItem index={1}>
+        <Panel className="p-6 sm:p-8">
+          <div className="space-y-5">
+            <div>
+              <h3 className="flex items-center gap-2 text-lg font-semibold" style={{ color: "var(--m-ink)" }}>
+                <Target size={20} />
+                每周目标
+              </h3>
+              <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
+                设定本周学习和阅读的目标时长，主页进度环和洞察文案将据此计算。
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
+                  学习目标（小时 / 周）
+                </label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={168}
+                  value={studyTarget}
+                  onChange={(e) => setStudyTarget(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
+                  阅读目标（小时 / 周）
+                </label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={168}
+                  value={readingTarget}
+                  onChange={(e) => setReadingTarget(Number(e.target.value))}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button onClick={onSaveTargets} size="lg" type="button" variant="primary">
+                保存目标
+              </Button>
+              {targetSaved && (
+                <span className="flex items-center gap-1 text-sm" style={{ color: "var(--m-success)" }}>
+                  <CheckCircle2 size={14} />
+                  已保存
+                </span>
+              )}
+            </div>
+          </div>
+        </Panel>
+      </StaggerItem>
+
+      {/* ── 数据备份 ── */}
+      <StaggerItem index={2}>
         <Panel className="p-6 sm:p-8">
           <div className="space-y-5">
             <div>
