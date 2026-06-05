@@ -53,6 +53,8 @@ export interface TodoItem {
   updatedAt: string;
   /** ISO timestamp when marked done; cleared when un-done. */
   completedAt?: string;
+  /** Optional due date, ISO calendar date (yyyy-MM-dd). */
+  dueDate?: string;
 }
 
 export interface Mind365Settings {

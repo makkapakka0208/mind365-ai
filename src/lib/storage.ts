@@ -858,6 +858,7 @@ async function upsertRemoteTodos(
     done: t.done,
     sort_order: t.order,
     completed_at: t.completedAt ?? null,
+    due_date: t.dueDate ?? null,
     deleted: t.deleted ?? false,
     created_at: t.createdAt,
     updated_at: t.updatedAt,
@@ -891,6 +892,7 @@ async function fetchRemoteTodos(
         createdAt,
         updatedAt: typeof row.updated_at === "string" ? row.updated_at : createdAt,
         completedAt: typeof row.completed_at === "string" ? row.completed_at : undefined,
+        dueDate: typeof row.due_date === "string" && row.due_date ? row.due_date.slice(0, 10) : undefined,
       };
       return { item, deleted: Boolean(row.deleted) };
     })
@@ -958,7 +960,7 @@ export async function refreshTodos(): Promise<TodoItem[]> {
   }
 }
 
-export function addTodo(text: string): TodoItem[] {
+export function addTodo(text: string, dueDate?: string): TodoItem[] {
   const trimmed = text.trim();
   if (!trimmed) return getTodos();
   const existing = getTodos();
@@ -971,9 +973,24 @@ export function addTodo(text: string): TodoItem[] {
     order: minOrder - 1, // new items go to the top
     createdAt: now,
     updatedAt: now,
+    dueDate: dueDate || undefined,
   };
   setTodos([todo, ...existing]);
   pushTodoRemote(todo);
+  return getTodos();
+}
+
+/** Set or clear a todo's due date (pass undefined/"" to clear). */
+export function setTodoDueDate(id: string, dueDate?: string): TodoItem[] {
+  const now = new Date().toISOString();
+  let changed: TodoItem | null = null;
+  const updated = getTodos().map((t) => {
+    if (t.id !== id) return t;
+    changed = { ...t, dueDate: dueDate || undefined, updatedAt: now };
+    return changed;
+  });
+  setTodos(updated);
+  if (changed) pushTodoRemote(changed);
   return getTodos();
 }
 

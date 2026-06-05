@@ -1,18 +1,20 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ListTodo, Plus, Trash2, X } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { CalendarDays, Check, ListTodo, Plus, Trash2, X } from "lucide-react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
+import { getTodayISODate } from "@/lib/date";
 import {
   addTodo,
   clearCompletedTodos,
   deleteTodo,
+  setTodoDueDate,
   toggleTodo,
   updateTodoText,
 } from "@/lib/storage";
@@ -20,6 +22,94 @@ import { useTodosStore } from "@/lib/storage-store";
 import type { TodoItem } from "@/types";
 
 const SERIF = '"Noto Serif SC", "Songti SC", serif';
+
+// ── Due-date formatting ────────────────────────────────────────
+type DueTone = "overdue" | "today" | "tomorrow" | "future";
+
+function describeDue(due: string, done: boolean): { label: string; tone: DueTone } {
+  const today = getTodayISODate();
+  const t = new Date(`${today}T00:00:00`);
+  const d = new Date(`${due}T00:00:00`);
+  const diffDays = Math.round((d.getTime() - t.getTime()) / 86400000);
+
+  let tone: DueTone = "future";
+  if (!done && diffDays < 0) tone = "overdue";
+  else if (diffDays === 0) tone = "today";
+  else if (diffDays === 1) tone = "tomorrow";
+
+  let label: string;
+  if (diffDays === 0) label = "今天";
+  else if (diffDays === 1) label = "明天";
+  else if (diffDays === -1) label = "昨天";
+  else {
+    const [, mm, dd] = due.split("-");
+    label = `${Number(mm)}月${Number(dd)}日`;
+    if (!done && diffDays < 0) label += ` · 逾期${-diffDays}天`;
+  }
+  return { label, tone };
+}
+
+const TONE_COLORS: Record<DueTone, { fg: string; bg: string }> = {
+  overdue: { fg: "#C0392B", bg: "rgba(192,57,43,0.1)" },
+  today: { fg: "var(--m-accent)", bg: "rgba(139,94,60,0.12)" },
+  tomorrow: { fg: "#7e6046", bg: "rgba(126,96,70,0.1)" },
+  future: { fg: "var(--m-ink3)", bg: "rgba(139,94,60,0.07)" },
+};
+
+// ── Due-date chip / picker ─────────────────────────────────────
+function DueChip({ todo }: { todo: TodoItem }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const openPicker = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    // Prefer native showPicker when available
+    const withPicker = el as HTMLInputElement & { showPicker?: () => void };
+    if (typeof withPicker.showPicker === "function") {
+      try { withPicker.showPicker(); return; } catch { /* fall through */ }
+    }
+    el.focus();
+    el.click();
+  };
+
+  const info = todo.dueDate ? describeDue(todo.dueDate, todo.done) : null;
+  const colors = info ? TONE_COLORS[info.tone] : null;
+
+  return (
+    <span className="relative inline-flex shrink-0 items-center">
+      {info && colors ? (
+        <button
+          type="button"
+          onClick={openPicker}
+          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] transition-opacity hover:opacity-80"
+          style={{ color: colors.fg, background: colors.bg }}
+        >
+          <CalendarDays size={11} />
+          {info.label}
+        </button>
+      ) : (
+        <button
+          type="button"
+          aria-label="设置截止日期"
+          onClick={openPicker}
+          className="flex h-7 w-7 items-center justify-center rounded-full opacity-60 transition-all hover:bg-[rgba(0,0,0,0.05)] sm:opacity-0 sm:group-hover:opacity-60"
+          style={{ color: "var(--m-ink3)" }}
+        >
+          <CalendarDays size={14} />
+        </button>
+      )}
+      {/* Hidden native date input */}
+      <input
+        ref={inputRef}
+        type="date"
+        value={todo.dueDate ?? ""}
+        onChange={(e) => setTodoDueDate(todo.id, e.target.value || undefined)}
+        className="pointer-events-none absolute bottom-0 left-0 h-0 w-0 opacity-0"
+        tabIndex={-1}
+      />
+    </span>
+  );
+}
 
 // ── Single row ─────────────────────────────────────────────────
 function TodoRow({ todo }: { todo: TodoItem }) {
@@ -91,6 +181,9 @@ function TodoRow({ todo }: { todo: TodoItem }) {
         </button>
       )}
 
+      {/* Due date */}
+      <DueChip todo={todo} />
+
       {/* Delete */}
       <button
         type="button"
@@ -108,6 +201,7 @@ function TodoRow({ todo }: { todo: TodoItem }) {
 export default function TodoPage() {
   const todos = useTodosStore();
   const [text, setText] = useState("");
+  const [due, setDue] = useState("");
 
   const { active, done } = useMemo(() => {
     return {
@@ -119,8 +213,9 @@ export default function TodoPage() {
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!text.trim()) return;
-    addTodo(text);
+    addTodo(text, due || undefined);
     setText("");
+    setDue("");
   };
 
   return (
@@ -129,7 +224,7 @@ export default function TodoPage() {
         eyebrow="TODO"
         icon={ListTodo}
         title="待办清单"
-        description="随手记下今天要做的事，完成后打勾。轻量、即时，只属于此刻。"
+        description="随手记下今天要做的事，可设置截止日期。完成后打勾。"
         rightSlot={
           active.length > 0 ? (
             <span style={{ color: "var(--m-ink3)" }}>
@@ -140,13 +235,44 @@ export default function TodoPage() {
       />
 
       {/* Add bar */}
-      <form onSubmit={onSubmit} className="flex items-center gap-2.5">
+      <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-2.5">
         <Input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="添加一项待办，回车确认…"
           maxLength={200}
+          className="min-w-[180px] flex-1"
         />
+        <label
+          className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
+          style={{
+            background: "var(--m-base)",
+            border: "1px solid var(--m-rule)",
+            color: due ? "var(--m-ink)" : "var(--m-ink3)",
+            boxShadow: "var(--m-shadow-in)",
+          }}
+        >
+          <CalendarDays size={15} style={{ color: "var(--m-accent)" }} />
+          <input
+            type="date"
+            value={due}
+            onChange={(e) => setDue(e.target.value)}
+            className="bg-transparent text-sm outline-none"
+            style={{ color: "inherit", fontFamily: SERIF }}
+            aria-label="截止日期"
+          />
+          {due && (
+            <button
+              type="button"
+              aria-label="清除截止日期"
+              onClick={() => setDue("")}
+              className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full hover:bg-[rgba(0,0,0,0.06)]"
+              style={{ color: "var(--m-ink3)" }}
+            >
+              <X size={11} />
+            </button>
+          )}
+        </label>
         <Button type="submit" disabled={!text.trim()} className="shrink-0 px-4">
           <Plus size={16} className="mr-1" />
           添加

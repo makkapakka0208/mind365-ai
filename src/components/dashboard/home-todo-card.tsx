@@ -5,11 +5,24 @@ import { Check, ListTodo, Plus } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
+import { getTodayISODate } from "@/lib/date";
 import { addTodo, toggleTodo } from "@/lib/storage";
 import { useTodosStore } from "@/lib/storage-store";
 
 const SERIF = '"Noto Serif SC", "Songti SC", serif';
 const MAX_VISIBLE = 4;
+
+function dueBadge(due: string): { label: string; color: string } | null {
+  const today = getTodayISODate();
+  const diff = Math.round(
+    (new Date(`${due}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) / 86400000,
+  );
+  if (diff < 0) return { label: `逾期${-diff}天`, color: "#C0392B" };
+  if (diff === 0) return { label: "今天", color: "var(--m-accent)" };
+  if (diff === 1) return { label: "明天", color: "#7e6046" };
+  const [, mm, dd] = due.split("-");
+  return { label: `${Number(mm)}/${Number(dd)}`, color: "var(--m-ink3)" };
+}
 
 export function HomeTodoCard({ className }: { className?: string }) {
   const todos = useTodosStore();
@@ -111,6 +124,14 @@ export function HomeTodoCard({ className }: { className?: string }) {
                 <span className="truncate text-sm leading-6" style={{ color: "var(--m-ink2)", fontFamily: SERIF }}>
                   {t.text}
                 </span>
+                {t.dueDate && (() => {
+                  const b = dueBadge(t.dueDate);
+                  return b ? (
+                    <span className="ml-auto shrink-0 text-[11px]" style={{ color: b.color }}>
+                      {b.label}
+                    </span>
+                  ) : null;
+                })()}
               </motion.div>
             ))}
           </AnimatePresence>
