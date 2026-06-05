@@ -824,7 +824,7 @@ export async function saveNote(note: Note): Promise<Note[]> {
   return updated;
 }
 
-// ── Todos (轻量每日清单，仅本地存储) ──────────────────────────────
+// ── Todos (轻量每日清单，本地 + Supabase 跨设备同步) ──────────────
 function sortTodos(todos: TodoItem[]): TodoItem[] {
   // done 项沉底；同组按 order 升序
   return [...todos].sort((a, b) => {
@@ -834,16 +834,128 @@ function sortTodos(todos: TodoItem[]): TodoItem[] {
 }
 
 export function getTodos(): TodoItem[] {
-  return sortTodos(readCollection(STORAGE_KEYS.todos, isTodo));
+  const raw = readCollection(STORAGE_KEYS.todos, isTodo);
+  // Backfill updatedAt for legacy items written before sync was added.
+  return sortTodos(raw.map((t) => ({ ...t, updatedAt: t.updatedAt ?? t.createdAt })));
 }
 
 export function setTodos(todos: TodoItem[]) {
   writeCollection(STORAGE_KEYS.todos, sortTodos(todos));
 }
 
-/** Local-only collection — kept for store-hook symmetry. */
+/** Upsert todo rows (including soft-delete tombstones) to Supabase. */
+async function upsertRemoteTodos(
+  rows: Array<TodoItem & { deleted?: boolean }>,
+  settings: Mind365Settings,
+): Promise<boolean> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+  if (!client || !config || rows.length === 0) return false;
+  const payload = rows.map((t) => ({
+    id: t.id,
+    user_id: config.userId,
+    text: t.text,
+    done: t.done,
+    sort_order: t.order,
+    completed_at: t.completedAt ?? null,
+    deleted: t.deleted ?? false,
+    created_at: t.createdAt,
+    updated_at: t.updatedAt,
+  }));
+  const { error } = await client.from("todos").upsert(payload, { onConflict: "id" });
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+/** Fetch all todo rows (including tombstones) for the current user. */
+async function fetchRemoteTodos(
+  settings: Mind365Settings,
+): Promise<Array<{ item: TodoItem; deleted: boolean }>> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getSupabaseConfig(settings);
+  if (!client || !config) return [];
+  const { data, error } = await client.from("todos").select("*").eq("user_id", config.userId);
+  if (error) throw new Error(error.message);
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((row: Record<string, unknown>) => {
+      const id = typeof row.id === "string" ? row.id : "";
+      const text = typeof row.text === "string" ? row.text : "";
+      if (!id) return null;
+      const createdAt = typeof row.created_at === "string" ? row.created_at : new Date().toISOString();
+      const item: TodoItem = {
+        id,
+        text,
+        done: Boolean(row.done),
+        order: typeof row.sort_order === "number" ? row.sort_order : 0,
+        createdAt,
+        updatedAt: typeof row.updated_at === "string" ? row.updated_at : createdAt,
+        completedAt: typeof row.completed_at === "string" ? row.completed_at : undefined,
+      };
+      return { item, deleted: Boolean(row.deleted) };
+    })
+    .filter((r): r is { item: TodoItem; deleted: boolean } => r !== null);
+}
+
+/** Fire-and-forget remote push for a single mutation. */
+function pushTodoRemote(item: TodoItem, deleted = false) {
+  void (async () => {
+    try { await upsertRemoteTodos([{ ...item, deleted }], getSettingsForSync()); } catch {}
+  })();
+}
+
+/**
+ * Pull remote todos and reconcile with local using last-write-wins (by
+ * updatedAt) plus soft-delete tombstones, so checks/edits/deletes from one
+ * device propagate to others.
+ */
 export async function refreshTodos(): Promise<TodoItem[]> {
-  return getTodos();
+  if (typeof window === "undefined") return [];
+  const settings = getSettingsForSync();
+  const config = getSupabaseConfig(settings);
+  if (!config) return getTodos();
+  const local = getTodos();
+  const ts = (s: string) => Date.parse(s) || 0;
+  try {
+    const remote = await fetchRemoteTodos(settings);
+    const remoteMap = new Map<string, { item: TodoItem; deleted: boolean }>();
+    for (const r of remote) remoteMap.set(r.item.id, r);
+    const localMap = new Map<string, TodoItem>();
+    for (const t of local) localMap.set(t.id, t);
+
+    const allIds = new Set<string>([...remoteMap.keys(), ...localMap.keys()]);
+    const resolved: TodoItem[] = [];
+    const toUpload: TodoItem[] = [];
+
+    for (const id of allIds) {
+      const r = remoteMap.get(id);
+      const l = localMap.get(id);
+      if (r && l) {
+        if (ts(r.item.updatedAt) >= ts(l.updatedAt)) {
+          // remote wins
+          if (!r.deleted) resolved.push(r.item);
+        } else {
+          // local wins — keep and re-assert to remote
+          resolved.push(l);
+          toUpload.push(l);
+        }
+      } else if (r) {
+        if (!r.deleted) resolved.push(r.item);
+      } else if (l) {
+        // brand-new local item → upload
+        resolved.push(l);
+        toUpload.push(l);
+      }
+    }
+
+    setTodos(resolved);
+    if (toUpload.length > 0) {
+      try { await upsertRemoteTodos(toUpload, settings); } catch {}
+    }
+    return getTodos();
+  } catch {
+    return local;
+  }
 }
 
 export function addTodo(text: string): TodoItem[] {
@@ -851,45 +963,60 @@ export function addTodo(text: string): TodoItem[] {
   if (!trimmed) return getTodos();
   const existing = getTodos();
   const minOrder = existing.length ? Math.min(...existing.map((t) => t.order)) : 0;
+  const now = new Date().toISOString();
   const todo: TodoItem = {
     id: createId(),
     text: trimmed,
     done: false,
     order: minOrder - 1, // new items go to the top
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
   };
-  const updated = [todo, ...existing];
-  setTodos(updated);
+  setTodos([todo, ...existing]);
+  pushTodoRemote(todo);
   return getTodos();
 }
 
 export function toggleTodo(id: string): TodoItem[] {
-  const updated = getTodos().map((t) =>
-    t.id === id
-      ? { ...t, done: !t.done, completedAt: !t.done ? new Date().toISOString() : undefined }
-      : t,
-  );
+  const now = new Date().toISOString();
+  let changed: TodoItem | null = null;
+  const updated = getTodos().map((t) => {
+    if (t.id !== id) return t;
+    changed = { ...t, done: !t.done, completedAt: !t.done ? now : undefined, updatedAt: now };
+    return changed;
+  });
   setTodos(updated);
+  if (changed) pushTodoRemote(changed);
   return getTodos();
 }
 
 export function updateTodoText(id: string, text: string): TodoItem[] {
   const trimmed = text.trim();
   if (!trimmed) return deleteTodo(id);
-  const updated = getTodos().map((t) => (t.id === id ? { ...t, text: trimmed } : t));
+  const now = new Date().toISOString();
+  let changed: TodoItem | null = null;
+  const updated = getTodos().map((t) => {
+    if (t.id !== id) return t;
+    changed = { ...t, text: trimmed, updatedAt: now };
+    return changed;
+  });
   setTodos(updated);
+  if (changed) pushTodoRemote(changed);
   return getTodos();
 }
 
 export function deleteTodo(id: string): TodoItem[] {
-  const updated = getTodos().filter((t) => t.id !== id);
-  setTodos(updated);
+  const target = getTodos().find((t) => t.id === id);
+  setTodos(getTodos().filter((t) => t.id !== id));
+  if (target) pushTodoRemote({ ...target, updatedAt: new Date().toISOString() }, true);
   return getTodos();
 }
 
 export function clearCompletedTodos(): TodoItem[] {
-  const updated = getTodos().filter((t) => !t.done);
-  setTodos(updated);
+  const now = new Date().toISOString();
+  const done = getTodos().filter((t) => t.done);
+  setTodos(getTodos().filter((t) => !t.done));
+  for (const t of done) pushTodoRemote({ ...t, updatedAt: now }, true);
   return getTodos();
 }
 

@@ -49,6 +49,8 @@ export interface TodoItem {
   /** Sort order — smaller is higher in the list. */
   order: number;
   createdAt: string;
+  /** ISO timestamp of the last mutation — used for last-write-wins sync. */
+  updatedAt: string;
   /** ISO timestamp when marked done; cleared when un-done. */
   completedAt?: string;
 }
