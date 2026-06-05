@@ -11,7 +11,7 @@ import {
   importLifePathBackupData,
   type LifePathBackupData,
 } from "@/lib/life-path-storage";
-import { DailyLog, Mind365Settings, Note, Quote, ReviewReport, TimeEntry, TodoItem } from "@/types";
+import { DailyLog, Mind365Settings, Note, Quote, ReviewReport, TimeEntry, TodoItem, TodoQuadrant } from "@/types";
 
 export const STORAGE_KEYS = {
   dailyLogs: "daily_logs",
@@ -833,10 +833,21 @@ function sortTodos(todos: TodoItem[]): TodoItem[] {
   });
 }
 
+const VALID_QUADRANTS: TodoQuadrant[] = ["q1", "q2", "q3", "q4"];
+function normalizeQuadrant(value: unknown): TodoQuadrant {
+  return VALID_QUADRANTS.includes(value as TodoQuadrant) ? (value as TodoQuadrant) : "q1";
+}
+
 export function getTodos(): TodoItem[] {
   const raw = readCollection(STORAGE_KEYS.todos, isTodo);
-  // Backfill updatedAt for legacy items written before sync was added.
-  return sortTodos(raw.map((t) => ({ ...t, updatedAt: t.updatedAt ?? t.createdAt })));
+  // Backfill fields for legacy items written before sync / quadrants existed.
+  return sortTodos(
+    raw.map((t) => ({
+      ...t,
+      updatedAt: t.updatedAt ?? t.createdAt,
+      quadrant: normalizeQuadrant(t.quadrant),
+    })),
+  );
 }
 
 export function setTodos(todos: TodoItem[]) {
@@ -859,6 +870,7 @@ async function upsertRemoteTodos(
     sort_order: t.order,
     completed_at: t.completedAt ?? null,
     due_date: t.dueDate ?? null,
+    quadrant: t.quadrant ?? "q1",
     deleted: t.deleted ?? false,
     created_at: t.createdAt,
     updated_at: t.updatedAt,
@@ -893,6 +905,7 @@ async function fetchRemoteTodos(
         updatedAt: typeof row.updated_at === "string" ? row.updated_at : createdAt,
         completedAt: typeof row.completed_at === "string" ? row.completed_at : undefined,
         dueDate: typeof row.due_date === "string" && row.due_date ? row.due_date.slice(0, 10) : undefined,
+        quadrant: normalizeQuadrant(row.quadrant),
       };
       return { item, deleted: Boolean(row.deleted) };
     })
@@ -960,7 +973,7 @@ export async function refreshTodos(): Promise<TodoItem[]> {
   }
 }
 
-export function addTodo(text: string, dueDate?: string): TodoItem[] {
+export function addTodo(text: string, dueDate?: string, quadrant: TodoQuadrant = "q1"): TodoItem[] {
   const trimmed = text.trim();
   if (!trimmed) return getTodos();
   const existing = getTodos();
@@ -971,12 +984,27 @@ export function addTodo(text: string, dueDate?: string): TodoItem[] {
     text: trimmed,
     done: false,
     order: minOrder - 1, // new items go to the top
+    quadrant: normalizeQuadrant(quadrant),
     createdAt: now,
     updatedAt: now,
     dueDate: dueDate || undefined,
   };
   setTodos([todo, ...existing]);
   pushTodoRemote(todo);
+  return getTodos();
+}
+
+/** Move a todo to a different Eisenhower quadrant. */
+export function setTodoQuadrant(id: string, quadrant: TodoQuadrant): TodoItem[] {
+  const now = new Date().toISOString();
+  let changed: TodoItem | null = null;
+  const updated = getTodos().map((t) => {
+    if (t.id !== id) return t;
+    changed = { ...t, quadrant: normalizeQuadrant(quadrant), updatedAt: now };
+    return changed;
+  });
+  setTodos(updated);
+  if (changed) pushTodoRemote(changed);
   return getTodos();
 }
 

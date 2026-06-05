@@ -4,11 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, Check, ListTodo, Plus, Trash2, X } from "lucide-react";
 import { FormEvent, useMemo, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition } from "@/components/ui/page-transition";
-import { Panel } from "@/components/ui/panel";
 import { getTodayISODate } from "@/lib/date";
 import {
   addTodo,
@@ -19,9 +16,26 @@ import {
   updateTodoText,
 } from "@/lib/storage";
 import { useTodosStore } from "@/lib/storage-store";
-import type { TodoItem } from "@/types";
+import type { TodoItem, TodoQuadrant } from "@/types";
 
 const SERIF = '"Noto Serif SC", "Songti SC", serif';
+
+// ── Quadrant metadata (Eisenhower matrix) ──────────────────────
+interface QuadrantMeta {
+  id: TodoQuadrant;
+  title: string;
+  subtitle: string;
+  color: string;
+  bg: string;
+  border: string;
+}
+
+const QUADRANTS: QuadrantMeta[] = [
+  { id: "q1", title: "重要 · 紧急", subtitle: "立刻去做", color: "#C0392B", bg: "rgba(192,57,43,0.05)", border: "rgba(192,57,43,0.18)" },
+  { id: "q2", title: "重要 · 不紧急", subtitle: "规划去做", color: "#4E7A64", bg: "rgba(78,122,100,0.05)", border: "rgba(78,122,100,0.18)" },
+  { id: "q3", title: "不重要 · 紧急", subtitle: "尽量委托", color: "#C8893A", bg: "rgba(200,137,58,0.06)", border: "rgba(200,137,58,0.2)" },
+  { id: "q4", title: "不重要 · 不紧急", subtitle: "尽量少做", color: "#8C7A6B", bg: "rgba(140,122,107,0.05)", border: "rgba(140,122,107,0.18)" },
+];
 
 // ── Due-date formatting ────────────────────────────────────────
 type DueTone = "overdue" | "today" | "tomorrow" | "future";
@@ -63,7 +77,6 @@ function DueChip({ todo }: { todo: TodoItem }) {
   const openPicker = () => {
     const el = inputRef.current;
     if (!el) return;
-    // Prefer native showPicker when available
     const withPicker = el as HTMLInputElement & { showPicker?: () => void };
     if (typeof withPicker.showPicker === "function") {
       try { withPicker.showPicker(); return; } catch { /* fall through */ }
@@ -98,7 +111,6 @@ function DueChip({ todo }: { todo: TodoItem }) {
           <CalendarDays size={14} />
         </button>
       )}
-      {/* Hidden native date input */}
       <input
         ref={inputRef}
         type="date"
@@ -132,24 +144,21 @@ function TodoRow({ todo }: { todo: TodoItem }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.2 } }}
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-      className="group flex items-center gap-3 rounded-2xl px-3.5 py-3"
-      style={{
-        background: "var(--m-base)",
-        border: "1px solid var(--m-rule)",
-      }}
+      className="group flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+      style={{ background: "var(--m-base-light)", border: "1px solid var(--m-rule)" }}
     >
       {/* Checkbox */}
       <button
         type="button"
         aria-label={todo.done ? "标记为未完成" : "标记为完成"}
         onClick={() => toggleTodo(todo.id)}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all"
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all"
         style={{
           border: `1.5px solid ${todo.done ? "var(--m-accent)" : "var(--m-ink3)"}`,
           background: todo.done ? "var(--m-accent)" : "transparent",
         }}
       >
-        {todo.done && <Check size={13} color="#fffaf3" strokeWidth={3} />}
+        {todo.done && <Check size={11} color="#fffaf3" strokeWidth={3} />}
       </button>
 
       {/* Text / inline edit */}
@@ -163,14 +172,14 @@ function TodoRow({ todo }: { todo: TodoItem }) {
             if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
             if (e.key === "Escape") { setDraft(todo.text); setEditing(false); }
           }}
-          className="flex-1 bg-transparent text-[15px] outline-none"
+          className="flex-1 bg-transparent text-sm outline-none"
           style={{ color: "var(--m-ink)", fontFamily: SERIF }}
         />
       ) : (
         <button
           type="button"
           onClick={() => { setDraft(todo.text); setEditing(true); }}
-          className="flex-1 text-left text-[15px] leading-6 transition-colors"
+          className="flex-1 truncate text-left text-sm leading-6 transition-colors"
           style={{
             color: todo.done ? "var(--m-ink3)" : "var(--m-ink)",
             textDecoration: todo.done ? "line-through" : "none",
@@ -181,10 +190,8 @@ function TodoRow({ todo }: { todo: TodoItem }) {
         </button>
       )}
 
-      {/* Due date */}
       <DueChip todo={todo} />
 
-      {/* Delete */}
       <button
         type="button"
         aria-label="删除"
@@ -192,115 +199,152 @@ function TodoRow({ todo }: { todo: TodoItem }) {
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-60 transition-all hover:bg-[rgba(0,0,0,0.05)] sm:opacity-0 sm:group-hover:opacity-60"
         style={{ color: "var(--m-ink3)" }}
       >
-        <Trash2 size={14} />
+        <Trash2 size={13} />
       </button>
     </motion.div>
   );
 }
 
-export default function TodoPage() {
-  const todos = useTodosStore();
-  const [text, setText] = useState("");
-  const [due, setDue] = useState("");
+// ── Quadrant panel ─────────────────────────────────────────────
+function Quadrant({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState("");
 
-  const { active, done } = useMemo(() => {
-    return {
-      active: todos.filter((t) => !t.done),
-      done: todos.filter((t) => t.done),
-    };
-  }, [todos]);
-
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    addTodo(text, due || undefined);
-    setText("");
-    setDue("");
+    if (!draft.trim()) return;
+    addTodo(draft, undefined, meta.id);
+    setDraft("");
   };
 
   return (
-    <PageTransition className="mx-auto w-full max-w-2xl space-y-6">
+    <div
+      className="flex flex-col rounded-2xl p-4"
+      style={{ background: meta.bg, border: `1px solid ${meta.border}`, minHeight: 200 }}
+    >
+      {/* Header */}
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full" style={{ background: meta.color }} />
+            <h3 className="text-sm font-semibold tracking-[0.02em]" style={{ color: meta.color }}>
+              {meta.title}
+            </h3>
+            {items.length > 0 && (
+              <span className="text-xs" style={{ color: "var(--m-ink3)" }}>
+                {items.length}
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 pl-4 text-[11px]" style={{ color: "var(--m-ink3)" }}>
+            {meta.subtitle}
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label={`在「${meta.title}」添加待办`}
+          onClick={() => setAdding((v) => !v)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all hover:scale-105"
+          style={{ background: meta.color, color: "#fffaf3" }}
+        >
+          <motion.span animate={{ rotate: adding ? 45 : 0 }} transition={{ duration: 0.18 }}>
+            <Plus size={15} />
+          </motion.span>
+        </button>
+      </div>
+
+      {/* Inline add */}
+      <AnimatePresence initial={false}>
+        {adding && (
+          <motion.form
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={submit}
+            className="mb-2 overflow-hidden"
+          >
+            <input
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") { setDraft(""); setAdding(false); } }}
+              onBlur={() => { if (!draft.trim()) setAdding(false); }}
+              placeholder="写点什么，回车添加…"
+              maxLength={200}
+              className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+              style={{
+                background: "var(--m-base-light)",
+                border: `1px solid ${meta.border}`,
+                color: "var(--m-ink)",
+                fontFamily: SERIF,
+              }}
+            />
+          </motion.form>
+        )}
+      </AnimatePresence>
+
+      {/* List */}
+      <div className="space-y-1.5">
+        <AnimatePresence initial={false}>
+          {items.map((t) => (
+            <TodoRow key={t.id} todo={t} />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {items.length === 0 && !adding && (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="mt-1 flex flex-1 items-center justify-center rounded-xl border border-dashed py-6 text-xs transition-colors hover:bg-[rgba(0,0,0,0.02)]"
+          style={{ borderColor: meta.border, color: "var(--m-ink3)" }}
+        >
+          + 添加一项
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function TodoPage() {
+  const todos = useTodosStore();
+
+  const { byQuadrant, done, activeCount } = useMemo(() => {
+    const active = todos.filter((t) => !t.done);
+    const map: Record<TodoQuadrant, TodoItem[]> = { q1: [], q2: [], q3: [], q4: [] };
+    for (const t of active) map[t.quadrant].push(t);
+    return {
+      byQuadrant: map,
+      done: todos.filter((t) => t.done),
+      activeCount: active.length,
+    };
+  }, [todos]);
+
+  return (
+    <PageTransition className="mx-auto w-full max-w-4xl space-y-6">
       <PageTitle
-        eyebrow="TODO"
+        eyebrow="TODO · 四象限"
         icon={ListTodo}
         title="待办清单"
-        description="随手记下今天要做的事，可设置截止日期。完成后打勾。"
+        description="用艾森豪威尔矩阵给事情分类：先做重要且紧急的，规划重要不紧急的。点右上角 + 在对应象限添加。"
         rightSlot={
-          active.length > 0 ? (
+          activeCount > 0 ? (
             <span style={{ color: "var(--m-ink3)" }}>
-              还剩 <span style={{ color: "var(--m-accent)", fontWeight: 600 }}>{active.length}</span> 项
+              还剩 <span style={{ color: "var(--m-accent)", fontWeight: 600 }}>{activeCount}</span> 项
             </span>
           ) : null
         }
       />
 
-      {/* Add bar */}
-      <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-2.5">
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="添加一项待办，回车确认…"
-          maxLength={200}
-          className="min-w-[180px] flex-1"
-        />
-        <label
-          className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
-          style={{
-            background: "var(--m-base)",
-            border: "1px solid var(--m-rule)",
-            color: due ? "var(--m-ink)" : "var(--m-ink3)",
-            boxShadow: "var(--m-shadow-in)",
-          }}
-        >
-          <CalendarDays size={15} style={{ color: "var(--m-accent)" }} />
-          <input
-            type="date"
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-            className="bg-transparent text-sm outline-none"
-            style={{ color: "inherit", fontFamily: SERIF }}
-            aria-label="截止日期"
-          />
-          {due && (
-            <button
-              type="button"
-              aria-label="清除截止日期"
-              onClick={() => setDue("")}
-              className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full hover:bg-[rgba(0,0,0,0.06)]"
-              style={{ color: "var(--m-ink3)" }}
-            >
-              <X size={11} />
-            </button>
-          )}
-        </label>
-        <Button type="submit" disabled={!text.trim()} className="shrink-0 px-4">
-          <Plus size={16} className="mr-1" />
-          添加
-        </Button>
-      </form>
+      {/* Matrix */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {QUADRANTS.map((meta) => (
+          <Quadrant key={meta.id} meta={meta} items={byQuadrant[meta.id]} />
+        ))}
+      </div>
 
-      {/* Empty state */}
-      {todos.length === 0 && (
-        <Panel className="flex flex-col items-center gap-2 px-6 py-14 text-center" inset>
-          <ListTodo size={28} style={{ color: "var(--m-ink3)" }} />
-          <p className="text-[15px]" style={{ color: "var(--m-ink2)", fontFamily: SERIF }}>
-            还没有待办。写下第一件想做的事吧。
-          </p>
-        </Panel>
-      )}
-
-      {/* Active list */}
-      {active.length > 0 && (
-        <div className="space-y-2">
-          <AnimatePresence initial={false}>
-            {active.map((t) => (
-              <TodoRow key={t.id} todo={t} />
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Done section */}
+      {/* Completed */}
       {done.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">

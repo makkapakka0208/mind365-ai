@@ -42,12 +42,21 @@ export interface Note {
   tags: string[];
 }
 
+/**
+ * Eisenhower matrix quadrant:
+ * - q1 重要且紧急  - q2 重要不紧急
+ * - q3 不重要紧急  - q4 不重要不紧急
+ */
+export type TodoQuadrant = "q1" | "q2" | "q3" | "q4";
+
 export interface TodoItem {
   id: string;
   text: string;
   done: boolean;
   /** Sort order — smaller is higher in the list. */
   order: number;
+  /** Which Eisenhower quadrant this item lives in. */
+  quadrant: TodoQuadrant;
   createdAt: string;
   /** ISO timestamp of the last mutation — used for last-write-wins sync. */
   updatedAt: string;
