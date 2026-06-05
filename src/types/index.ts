@@ -42,6 +42,17 @@ export interface Note {
   tags: string[];
 }
 
+export interface TodoItem {
+  id: string;
+  text: string;
+  done: boolean;
+  /** Sort order — smaller is higher in the list. */
+  order: number;
+  createdAt: string;
+  /** ISO timestamp when marked done; cleared when un-done. */
+  completedAt?: string;
+}
+
 export interface Mind365Settings {
   enableSupabaseSync: boolean;
   supabaseUrl: string;

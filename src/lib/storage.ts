@@ -11,7 +11,7 @@ import {
   importLifePathBackupData,
   type LifePathBackupData,
 } from "@/lib/life-path-storage";
-import { DailyLog, Mind365Settings, Note, Quote, ReviewReport, TimeEntry } from "@/types";
+import { DailyLog, Mind365Settings, Note, Quote, ReviewReport, TimeEntry, TodoItem } from "@/types";
 
 export const STORAGE_KEYS = {
   dailyLogs: "daily_logs",
@@ -20,6 +20,7 @@ export const STORAGE_KEYS = {
   settings: "settings",
   reviewReports: "review_reports",
   timeEntries: "time_entries",
+  todos: "todos",
 } as const;
 
 export const STORAGE_CHANGE_EVENT = "mind365:storage";
@@ -242,6 +243,17 @@ function isNote(value: unknown): value is Note {
     typeof value.title === "string" &&
     typeof value.content === "string" &&
     isStringArray(value.tags)
+  );
+}
+
+function isTodo(value: unknown): value is TodoItem {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    typeof value.text === "string" &&
+    typeof value.done === "boolean" &&
+    typeof value.order === "number" &&
+    typeof value.createdAt === "string"
   );
 }
 
@@ -810,6 +822,75 @@ export async function saveNote(note: Note): Promise<Note[]> {
   setNotes(updated);
   try { await upsertRemoteNotes([note], getSettingsForSync()); } catch {}
   return updated;
+}
+
+// ── Todos (轻量每日清单，仅本地存储) ──────────────────────────────
+function sortTodos(todos: TodoItem[]): TodoItem[] {
+  // done 项沉底；同组按 order 升序
+  return [...todos].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return a.order - b.order;
+  });
+}
+
+export function getTodos(): TodoItem[] {
+  return sortTodos(readCollection(STORAGE_KEYS.todos, isTodo));
+}
+
+export function setTodos(todos: TodoItem[]) {
+  writeCollection(STORAGE_KEYS.todos, sortTodos(todos));
+}
+
+/** Local-only collection — kept for store-hook symmetry. */
+export async function refreshTodos(): Promise<TodoItem[]> {
+  return getTodos();
+}
+
+export function addTodo(text: string): TodoItem[] {
+  const trimmed = text.trim();
+  if (!trimmed) return getTodos();
+  const existing = getTodos();
+  const minOrder = existing.length ? Math.min(...existing.map((t) => t.order)) : 0;
+  const todo: TodoItem = {
+    id: createId(),
+    text: trimmed,
+    done: false,
+    order: minOrder - 1, // new items go to the top
+    createdAt: new Date().toISOString(),
+  };
+  const updated = [todo, ...existing];
+  setTodos(updated);
+  return getTodos();
+}
+
+export function toggleTodo(id: string): TodoItem[] {
+  const updated = getTodos().map((t) =>
+    t.id === id
+      ? { ...t, done: !t.done, completedAt: !t.done ? new Date().toISOString() : undefined }
+      : t,
+  );
+  setTodos(updated);
+  return getTodos();
+}
+
+export function updateTodoText(id: string, text: string): TodoItem[] {
+  const trimmed = text.trim();
+  if (!trimmed) return deleteTodo(id);
+  const updated = getTodos().map((t) => (t.id === id ? { ...t, text: trimmed } : t));
+  setTodos(updated);
+  return getTodos();
+}
+
+export function deleteTodo(id: string): TodoItem[] {
+  const updated = getTodos().filter((t) => t.id !== id);
+  setTodos(updated);
+  return getTodos();
+}
+
+export function clearCompletedTodos(): TodoItem[] {
+  const updated = getTodos().filter((t) => !t.done);
+  setTodos(updated);
+  return getTodos();
 }
 
 export function getReviewReports(): ReviewReport[] { return readCollection(STORAGE_KEYS.reviewReports, isReviewReport); }

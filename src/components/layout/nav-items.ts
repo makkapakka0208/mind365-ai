@@ -3,6 +3,7 @@ import {
   Clock,
   Compass,
   Grid2x2,
+  ListTodo,
   NotebookPen,
   Quote,
   ScanSearch,
@@ -30,6 +31,7 @@ export const mobileNavItems: NavItem[] = [
 export const desktopNavItems: NavItem[] = [
   { label: "\u6210\u957f\u6982\u89c8", href: "/", icon: Grid2x2 },
   { label: "\u5fc3\u5883\u968f\u7b14", href: "/daily-log", icon: NotebookPen },
+  { label: "\u5f85\u529e\u6e05\u5355", href: "/todo", icon: ListTodo },
   { label: "\u4eba\u751f\u4e3b\u7ebf", href: "/life-path", icon: Compass },
   { label: "\u53bb\u5e74\u4eca\u65e5", href: "/timeline", icon: Clock },
   { label: "\u7075\u611f\u4e66\u5e93", href: "/library", icon: Quote },

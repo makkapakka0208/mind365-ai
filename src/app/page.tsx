@@ -15,6 +15,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
+import { HomeTodoCard } from "@/components/dashboard/home-todo-card";
 import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -1251,6 +1252,11 @@ export default function HomePage() {
               </div>
               <MobileYearWidget />
             </div>
+
+            {/* Todo quick card */}
+            <div className="mt-5">
+              <HomeTodoCard />
+            </div>
           </div>
 
           {/* 4 stat cards — mirrors the desktop dashboard row, stacked 2×2 on mobile */}
@@ -1585,6 +1591,9 @@ export default function HomePage() {
                 <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={7} />
               </V5KpiCard>
             </div>
+
+            {/* Todo quick card */}
+            <HomeTodoCard />
 
             {/* Featured — original Panel-based layout (per user request) */}
             <Panel className="p-7 lg:p-8">
