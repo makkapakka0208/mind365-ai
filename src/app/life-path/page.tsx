@@ -633,10 +633,10 @@ function V5TimelineStrip({ goals }: { goals: UserGoal[] }) {
         </span>
       </div>
 
-      <div className="relative mt-6" style={{ height: 56 }}>
+      <div className="relative mt-6" style={{ height: 80 }}>
         <div
           className="absolute"
-          style={{ left: 0, right: 0, top: 12, height: 1, background: "var(--v5-rule-strong)" }}
+          style={{ left: 0, right: 0, top: 36, height: 1, background: "var(--v5-rule-strong)" }}
         />
 
         {/* Today marker */}
@@ -644,7 +644,7 @@ function V5TimelineStrip({ goals }: { goals: UserGoal[] }) {
           className="absolute"
           style={{
             left: 0,
-            top: 6,
+            top: 30,
             width: 12,
             height: 12,
             borderRadius: "50%",
@@ -658,7 +658,7 @@ function V5TimelineStrip({ goals }: { goals: UserGoal[] }) {
           className="absolute"
           style={{
             left: 0,
-            top: 28,
+            top: 52,
             fontFamily: "var(--v5-sans)",
             fontSize: 11.5,
             color: "var(--v5-ink3)",
@@ -667,13 +667,14 @@ function V5TimelineStrip({ goals }: { goals: UserGoal[] }) {
           今
         </span>
 
-        {/* Goal markers */}
-        {withDeadline.map(({ g, i, daysLeft }) => {
+        {/* Goal markers — stagger labels above/below to avoid overlap */}
+        {withDeadline.map(({ g, i, daysLeft }, idx) => {
           const pct = Math.min(100, Math.max(2, (daysLeft! / maxDays) * 100));
           const accent = getGoalAccent(i);
           const shortLabel = g.title.length > 4 ? `${g.title.slice(0, 4)}…` : g.title;
+          const above = idx % 2 === 0;
           return (
-            <div className="absolute" key={g.id} style={{ left: `${pct}%`, top: 5, transform: "translateX(-50%)" }}>
+            <div className="absolute" key={g.id} style={{ left: `${pct}%`, top: 29, transform: "translateX(-50%)" }}>
               <div
                 style={{
                   width: 14,
@@ -688,7 +689,7 @@ function V5TimelineStrip({ goals }: { goals: UserGoal[] }) {
               <span
                 className="absolute"
                 style={{
-                  top: 22,
+                  top: above ? -22 : 22,
                   left: "50%",
                   transform: "translateX(-50%)",
                   fontFamily: "var(--v5-serif)",

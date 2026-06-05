@@ -8,15 +8,17 @@ import {
   getQuotes,
   getReviewReports,
   getTimeEntries,
+  getTodos,
   refreshDailyLogs,
   refreshNotes,
   refreshQuotes,
   refreshReviewReports,
   refreshTimeEntries,
+  refreshTodos,
   STORAGE_CHANGE_EVENT,
   STORAGE_KEYS,
 } from "@/lib/storage";
-import type { DailyLog, Note, Quote, ReviewReport, TimeEntry } from "@/types";
+import type { DailyLog, Note, Quote, ReviewReport, TimeEntry, TodoItem } from "@/types";
 
 type StoreCallback = () => void;
 
@@ -25,24 +27,28 @@ const EMPTY_QUOTES: Quote[] = [];
 const EMPTY_NOTES: Note[] = [];
 const EMPTY_REVIEW_REPORTS: ReviewReport[] = [];
 const EMPTY_TIME_ENTRIES: TimeEntry[] = [];
+const EMPTY_TODOS: TodoItem[] = [];
 
 let hasRequestedInitialDailySync = false;
 let hasRequestedInitialQuotesSync = false;
 let hasRequestedInitialNotesSync = false;
 let hasRequestedInitialReviewSync = false;
 let hasRequestedInitialTimeEntriesSync = false;
+let hasRequestedInitialTodosSync = false;
 
 let dailyLogsRawCache: string | null | undefined;
 let quotesRawCache: string | null | undefined;
 let notesRawCache: string | null | undefined;
 let reviewReportsRawCache: string | null | undefined;
 let timeEntriesRawCache: string | null | undefined;
+let todosRawCache: string | null | undefined;
 
 let dailyLogsSnapshot: DailyLog[] = EMPTY_DAILY_LOGS;
 let quotesSnapshot: Quote[] = EMPTY_QUOTES;
 let notesSnapshot: Note[] = EMPTY_NOTES;
 let reviewReportsSnapshot: ReviewReport[] = EMPTY_REVIEW_REPORTS;
 let timeEntriesSnapshot: TimeEntry[] = EMPTY_TIME_ENTRIES;
+let todosSnapshot: TodoItem[] = EMPTY_TODOS;
 
 function subscribe(callback: StoreCallback) {
   if (typeof window === "undefined") return () => undefined;
@@ -100,6 +106,15 @@ function getTimeEntriesSnapshot() {
   return timeEntriesSnapshot;
 }
 
+function getTodosSnapshot() {
+  if (typeof window === "undefined") return EMPTY_TODOS;
+  const raw = window.localStorage.getItem(STORAGE_KEYS.todos);
+  if (raw === todosRawCache) return todosSnapshot;
+  todosRawCache = raw;
+  todosSnapshot = raw ? getTodos() : EMPTY_TODOS;
+  return todosSnapshot;
+}
+
 export function useDailyLogsStore(): DailyLog[] {
   const snapshot = useSyncExternalStore(subscribe, getDailyLogsSnapshot, () => EMPTY_DAILY_LOGS);
   useEffect(() => {
@@ -126,6 +141,16 @@ export function useNotesStore(): Note[] {
     if (hasRequestedInitialNotesSync) return;
     hasRequestedInitialNotesSync = true;
     void refreshNotes();
+  }, []);
+  return snapshot;
+}
+
+export function useTodosStore(): TodoItem[] {
+  const snapshot = useSyncExternalStore(subscribe, getTodosSnapshot, () => EMPTY_TODOS);
+  useEffect(() => {
+    if (hasRequestedInitialTodosSync) return;
+    hasRequestedInitialTodosSync = true;
+    void refreshTodos();
   }, []);
   return snapshot;
 }

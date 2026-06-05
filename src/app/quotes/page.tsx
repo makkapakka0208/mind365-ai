@@ -1635,7 +1635,7 @@ function ArchiveSection({
 }: {
   quotes: Quote[];
   notes: Note[];
-  onOpenQuote: (id: string) => void;
+  onOpenQuote: (id: string, scope?: Quote[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
@@ -1825,7 +1825,9 @@ function ArchiveSection({
                   <V5ThemeCard
                     bucket={b}
                     key={b.label}
-                    onOpen={() => setOpenFolder(b.label)}
+                    onOpen={() => {
+                      if (b.items.length > 0) onOpenQuote(b.items[0].id, b.items);
+                    }}
                     weekCount={themeWeekCounts.get(b.label) ?? 0}
                   />
                 ))}
@@ -2073,8 +2075,8 @@ function V5TodaysPick({
     <div
       className="relative overflow-hidden"
       style={{
-        borderRadius: 32,
-        padding: "clamp(28px, 4vw, 48px) clamp(28px, 4.5vw, 56px)",
+        borderRadius: 28,
+        padding: "clamp(20px, 2.6vw, 32px) clamp(24px, 3.6vw, 44px)",
         background: "linear-gradient(135deg, var(--v5-card) 0%, #faecc8 100%)",
         boxShadow: "var(--v5-sh-3)",
       }}
@@ -2084,11 +2086,11 @@ function V5TodaysPick({
         aria-hidden
         className="pointer-events-none absolute"
         style={{
-          right: 32,
-          top: -40,
+          right: 24,
+          top: -28,
           fontFamily: "var(--v5-serif)",
           fontVariationSettings: '"opsz" 144, "wght" 500',
-          fontSize: 280,
+          fontSize: 180,
           lineHeight: 1,
           color: "var(--v5-accent)",
           opacity: 0.08,
@@ -2118,12 +2120,12 @@ function V5TodaysPick({
       <p
         className="relative"
         style={{
-          margin: "28px 0 0",
+          margin: "20px 0 0",
           fontFamily: "var(--v5-serif)",
           fontVariationSettings: '"opsz" 144, "SOFT" 60',
-          fontSize: "clamp(24px, 3.4vw, 42px)",
+          fontSize: "clamp(18px, 2vw, 26px)",
           fontWeight: 400,
-          lineHeight: 1.35,
+          lineHeight: 1.45,
           color: "var(--v5-ink)",
           letterSpacing: "-0.015em",
           maxWidth: 880,
@@ -3668,6 +3670,7 @@ export default function LibraryPage() {
   const [scrollToId, setScrollToId] = useState<string | null>(null);
   const [quoteModalId, setQuoteModalId] = useState<string | null>(null);
   const [quoteModalKey, setQuoteModalKey] = useState(0);
+  const [modalScope, setModalScope] = useState<Quote[] | null>(null);
   const [todayPickIndex, setTodayPickIndex] = useState(0);
   const quotes = useQuotesStore();
   const notes = useNotesStore();
@@ -3677,8 +3680,9 @@ export default function LibraryPage() {
     void refreshNotes();
   }, []);
 
-  const onOpenQuote = (id: string) => {
+  const onOpenQuote = (id: string, scope?: Quote[]) => {
     setQuoteModalId(id);
+    setModalScope(scope ?? null);
     setQuoteModalKey((k) => k + 1);
   };
 
@@ -3721,14 +3725,15 @@ export default function LibraryPage() {
         {activeTab === "notes" && <ReadingNotebookSection />}
       </PageTransition>
 
-      {/* Quote stack modal */}
+      {/* Quote stack modal — scoped to a theme bucket when opened from archive,
+          otherwise spans all quotes (e.g. opened from 书海拾金 or Today's Pick). */}
       <AnimatePresence mode="wait">
-        {quoteModalId && quotes.length > 0 && (
+        {quoteModalId && (modalScope ?? quotes).length > 0 && (
           <QuoteStackModal
             key={quoteModalKey}
-            allQuotes={quotes}
+            allQuotes={modalScope ?? quotes}
             initialId={quoteModalId}
-            onClose={() => setQuoteModalId(null)}
+            onClose={() => { setQuoteModalId(null); setModalScope(null); }}
           />
         )}
       </AnimatePresence>

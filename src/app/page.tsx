@@ -15,6 +15,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
+import { HomeTodoCard } from "@/components/dashboard/home-todo-card";
 import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -1062,34 +1063,6 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
             </span>
           </div>
 
-          {/* Footer */}
-          <div
-            className="mt-1 flex items-center justify-between"
-            style={{
-              paddingTop: 16,
-              borderTop: "1px dashed var(--v5-rule)",
-              fontFamily: "var(--v5-sans)",
-            }}
-          >
-            <span
-              className="inline-flex items-center"
-              style={{ gap: 6, fontSize: 11.5, color: "var(--v5-ink3)" }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--v5-accent)" }} />
-              {dailyQuote?.book ? `今日阅读 · 《${dailyQuote.book}》` : "今日还没有摘录"}
-            </span>
-            <Link
-              className="v5-quote-link"
-              href="/library"
-              style={{
-                fontSize: 12,
-                fontWeight: 500,
-                color: "var(--v5-accent)",
-              }}
-            >
-              书库 →
-            </Link>
-          </div>
         </div>
       </div>
     </div>
@@ -1278,6 +1251,11 @@ export default function HomePage() {
                 </Link>
               </div>
               <MobileYearWidget />
+            </div>
+
+            {/* Todo quick card */}
+            <div className="mt-5">
+              <HomeTodoCard />
             </div>
           </div>
 
@@ -1613,6 +1591,9 @@ export default function HomePage() {
                 <ProgressRing current={weeklySummary.totalReadingHours} label="阅读进度" target={7} />
               </V5KpiCard>
             </div>
+
+            {/* Todo quick card */}
+            <HomeTodoCard />
 
             {/* Featured — original Panel-based layout (per user request) */}
             <Panel className="p-7 lg:p-8">

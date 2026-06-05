@@ -699,7 +699,7 @@ function V5MemoryCard({
   const ruleColor = isFeatured ? "rgba(255,255,255,0.18)" : "var(--v5-rule)";
 
   const baseBg: string = isFeatured
-    ? "linear-gradient(135deg, var(--v5-accent) 0%, #6b4628 100%)"
+    ? "linear-gradient(135deg, #c9a784 0%, #b88863 100%)"
     : "var(--v5-card)";
 
   const bodyFont: React.CSSProperties = (() => {
