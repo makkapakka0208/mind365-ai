@@ -3072,8 +3072,6 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
     [tags],
   );
 
-  useEffect(() => { void refreshQuotes(); }, []);
-
   // Smooth-scroll to the quote when navigated from search results.
   useEffect(() => {
     if (!scrollToId) return;
