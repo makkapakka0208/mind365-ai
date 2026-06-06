@@ -20,6 +20,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { TimeHero } from "@/components/dashboard/time-hero";
 import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -350,32 +351,6 @@ function V5TimelineHeader() {
   return (
     <div>
       <div className="v5-eyebrow">MEMORY · 旧日回响</div>
-      <h1
-        className="v5-display mt-2"
-        style={{
-          margin: 0,
-          fontSize: "clamp(34px, 4vw, 48px)",
-          fontVariationSettings: '"opsz" 144, "SOFT" 60',
-          fontWeight: 400,
-          color: "var(--v5-ink)",
-        }}
-      >
-        去年今日
-      </h1>
-      <p
-        style={{
-          margin: "12px 0 0",
-          fontFamily: "var(--v5-serif)",
-          fontStyle: "italic",
-          fontVariationSettings: '"opsz" 14',
-          fontSize: 16,
-          lineHeight: 1.7,
-          color: "var(--v5-ink2)",
-          maxWidth: 540,
-        }}
-      >
-        你已经走了很远，偶尔让旧日记来提醒你从哪里出发。
-      </p>
     </div>
   );
 }
@@ -842,7 +817,7 @@ export default function TimelinePage() {
       <section className="hidden md:block">
         <div className="grid" style={{ gap: 32 }}>
           <V5TimelineHeader />
-          <V5TimeHero />
+          <TimeHero summaryHref="/year-review" />
 
           <div>
             <div className="mb-5 flex flex-wrap items-end justify-between" style={{ gap: 16 }}>
@@ -935,15 +910,6 @@ export default function TimelinePage() {
               style={{ color: "var(--m-ink3)" }}
             >
               MEMORY · 旧日回响
-            </p>
-            <h1
-              className="mt-1.5 text-2xl font-semibold tracking-[-0.02em]"
-              style={{ color: "var(--m-ink)", fontFamily: SERIF }}
-            >
-              去年今日
-            </h1>
-            <p className="mt-1 text-sm leading-7" style={{ color: "var(--m-ink3)" }}>
-              你已经走了很远，偶尔让旧日记来提醒你从哪里出发。
             </p>
           </div>
           <span

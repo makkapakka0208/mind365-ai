@@ -485,32 +485,6 @@ function V5LifePathHeader() {
   return (
     <div>
       <div className="v5-eyebrow">LIFE PATH · 人生主线</div>
-      <h1
-        className="v5-display mt-2"
-        style={{
-          margin: 0,
-          fontSize: "clamp(34px, 4vw, 48px)",
-          fontVariationSettings: '"opsz" 144, "SOFT" 60',
-          fontWeight: 400,
-          color: "var(--v5-ink)",
-        }}
-      >
-        人生主线
-      </h1>
-      <p
-        style={{
-          margin: "12px 0 0",
-          fontFamily: "var(--v5-serif)",
-          fontVariationSettings: '"opsz" 14',
-          fontSize: 16,
-          lineHeight: 1.7,
-          color: "var(--v5-ink2)",
-          fontStyle: "italic",
-          maxWidth: 560,
-        }}
-      >
-        设定量化目标，拆解执行计划，让 AI 导师在每个关键节点陪伴你。
-      </p>
     </div>
   );
 }
@@ -1609,6 +1583,11 @@ export default function LifePathPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Four-quadrant todo — merged into Life Path (desktop) per user request */}
+          <div className="border-t pt-8" style={{ borderColor: "var(--v5-rule)" }}>
+            <QuadrantTodos />
           </div>
         </div>
       </section>
