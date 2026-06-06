@@ -308,7 +308,7 @@ export default function ReviewHubPage() {
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-[960px] space-y-5">
+      <div className="mx-auto max-w-[1460px] space-y-5">
         <section
           className="rounded-[32px] px-5 py-5 sm:px-7"
           style={{
