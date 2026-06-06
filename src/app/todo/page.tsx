@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, Check, ListTodo, Plus, Trash2, X } from "lucide-react";
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -72,53 +72,48 @@ const TONE_COLORS: Record<DueTone, { fg: string; bg: string }> = {
 
 // ── Due-date chip / picker ─────────────────────────────────────
 function DueChip({ todo }: { todo: TodoItem }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const openPicker = () => {
-    const el = inputRef.current;
-    if (!el) return;
-    const withPicker = el as HTMLInputElement & { showPicker?: () => void };
-    if (typeof withPicker.showPicker === "function") {
-      try { withPicker.showPicker(); return; } catch { /* fall through */ }
-    }
-    el.focus();
-    el.click();
-  };
-
   const info = todo.dueDate ? describeDue(todo.dueDate, todo.done) : null;
   const colors = info ? TONE_COLORS[info.tone] : null;
 
+  // The native date <input> is overlaid transparently on top of the chip, so
+  // a tap opens the OS date picker directly — the most reliable path on mobile.
+  // On desktop we also call showPicker() for a one-click open.
+  const overlayInput = (
+    <input
+      type="date"
+      value={todo.dueDate ?? ""}
+      aria-label="设置截止日期"
+      onChange={(e) => setTodoDueDate(todo.id, e.target.value || undefined)}
+      onClick={(e) => {
+        const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void };
+        if (typeof el.showPicker === "function") {
+          try { el.showPicker(); } catch { /* native fallback */ }
+        }
+      }}
+      className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+    />
+  );
+
+  if (info && colors) {
+    return (
+      <span
+        className="relative inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
+        style={{ color: colors.fg, background: colors.bg }}
+      >
+        <CalendarDays size={11} />
+        {info.label}
+        {overlayInput}
+      </span>
+    );
+  }
+
   return (
-    <span className="relative inline-flex shrink-0 items-center">
-      {info && colors ? (
-        <button
-          type="button"
-          onClick={openPicker}
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] transition-opacity hover:opacity-80"
-          style={{ color: colors.fg, background: colors.bg }}
-        >
-          <CalendarDays size={11} />
-          {info.label}
-        </button>
-      ) : (
-        <button
-          type="button"
-          aria-label="设置截止日期"
-          onClick={openPicker}
-          className="flex h-7 w-7 items-center justify-center rounded-full opacity-60 transition-all hover:bg-[rgba(0,0,0,0.05)] sm:opacity-0 sm:group-hover:opacity-60"
-          style={{ color: "var(--m-ink3)" }}
-        >
-          <CalendarDays size={14} />
-        </button>
-      )}
-      <input
-        ref={inputRef}
-        type="date"
-        value={todo.dueDate ?? ""}
-        onChange={(e) => setTodoDueDate(todo.id, e.target.value || undefined)}
-        className="pointer-events-none absolute bottom-0 left-0 h-0 w-0 opacity-0"
-        tabIndex={-1}
-      />
+    <span
+      className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-60 transition-all sm:opacity-40 sm:group-hover:opacity-60"
+      style={{ color: "var(--m-ink3)" }}
+    >
+      <CalendarDays size={14} />
+      {overlayInput}
     </span>
   );
 }
@@ -209,12 +204,14 @@ function TodoRow({ todo }: { todo: TodoItem }) {
 function Quadrant({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
+  const [draftDue, setDraftDue] = useState("");
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!draft.trim()) return;
-    addTodo(draft, undefined, meta.id);
+    addTodo(draft, draftDue || undefined, meta.id);
     setDraft("");
+    setDraftDue("");
   };
 
   return (
@@ -262,24 +259,53 @@ function Quadrant({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
             onSubmit={submit}
+            onBlur={(e) => {
+              // Close only when focus leaves the whole add form and nothing's typed.
+              if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+              if (!draft.trim() && !draftDue) setAdding(false);
+            }}
             className="mb-2 overflow-hidden"
           >
-            <input
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Escape") { setDraft(""); setAdding(false); } }}
-              onBlur={() => { if (!draft.trim()) setAdding(false); }}
-              placeholder="写点什么，回车添加…"
-              maxLength={200}
-              className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-              style={{
-                background: "var(--m-base-light)",
-                border: `1px solid ${meta.border}`,
-                color: "var(--m-ink)",
-                fontFamily: SERIF,
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") { setDraft(""); setDraftDue(""); setAdding(false); } }}
+                placeholder="写点什么，回车添加…"
+                maxLength={200}
+                className="min-w-0 flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+                style={{
+                  background: "var(--m-base-light)",
+                  border: `1px solid ${meta.border}`,
+                  color: "var(--m-ink)",
+                  fontFamily: SERIF,
+                }}
+              />
+              {/* Optional due date */}
+              <span
+                className="relative flex h-[38px] shrink-0 items-center gap-1 rounded-xl px-2.5"
+                style={{ background: "var(--m-base-light)", border: `1px solid ${meta.border}`, color: draftDue ? meta.color : "var(--m-ink3)" }}
+              >
+                <CalendarDays size={14} />
+                {draftDue ? (
+                  <span className="text-[11px]">{`${Number(draftDue.split("-")[1])}/${Number(draftDue.split("-")[2])}`}</span>
+                ) : null}
+                <input
+                  type="date"
+                  value={draftDue}
+                  aria-label="截止日期"
+                  onChange={(e) => setDraftDue(e.target.value)}
+                  onClick={(e) => {
+                    const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void };
+                    if (typeof el.showPicker === "function") {
+                      try { el.showPicker(); } catch { /* native fallback */ }
+                    }
+                  }}
+                  className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                />
+              </span>
+            </div>
           </motion.form>
         )}
       </AnimatePresence>

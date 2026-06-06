@@ -75,7 +75,7 @@ export function HomeTodoCard({ className }: { className?: string }) {
           onChange={(e) => setText(e.target.value)}
           placeholder="添加一项…"
           maxLength={200}
-          className="h-9 flex-1 rounded-xl px-3 text-sm outline-none"
+          className="h-9 min-w-0 flex-1 rounded-xl px-3 text-sm outline-none"
           style={{
             background: "var(--m-base)",
             border: "1px solid var(--m-rule)",
