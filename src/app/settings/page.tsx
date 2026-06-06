@@ -1,12 +1,11 @@
 "use client";
 
-import { CheckCircle2, Cloud, CloudOff, Download, HardDrive, LogIn, LogOut, Settings2, Shield, Smartphone, Target, Upload } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, HardDrive, ListTodo, LogIn, LogOut, Pencil, Settings2, Shield, Smartphone, Target, Upload } from "lucide-react";
 import Link from "next/link";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import { useAuth } from "@/lib/auth";
@@ -19,6 +18,10 @@ import {
   saveSettings,
 } from "@/lib/storage";
 import type { CloudSyncStatus } from "@/lib/storage";
+import { useDailyLogsStore, useNotesStore, useQuotesStore } from "@/lib/storage-store";
+import { toggleTabMode, useTabMode } from "@/lib/tab-mode";
+
+const SERIF = '"Noto Serif SC", "Songti SC", serif';
 
 // ── 组件 ─────────────────────────────────────────────────────────────────────
 
@@ -31,7 +34,20 @@ const EMPTY_STATUS: CloudSyncStatus = {
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
+  const logs = useDailyLogsStore();
+  const quotes = useQuotesStore();
+  const notes = useNotesStore();
+  const tabMode = useTabMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const displayName = user?.email ? user.email.split("@")[0] : "我的记录";
+  const avatarLetter = (displayName.trim()[0] || "M").toUpperCase();
+  const sinceLabel = useMemo(() => {
+    if (logs.length === 0) return "开始记录你的成长之路";
+    const earliest = logs.reduce((min, l) => (l.date < min ? l.date : min), logs[0].date);
+    const [y, m, d] = earliest.split("-");
+    return `自 ${y} 年 ${Number(m)} 月 ${Number(d)} 日开始写`;
+  }, [logs]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState<CloudSyncStatus>(EMPTY_STATUS);
@@ -107,13 +123,150 @@ export default function SettingsPage() {
   const syncConfigured = status.configured && status.enabled;
 
   return (
-    <PageTransition className="space-y-6">
-      <PageTitle
-        description="管理你的数据存储、备份和同步方式。"
-        eyebrow="系统设置"
-        icon={Settings2}
-        title="设置"
-      />
+    <PageTransition className="mx-auto max-w-2xl space-y-6">
+      {/* ── Profile (design: MeScreen) ── */}
+      <StaggerItem index={0}>
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em]" style={{ color: "var(--m-ink3)" }}>
+          ME · 我的
+        </p>
+        <Panel className="p-[22px]">
+          <div className="flex items-center gap-3.5">
+            <div
+              className="flex shrink-0 items-center justify-center rounded-full"
+              style={{
+                width: 64,
+                height: 64,
+                background: "linear-gradient(135deg, #c8893a 0%, #8B5E3C 100%)",
+                color: "#fff",
+                fontFamily: SERIF,
+                fontWeight: 700,
+                fontSize: 26,
+                boxShadow: "0 4px 14px rgba(139,94,60,0.28)",
+              }}
+            >
+              {avatarLetter}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[19px] font-semibold" style={{ color: "var(--m-ink)", fontFamily: SERIF, letterSpacing: "-0.01em" }}>
+                {displayName}
+              </div>
+              <div className="mt-1 text-xs" style={{ color: "var(--m-ink3)" }}>{sinceLabel}</div>
+            </div>
+            <Link
+              href="/daily-log"
+              aria-label="去记录"
+              className="flex shrink-0 items-center justify-center rounded-[10px]"
+              style={{ width: 34, height: 34, border: "1px solid rgba(139,94,60,0.14)", background: "rgba(255,248,236,0.8)", boxShadow: "var(--m-shadow-out)" }}
+            >
+              <Pencil size={14} style={{ color: "var(--m-ink3)" }} />
+            </Link>
+          </div>
+        </Panel>
+      </StaggerItem>
+
+      {/* ── Stats ── */}
+      <StaggerItem index={1}>
+        <div className="grid grid-cols-3 gap-2.5">
+          {[
+            { v: logs.length, l: "日记" },
+            { v: quotes.length, l: "金句" },
+            { v: notes.length, l: "笔记" },
+          ].map((s) => (
+            <Panel key={s.l} className="p-3 text-center">
+              <div className="font-semibold" style={{ fontSize: 22, color: "var(--m-ink)", letterSpacing: "-0.04em", fontFamily: SERIF }}>
+                {s.v}
+              </div>
+              <div className="mt-0.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>{s.l}</div>
+            </Panel>
+          ))}
+        </div>
+      </StaggerItem>
+
+      {/* ── Quick settings list w/ Tab 四 toggle ── */}
+      <StaggerItem index={2}>
+        <Panel className="p-2">
+          {/* Tab 四 toggle */}
+          <div
+            className="flex items-center gap-3 px-3.5 py-3"
+            style={{ borderBottom: "1px dashed rgba(139,94,60,0.14)" }}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}>
+              {tabMode === "library" ? <BookOpen size={16} /> : <Compass size={16} />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm" style={{ color: "var(--m-ink)" }}>
+                Tab 四：{tabMode === "library" ? "灵感书库" : "人生主线 + 待办"}
+              </div>
+              <div className="mt-0.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>
+                {tabMode === "library" ? "替换为人生主线 + 待办" : "替换回灵感书库"}
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={tabMode === "lifepath"}
+              aria-label="切换第四个标签"
+              onClick={() => toggleTabMode()}
+              className="relative shrink-0"
+              style={{
+                width: 44,
+                height: 26,
+                borderRadius: 99,
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                background: tabMode === "library" ? "rgba(139,94,60,0.15)" : "var(--m-accent)",
+                transition: "background 220ms",
+              }}
+            >
+              <span
+                className="absolute"
+                style={{
+                  top: 3,
+                  left: tabMode === "library" ? 3 : 19,
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: tabMode === "library" ? "rgba(139,94,60,0.45)" : "#fff",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
+                  transition: "left 220ms cubic-bezier(.34,1.56,.64,1), background 220ms",
+                }}
+              />
+            </button>
+          </div>
+
+          {/* Quick links */}
+          {[
+            { icon: Compass, label: "人生主线", hint: "目标 + 四象限待办", href: "/life-path" },
+            { icon: ListTodo, label: "待办清单", hint: "四象限分组", href: "/todo" },
+            { icon: Clock, label: "时间线 · 去年今日", hint: "翻开旧日记忆", href: "/timeline" },
+          ].map((row, i, arr) => {
+            const RowIcon = row.icon;
+            return (
+              <Link
+                key={row.label}
+                href={row.href}
+                className="flex items-center gap-3 px-3.5 py-3"
+                style={{ borderBottom: i === arr.length - 1 ? "none" : "1px dashed rgba(139,94,60,0.14)" }}
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}>
+                  <RowIcon size={16} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm" style={{ color: "var(--m-ink)" }}>{row.label}</div>
+                  <div className="mt-0.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>{row.hint}</div>
+                </div>
+                <ChevronRight size={16} style={{ color: "var(--m-ink3)" }} />
+              </Link>
+            );
+          })}
+        </Panel>
+      </StaggerItem>
+
+      <div className="flex items-center gap-2 pt-2">
+        <Settings2 size={16} style={{ color: "var(--m-ink3)" }} />
+        <h3 className="text-sm font-semibold tracking-[0.04em]" style={{ color: "var(--m-ink2)" }}>系统设置</h3>
+      </div>
 
       {/* ── 数据存储说明 ── */}
       <StaggerItem index={0}>
