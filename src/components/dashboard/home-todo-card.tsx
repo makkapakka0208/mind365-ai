@@ -63,7 +63,7 @@ export function HomeTodoCard({ className }: { className?: string }) {
             </span>
           )}
         </div>
-        <Link className="text-xs" href="/todo" style={{ color: "var(--m-accent)" }}>
+        <Link className="text-xs" href="/life-path" style={{ color: "var(--m-accent)" }}>
           全部 →
         </Link>
       </div>
@@ -75,7 +75,7 @@ export function HomeTodoCard({ className }: { className?: string }) {
           onChange={(e) => setText(e.target.value)}
           placeholder="添加一项…"
           maxLength={200}
-          className="h-9 flex-1 rounded-xl px-3 text-sm outline-none"
+          className="h-9 min-w-0 flex-1 rounded-xl px-3 text-sm outline-none"
           style={{
             background: "var(--m-base)",
             border: "1px solid var(--m-rule)",
@@ -137,7 +137,7 @@ export function HomeTodoCard({ className }: { className?: string }) {
           </AnimatePresence>
           {overflow > 0 && (
             <Link
-              href="/todo"
+              href="/life-path"
               className="block pt-1 text-xs"
               style={{ color: "var(--m-ink3)" }}
             >

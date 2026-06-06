@@ -59,6 +59,11 @@
   --m-success: #5a8a3c;
   --m-danger: #b04040;
 
+  /* Mobile design type faces (per tokens/colors_and_type.css):
+     display = Playfair Display numerals, serif = Noto Serif body. */
+  --m-font-display: "Playfair Display", "Noto Serif SC", Georgia, serif;
+  --m-font-serif: "Noto Serif SC", "Songti SC", "STSong", Georgia, serif;
+  --m-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 * {

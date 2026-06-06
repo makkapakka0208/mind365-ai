@@ -4,6 +4,7 @@ import { Bot, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Compass, Flame
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
+import { QuadrantTodos } from "@/components/todo/quadrant-todos";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -1662,6 +1663,11 @@ export default function LifePathPage() {
           ))}
         </div>
       )}
+
+      {/* ── Four-quadrant todo (merged in; no standalone page) ── */}
+      <div className="border-t pt-6" style={{ borderColor: "var(--m-rule)" }}>
+        <QuadrantTodos />
+      </div>
       </div>
 
       {/* v5 Goal drawer (desktop only) */}

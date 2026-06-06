@@ -87,6 +87,10 @@ export interface ReviewReport {
     totalReadingHours: number;
     totalStudyHours: number;
     entries: number;
+    /** Todos completed within the period (optional; added later). */
+    todosCompleted?: number;
+    /** Todos created within the period (optional; added later). */
+    todosCreated?: number;
   };
   notes: string; // 用户手写的复盘笔记
 }
