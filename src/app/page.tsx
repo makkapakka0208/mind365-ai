@@ -1591,6 +1591,9 @@ export default function HomePage() {
               </V5KpiCard>
             </div>
 
+            {/* 时间摆 · time pendulum (moved here from the removed 去年今日 nav) */}
+            <HomePendulumCard now={now} />
+
             {/* Todo quick card */}
             <HomeTodoCard />
 
