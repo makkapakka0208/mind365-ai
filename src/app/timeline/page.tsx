@@ -20,6 +20,7 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { TimeHero } from "@/components/dashboard/time-hero";
 import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -816,7 +817,7 @@ export default function TimelinePage() {
       <section className="hidden md:block">
         <div className="grid" style={{ gap: 32 }}>
           <V5TimelineHeader />
-          <V5TimeHero />
+          <TimeHero summaryHref="/year-review" />
 
           <div>
             <div className="mb-5 flex flex-wrap items-end justify-between" style={{ gap: 16 }}>

@@ -17,7 +17,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
 import { HomeTodoCard } from "@/components/dashboard/home-todo-card";
-import { YearProgressPanel } from "@/components/dashboard/year-progress-panel";
+import { TimeHero } from "@/components/dashboard/time-hero";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -1592,8 +1592,8 @@ export default function HomePage() {
               </V5KpiCard>
             </div>
 
-            {/* 时间摆 · time pendulum (moved here from the removed 去年今日 nav) */}
-            <YearProgressPanel summaryHref="/year-review" />
+            {/* 时间摆 · TimeHero (per timehero-spec) */}
+            <TimeHero summaryHref="/year-review" />
 
             {/* Todo quick card */}
             <HomeTodoCard />

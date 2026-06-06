@@ -195,10 +195,10 @@ export default function SettingsPage() {
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-sm" style={{ color: "var(--m-ink)" }}>
-                Tab 四：{tabMode === "library" ? "灵感书库" : "人生主线 + 待办"}
+                Tab 四：{tabMode === "library" ? "灵感书库" : "人生主线"}
               </div>
               <div className="mt-0.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>
-                {tabMode === "library" ? "替换为人生主线 + 待办" : "替换回灵感书库"}
+                {tabMode === "library" ? "灵感书库替换为人生主线" : "替换回灵感书库"}
               </div>
             </div>
             <button

@@ -304,6 +304,17 @@ button {
   }
 }
 
+/* TimeHero pendulum swing (timeline-spec) */
+@keyframes timehero-swing {
+  0%, 100% { transform: rotate(-8deg); }
+  50%      { transform: rotate(8deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="timehero-swing"] {
+    animation: none !important;
+  }
+}
+
 /* Drawer slide-in (Life Path goal drawer) */
 @keyframes v5-drawer-in {
   from { transform: translateX(40px); opacity: 0; }
