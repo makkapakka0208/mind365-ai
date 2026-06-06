@@ -7,7 +7,6 @@ import {
   Quote,
   ScanSearch,
   Settings2,
-  TrendingUp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -35,6 +34,5 @@ export const desktopNavItems: NavItem[] = [
   { label: "\u53bb\u5e74\u4eca\u65e5", href: "/timeline", icon: Clock },
   { label: "\u7075\u611f\u4e66\u5e93", href: "/library", icon: Quote },
   { label: "\u590d\u76d8\u62a5\u544a", href: "/review", icon: ScanSearch },
-  { label: "\u6570\u636e\u770b\u677f", href: "/analytics", icon: TrendingUp },
   { label: "\u8bbe\u7f6e", href: "/settings", icon: Settings2 },
 ];
