@@ -19,7 +19,6 @@ interface AppShellProps {
 const PATH_GROUPS: Record<string, string[]> = {
   "/": ["/"],
   "/daily-log": ["/daily-log", "/record", "/journal"],
-  "/todo": ["/todo"],
   "/timeline": ["/timeline"],
   "/library": ["/library", "/quotes"],
   "/notes": ["/notes"],

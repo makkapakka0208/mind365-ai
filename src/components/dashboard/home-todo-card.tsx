@@ -63,7 +63,7 @@ export function HomeTodoCard({ className }: { className?: string }) {
             </span>
           )}
         </div>
-        <Link className="text-xs" href="/todo" style={{ color: "var(--m-accent)" }}>
+        <Link className="text-xs" href="/life-path" style={{ color: "var(--m-accent)" }}>
           全部 →
         </Link>
       </div>
@@ -137,7 +137,7 @@ export function HomeTodoCard({ className }: { className?: string }) {
           </AnimatePresence>
           {overflow > 0 && (
             <Link
-              href="/todo"
+              href="/life-path"
               className="block pt-1 text-xs"
               style={{ color: "var(--m-ink3)" }}
             >

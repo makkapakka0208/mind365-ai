@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, HardDrive, ListTodo, LogIn, LogOut, Pencil, Settings2, Shield, Smartphone, Target, Upload } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, HardDrive, LogIn, LogOut, Pencil, Settings2, Shield, Smartphone, Target, Upload } from "lucide-react";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -238,7 +238,6 @@ export default function SettingsPage() {
           {/* Quick links */}
           {[
             { icon: Compass, label: "人生主线", hint: "目标 + 四象限待办", href: "/life-path" },
-            { icon: ListTodo, label: "待办清单", hint: "四象限分组", href: "/todo" },
             { icon: Clock, label: "时间线 · 去年今日", hint: "翻开旧日记忆", href: "/timeline" },
           ].map((row, i, arr) => {
             const RowIcon = row.icon;
