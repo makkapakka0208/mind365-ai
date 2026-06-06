@@ -1610,6 +1610,11 @@ export default function LifePathPage() {
               </div>
             )}
           </div>
+
+          {/* Four-quadrant todo — merged into Life Path (desktop) per user request */}
+          <div className="border-t pt-8" style={{ borderColor: "var(--v5-rule)" }}>
+            <QuadrantTodos />
+          </div>
         </div>
       </section>
 
