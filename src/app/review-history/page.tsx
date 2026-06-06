@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Archive, BookOpen, BrainCircuit, CalendarDays, ChevronDown, ChevronUp, Smile, Trash2 } from "lucide-react";
+import { Archive, BookOpen, BrainCircuit, CalendarDays, ChevronDown, ChevronUp, ListTodo, Smile, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -128,6 +128,12 @@ export default function ReviewHistoryPage() {
                                   阅读 {report.metrics.totalReadingHours.toFixed(1)} h
                                 </span>
                                 <span style={{ color: "var(--m-ink3)" }}>共 {report.metrics.entries} 条日记</span>
+                                {typeof report.metrics.todosCompleted === "number" ? (
+                                  <span className="flex items-center gap-1.5">
+                                    <ListTodo style={{ color: "var(--m-accent)" }} size={14} />
+                                    完成 {report.metrics.todosCompleted} 项待办
+                                  </span>
+                                ) : null}
                               </div>
 
                               {isExpanded ? (

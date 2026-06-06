@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Save } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, ListTodo, Save } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -21,10 +21,10 @@ import {
   getQuoteReadingHours,
   sortLogsByDate,
 } from "@/lib/analytics";
-import { getMonthRange, getWeekRange, parseISODate, toISODate } from "@/lib/date";
+import { getMonthRange, getTodayISODate, getWeekRange, parseISODate, toISODate } from "@/lib/date";
 import { saveReviewReport } from "@/lib/storage";
-import { useQuotesStore, useSyncedDailyLogs, useTimeEntriesStore } from "@/lib/storage-store";
-import type { DailyLog, Quote, ReviewReport } from "@/types";
+import { useQuotesStore, useSyncedDailyLogs, useTimeEntriesStore, useTodosStore } from "@/lib/storage-store";
+import type { DailyLog, Quote, ReviewReport, TodoItem } from "@/types";
 
 type ReviewMode = "week" | "month";
 
@@ -151,6 +151,47 @@ function getReadingCollection(quotes: Quote[]) {
     });
 }
 
+interface TodoStats {
+  created: number;
+  completed: number;
+  pending: number;
+  overdue: number;
+  completionRate: number;
+  completedItems: TodoItem[];
+}
+
+function getTodoStats(todos: TodoItem[], range: { start: Date; end: Date }): TodoStats {
+  const startMs = new Date(range.start.getFullYear(), range.start.getMonth(), range.start.getDate(), 0, 0, 0, 0).getTime();
+  const endMs = new Date(range.end.getFullYear(), range.end.getMonth(), range.end.getDate(), 23, 59, 59, 999).getTime();
+  const inRange = (iso?: string) => {
+    if (!iso) return false;
+    const t = Date.parse(iso);
+    return Number.isFinite(t) && t >= startMs && t <= endMs;
+  };
+
+  const created = todos.filter((t) => inRange(t.createdAt));
+  const completedItems = todos
+    .filter((t) => t.done && inRange(t.completedAt))
+    .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""));
+  const pending = todos.filter((t) => !t.done);
+  const today = getTodayISODate();
+  const overdue = pending.filter((t) => t.dueDate && t.dueDate < today);
+
+  // 完成率：本期完成 / (本期完成 + 当前仍未完成且在本期内创建)
+  const stillPendingCreatedInPeriod = created.filter((t) => !t.done).length;
+  const denom = completedItems.length + stillPendingCreatedInPeriod;
+  const completionRate = denom > 0 ? Math.round((completedItems.length / denom) * 100) : 0;
+
+  return {
+    created: created.length,
+    completed: completedItems.length,
+    pending: pending.length,
+    overdue: overdue.length,
+    completionRate,
+    completedItems,
+  };
+}
+
 function getSummaryLine(mode: ReviewMode, logs: DailyLog[]) {
   if (logs.length === 0) {
     return mode === "week" ? "本周还没有记录，先写下一条今天的想法。" : "本月还没有记录，先积累几天再回来复盘。";
@@ -206,6 +247,7 @@ export default function ReviewHubPage() {
   const { logs: allLogs, isSyncing } = useSyncedDailyLogs();
   const allQuotes = useQuotesStore();
   const allTimeEntries = useTimeEntriesStore();
+  const allTodos = useTodosStore();
   const [mode, setMode] = useState<ReviewMode>("month");
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -220,7 +262,15 @@ export default function ReviewHubPage() {
     () => (mode === "week" ? getCurrentWeekTimeEntries(allTimeEntries) : getCurrentMonthTimeEntries(allTimeEntries)),
     [allTimeEntries, mode],
   );
-  const metrics = useMemo(() => computeSummary(reviewData.logs, reviewQuotes, reviewTimeEntries), [reviewData.logs, reviewQuotes, reviewTimeEntries]);
+  const todoStats = useMemo(() => getTodoStats(allTodos, reviewData.range), [allTodos, reviewData.range]);
+  const metrics = useMemo(
+    () => ({
+      ...computeSummary(reviewData.logs, reviewQuotes, reviewTimeEntries),
+      todosCompleted: todoStats.completed,
+      todosCreated: todoStats.created,
+    }),
+    [reviewData.logs, reviewQuotes, reviewTimeEntries, todoStats.completed, todoStats.created],
+  );
   const uniqueDays = useMemo(() => new Set(reviewData.logs.map((log) => log.date)).size, [reviewData.logs]);
   const tags = useMemo(() => getTopTags(reviewData.logs), [reviewData.logs]);
   const readingCollection = useMemo(() => getReadingCollection(reviewQuotes), [reviewQuotes]);
@@ -473,6 +523,80 @@ export default function ReviewHubPage() {
                     <p style={{ color: "var(--m-ink3)" }}>本期还没有读书记录。</p>
                   )}
                 </div>
+              </div>
+
+              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
+                <div className="flex items-center gap-2">
+                  <ListTodo size={15} style={{ color: "var(--m-accent)" }} />
+                  <p className="text-sm tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
+                    TODO · 本期待办进展
+                  </p>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {[
+                    { label: "本期完成", value: `${todoStats.completed}`, hint: "已勾选" },
+                    { label: "本期新增", value: `${todoStats.created}`, hint: "新建待办" },
+                    { label: "完成率", value: `${todoStats.completionRate}%`, hint: "本期" },
+                    {
+                      label: "当前待办",
+                      value: `${todoStats.pending}`,
+                      hint: todoStats.overdue > 0 ? `逾期 ${todoStats.overdue} 项` : "进行中",
+                    },
+                  ].map((card) => (
+                    <div
+                      className="rounded-[20px] px-3 py-4 text-center"
+                      key={card.label}
+                      style={{
+                        background: "rgba(255,248,238,0.88)",
+                        border: "1px solid rgba(139,94,60,0.08)",
+                        boxShadow: "var(--m-shadow-out)",
+                      }}
+                    >
+                      <div className="text-[1.65rem] leading-none" style={{ color: "var(--m-accent)" }}>
+                        {card.value}
+                      </div>
+                      <div className="mt-2 text-sm" style={{ color: "var(--m-ink2)" }}>
+                        {card.label}
+                      </div>
+                      <div className="mt-1 text-xs" style={{ color: "var(--m-ink3)" }}>
+                        {card.hint}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {todoStats.completedItems.length > 0 ? (
+                  <div
+                    className="mt-4 rounded-[22px] px-4 py-4 text-[15px] leading-8"
+                    style={{
+                      background: "rgba(255,248,238,0.88)",
+                      border: "1px solid rgba(139,94,60,0.08)",
+                      color: "var(--m-ink)",
+                    }}
+                  >
+                    {todoStats.completedItems.slice(0, 8).map((todo) => (
+                      <div className="flex items-start gap-2" key={todo.id}>
+                        <CheckCircle2 size={15} className="mt-1.5 shrink-0" style={{ color: "var(--m-success)" }} />
+                        <span className="flex-1">{todo.text}</span>
+                        {todo.completedAt ? (
+                          <span className="shrink-0 text-xs" style={{ color: "var(--m-ink3)" }}>
+                            {new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric" }).format(new Date(todo.completedAt))}
+                          </span>
+                        ) : null}
+                      </div>
+                    ))}
+                    {todoStats.completedItems.length > 8 ? (
+                      <p className="mt-1 text-xs" style={{ color: "var(--m-ink3)" }}>
+                        还有 {todoStats.completedItems.length - 8} 项已完成…
+                      </p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm" style={{ color: "var(--m-ink3)" }}>
+                    {mode === "week" ? "本周还没有完成的待办。" : "本月还没有完成的待办。"}
+                  </p>
+                )}
               </div>
 
               <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
