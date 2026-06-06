@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * TimeHero — v5 year-progress hero with vintage pendulum clock.
  * Implements the timehero-spec exactly: 1.4fr/1fr two-column gradient
  * card, serif year/day numerals, italic subtitle, gradient progress bar,
- * mono month labels, accent link, and an SVG pendulum that swings via
- * the `timehero-swing` keyframes defined in globals.css.
+ * mono month labels, accent link, and an SVG pendulum that swings.
+ *
+ * The pendulum animates via requestAnimationFrame writing to SVG's native
+ * `transform="rotate(deg, cx, cy)"` attribute — not CSS animation on a
+ * <g> element, because CSS transform-origin in px on SVG groups is
+ * unreliable across browsers and several users reported the pendulum
+ * appearing static. The RAF approach renders identically everywhere and
+ * honours prefers-reduced-motion.
  *
  * Pure-frontend year stats (no API).
  */
@@ -29,6 +36,28 @@ export function TimeHero({
   summaryHref?: string;
 }) {
   const { year, daysPassed, daysLeft, yearPct } = getYearStats();
+
+  // Pendulum swing — RAF + SVG transform attribute (cross-browser reliable).
+  // Period = 4s round-trip; amplitude = ±8° per spec.
+  const [angle, setAngle] = useState(-8);
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => {
+    // Respect prefers-reduced-motion: leave the pendulum at rest angle.
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    const start = performance.now();
+    const tick = (t: number) => {
+      const phase = ((t - start) / 4000) * 2 * Math.PI; // 4s = one full back-and-forth
+      // Ease-in-out via sine; amplitude 8°.
+      setAngle(Math.sin(phase) * 8);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   return (
     <div
@@ -242,13 +271,8 @@ export function TimeHero({
             {year}
           </text>
 
-          {/* Pendulum arm + bob (swing animation) — transformOrigin = clock center */}
-          <g
-            style={{
-              transformOrigin: "80px 80px",
-              animation: "timehero-swing 4s ease-in-out infinite",
-            }}
-          >
+          {/* Pendulum arm + bob — RAF rotates around clock-face center (80,80) */}
+          <g transform={`rotate(${angle.toFixed(2)} 80 80)`}>
             <line x1="80" y1="138" x2="80" y2="184" stroke="var(--v5-accent)" strokeWidth="1.2" />
             <circle cx="80" cy="188" r="9" fill="var(--v5-accent)" />
             <circle cx="80" cy="188" r="9" fill="none" stroke="rgba(75,51,27,0.18)" strokeWidth="1" />
