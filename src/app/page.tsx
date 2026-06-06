@@ -1673,18 +1673,6 @@ export default function HomePage() {
             <section className="grid" id="trends" style={{ gap: 20 }}>
               <div className="max-w-3xl">
                 <div className="v5-eyebrow">TRENDS · 长期趋势</div>
-                <h3
-                  className="v5-display mt-2"
-                  style={{ fontSize: 30, fontVariationSettings: '"opsz" 144', fontWeight: 400 }}
-                >
-                  长期趋势概览
-                </h3>
-                <p
-                  className="mt-3"
-                  style={{ fontFamily: "var(--v5-sans)", fontSize: 14, lineHeight: 1.7, color: "var(--v5-ink2)" }}
-                >
-                  将情绪波动、专注投入与阅读节奏整合为连续曲线，帮助你在时间跨度中发现规律、识别转折，看见真实的成长轨迹。
-                </p>
               </div>
 
               {logs.length === 0 ? (
