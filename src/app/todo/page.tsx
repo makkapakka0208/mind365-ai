@@ -30,11 +30,12 @@ interface QuadrantMeta {
   border: string;
 }
 
+// Colors per the design handoff (QUAD_CFG): red / amber / moss / dusk-blue.
 const QUADRANTS: QuadrantMeta[] = [
-  { id: "q1", title: "重要 · 紧急", subtitle: "立刻去做", color: "#C0392B", bg: "rgba(192,57,43,0.05)", border: "rgba(192,57,43,0.18)" },
-  { id: "q2", title: "重要 · 不紧急", subtitle: "规划去做", color: "#4E7A64", bg: "rgba(78,122,100,0.05)", border: "rgba(78,122,100,0.18)" },
-  { id: "q3", title: "不重要 · 紧急", subtitle: "尽量委托", color: "#C8893A", bg: "rgba(200,137,58,0.06)", border: "rgba(200,137,58,0.2)" },
-  { id: "q4", title: "不重要 · 不紧急", subtitle: "尽量少做", color: "#8C7A6B", bg: "rgba(140,122,107,0.05)", border: "rgba(140,122,107,0.18)" },
+  { id: "q1", title: "重要 · 紧急", subtitle: "立刻去做", color: "#b04040", bg: "rgba(176,64,64,0.05)", border: "rgba(176,64,64,0.18)" },
+  { id: "q2", title: "重要 · 不紧急", subtitle: "规划去做", color: "#c8893a", bg: "rgba(200,137,58,0.05)", border: "rgba(200,137,58,0.2)" },
+  { id: "q3", title: "紧急 · 不重要", subtitle: "尽量委托", color: "#5a8a3c", bg: "rgba(90,138,60,0.05)", border: "rgba(90,138,60,0.18)" },
+  { id: "q4", title: "可以放下", subtitle: "不重要不紧急", color: "#4a7a9b", bg: "rgba(74,122,155,0.05)", border: "rgba(74,122,155,0.18)" },
 ];
 
 // ── Due-date formatting ────────────────────────────────────────
@@ -336,14 +337,16 @@ function Quadrant({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
 export default function TodoPage() {
   const todos = useTodosStore();
 
-  const { byQuadrant, done, activeCount } = useMemo(() => {
+  const { byQuadrant, done, activeCount, pct } = useMemo(() => {
     const active = todos.filter((t) => !t.done);
     const map: Record<TodoQuadrant, TodoItem[]> = { q1: [], q2: [], q3: [], q4: [] };
     for (const t of active) map[t.quadrant].push(t);
+    const doneList = todos.filter((t) => t.done);
     return {
       byQuadrant: map,
-      done: todos.filter((t) => t.done),
+      done: doneList,
       activeCount: active.length,
+      pct: todos.length === 0 ? 0 : Math.round((doneList.length / todos.length) * 100),
     };
   }, [todos]);
 
@@ -355,10 +358,19 @@ export default function TodoPage() {
         title="待办清单"
         description="用艾森豪威尔矩阵给事情分类：先做重要且紧急的，规划重要不紧急的。点右上角 + 在对应象限添加。"
         rightSlot={
-          activeCount > 0 ? (
-            <span style={{ color: "var(--m-ink3)" }}>
-              还剩 <span style={{ color: "var(--m-accent)", fontWeight: 600 }}>{activeCount}</span> 项
-            </span>
+          todos.length > 0 ? (
+            <div className="flex flex-col items-end gap-1.5">
+              <span style={{ color: "var(--m-ink3)", fontSize: 13 }}>
+                {activeCount > 0 ? (
+                  <>还剩 <span style={{ color: "var(--m-accent)", fontWeight: 600 }}>{activeCount}</span> 项 · {pct}%</>
+                ) : (
+                  <span style={{ color: "#5a8a3c", fontWeight: 600 }}>全部完成 · {pct}%</span>
+                )}
+              </span>
+              <div className="overflow-hidden" style={{ width: 120, height: 3, borderRadius: 99, background: "rgba(139,94,60,0.12)" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "#5a8a3c" : "var(--m-accent)", borderRadius: 99, transition: "width 400ms" }} />
+              </div>
+            </div>
           ) : null
         }
       />
