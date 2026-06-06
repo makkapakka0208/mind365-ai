@@ -164,10 +164,6 @@ export default function SettingsPage() {
         </Panel>
       </StaggerItem>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        {/* Left column — stats + quick settings */}
-        <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-
       {/* ── Stats ── */}
       <StaggerItem index={1}>
         <div className="grid grid-cols-3 gap-2.5">
@@ -265,10 +261,7 @@ export default function SettingsPage() {
           })}
         </Panel>
       </StaggerItem>
-        </div>
 
-        {/* Right column — system settings */}
-        <div className="space-y-6">
       <div className="flex items-center gap-2 pt-2">
         <Settings2 size={16} style={{ color: "var(--m-ink3)" }} />
         <h3 className="text-sm font-semibold tracking-[0.04em]" style={{ color: "var(--m-ink2)" }}>系统设置</h3>
@@ -459,8 +452,6 @@ export default function SettingsPage() {
           </div>
         </Panel>
       </StaggerItem>
-        </div>
-      </div>
     </PageTransition>
   );
 }
