@@ -9,7 +9,6 @@ import {
   Flame,
   NotebookPen,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -1445,68 +1444,7 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Mobile trends entry */}
-          <div className="mt-5">
-            <a
-              className="group block rounded-[24px] p-5 transition-transform active:scale-[0.98]"
-              href="#mobile-trends"
-              onClick={(e) => {
-                e.preventDefault();
-                const el = document.getElementById("mobile-trends");
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              style={{
-                background: "linear-gradient(135deg, rgba(255,250,240,0.95), rgba(245,235,218,0.88))",
-                border: "1px solid var(--m-rule)",
-                boxShadow: "0 4px 16px rgba(139,94,60,0.08)",
-              }}
-            >
-              <div className="flex items-center gap-4">
-                <span
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px]"
-                  style={{ background: "rgba(139,94,60,0.10)", color: "var(--m-accent)" }}
-                >
-                  <TrendingUp size={20} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
-                    长期趋势概览
-                  </div>
-                  <div className="mt-0.5 text-sm" style={{ color: "var(--m-ink2)" }}>
-                    {logs.length > 0
-                      ? `已积累 ${logs.length} 条记录，查看情绪 · 学习 · 阅读趋势`
-                      : "开始记录后，这里会长出你的成长曲线"}
-                  </div>
-                </div>
-                <ChevronRight size={18} className="shrink-0 text-[var(--m-ink3)] transition-transform group-hover:translate-x-0.5" />
-              </div>
-
-              {logs.length > 0 && (
-                <div className="mt-4 flex gap-3">
-                  <div className="flex-1 rounded-[14px] px-3 py-2.5 text-center" style={{ background: "rgba(139,94,60,0.06)" }}>
-                    <div className="text-lg font-bold" style={{ color: "var(--m-ink)" }}>
-                      {weeklySummary.entries ? weeklySummary.averageMood.toFixed(1) : "--"}
-                    </div>
-                    <div className="text-[11px]" style={{ color: "var(--m-ink3)" }}>情绪</div>
-                  </div>
-                  <div className="flex-1 rounded-[14px] px-3 py-2.5 text-center" style={{ background: "rgba(74,155,111,0.06)" }}>
-                    <div className="text-lg font-bold" style={{ color: "var(--m-ink)" }}>
-                      {weeklySummary.totalStudyHours.toFixed(1)}h
-                    </div>
-                    <div className="text-[11px]" style={{ color: "var(--m-ink3)" }}>学习</div>
-                  </div>
-                  <div className="flex-1 rounded-[14px] px-3 py-2.5 text-center" style={{ background: "rgba(180,140,80,0.06)" }}>
-                    <div className="text-lg font-bold" style={{ color: "var(--m-ink)" }}>
-                      {weeklySummary.totalReadingHours.toFixed(1)}h
-                    </div>
-                    <div className="text-[11px]" style={{ color: "var(--m-ink3)" }}>阅读</div>
-                  </div>
-                </div>
-              )}
-            </a>
-          </div>
-
-          {/* Mobile trends section (scroll target) */}
+          {/* Mobile trends section */}
           {logs.length > 0 && (
             <div className="mt-5" id="mobile-trends">
               <CombinedTrendChart logs={logs} quotes={quotes} timeEntries={timeEntries} />
