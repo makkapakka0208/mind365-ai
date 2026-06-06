@@ -2026,33 +2026,6 @@ function V5PageHeader() {
   return (
     <div>
       <div className="v5-eyebrow">LIBRARY · 灵感书库</div>
-      <h1
-        className="v5-display mt-2"
-        style={{
-          margin: 0,
-          fontSize: "clamp(34px, 4vw, 48px)",
-          fontVariationSettings: '"opsz" 144, "SOFT" 60',
-          fontWeight: 400,
-          color: "var(--v5-ink)",
-        }}
-      >
-        灵感书库
-      </h1>
-      <p
-        className="mt-3"
-        style={{
-          margin: "12px 0 0",
-          fontFamily: "var(--v5-serif)",
-          fontVariationSettings: '"opsz" 14',
-          fontSize: 16,
-          lineHeight: 1.7,
-          color: "var(--v5-ink2)",
-          fontStyle: "italic",
-          maxWidth: 520,
-        }}
-      >
-        把值得反复回看的句子和阅读笔记，收进同一座灵感书库里。
-      </p>
     </div>
   );
 }

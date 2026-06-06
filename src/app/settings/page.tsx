@@ -123,7 +123,7 @@ export default function SettingsPage() {
   const syncConfigured = status.configured && status.enabled;
 
   return (
-    <PageTransition className="mx-auto max-w-2xl space-y-6">
+    <PageTransition className="mx-auto max-w-[1460px] space-y-6">
       {/* ── Profile (design: MeScreen) ── */}
       <StaggerItem index={0}>
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em]" style={{ color: "var(--m-ink3)" }}>
@@ -163,6 +163,10 @@ export default function SettingsPage() {
           </div>
         </Panel>
       </StaggerItem>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        {/* Left column — stats + quick settings */}
+        <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
 
       {/* ── Stats ── */}
       <StaggerItem index={1}>
@@ -261,7 +265,10 @@ export default function SettingsPage() {
           })}
         </Panel>
       </StaggerItem>
+        </div>
 
+        {/* Right column — system settings */}
+        <div className="space-y-6">
       <div className="flex items-center gap-2 pt-2">
         <Settings2 size={16} style={{ color: "var(--m-ink3)" }} />
         <h3 className="text-sm font-semibold tracking-[0.04em]" style={{ color: "var(--m-ink2)" }}>系统设置</h3>
@@ -452,6 +459,8 @@ export default function SettingsPage() {
           </div>
         </Panel>
       </StaggerItem>
+        </div>
+      </div>
     </PageTransition>
   );
 }
