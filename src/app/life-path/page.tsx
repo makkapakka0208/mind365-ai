@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Compass, Flame, Loader2, Map, Pencil, Plus, RefreshCw, Sparkles, Target, Trash2, X, Zap } from "lucide-react";
+import { Bot, CalendarDays, Check, ChevronDown, ChevronRight, ChevronUp, Compass, Flame, ListTodo, Loader2, Map, Pencil, Plus, RefreshCw, Sparkles, Target, Trash2, X, Zap } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -12,6 +12,9 @@ import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateGoalProgress } from "@/lib/life-path";
+import { toggleTodo } from "@/lib/storage";
+import { useTodosStore } from "@/lib/storage-store";
+import type { TodoItem, TodoQuadrant } from "@/types";
 import {
   currentWeekKey,
   deleteMentorPlan,
@@ -1412,6 +1415,96 @@ function emptyMentorPlan(goalId: string): MentorPlan {
   };
 }
 
+// ── Embedded four-quadrant todo (design: LifePath tab) ──────────────────────
+const EMBED_QUADS: { id: TodoQuadrant; label: string; color: string }[] = [
+  { id: "q1", label: "重要 · 紧急", color: "#b04040" },
+  { id: "q2", label: "重要 · 不紧急", color: "#c8893a" },
+  { id: "q3", label: "紧急 · 不重要", color: "#5a8a3c" },
+  { id: "q4", label: "可以放下", color: "#4a7a9b" },
+];
+
+function EmbeddedQuadrantTodos() {
+  const todos = useTodosStore();
+  const serif = '"Noto Serif SC", "Songti SC", serif';
+
+  const active = todos.filter((t) => !t.done);
+  const doneCount = todos.filter((t) => t.done).length;
+  const pct = todos.length === 0 ? 0 : Math.round((doneCount / todos.length) * 100);
+  const byQ: Record<TodoQuadrant, TodoItem[]> = { q1: [], q2: [], q3: [], q4: [] };
+  for (const t of active) byQ[t.quadrant].push(t);
+
+  return (
+    <div
+      className="rounded-[20px] p-5"
+      style={{ background: "var(--m-base-light)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-out)" }}
+    >
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ListTodo size={16} style={{ color: "var(--m-accent)" }} />
+          <span className="text-sm font-semibold tracking-[0.02em]" style={{ color: "var(--m-ink)" }}>四象限清单</span>
+        </div>
+        <div className="flex items-center gap-3">
+          {todos.length > 0 && (
+            <div className="hidden items-center gap-2 sm:flex">
+              <div className="overflow-hidden" style={{ width: 90, height: 3, borderRadius: 99, background: "rgba(139,94,60,0.12)" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "#5a8a3c" : "var(--m-accent)", borderRadius: 99, transition: "width 400ms" }} />
+              </div>
+              <span className="text-xs" style={{ color: pct === 100 ? "#5a8a3c" : "var(--m-ink3)" }}>{pct}%</span>
+            </div>
+          )}
+          <Link href="/todo" className="text-xs" style={{ color: "var(--m-accent)" }}>管理 →</Link>
+        </div>
+      </div>
+
+      {/* 2×2 grid */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {EMBED_QUADS.map((q) => {
+          const items = byQ[q.id];
+          return (
+            <div
+              key={q.id}
+              className="rounded-2xl p-3.5"
+              style={{ background: `${q.color}0d`, border: `1px solid ${q.color}2e`, minHeight: 96 }}
+            >
+              <div className="mb-2 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: q.color }} />
+                <span className="text-[11px] tracking-[0.04em]" style={{ color: q.color, fontWeight: 600 }}>{q.label}</span>
+                {items.length > 0 && <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>· {items.length}</span>}
+              </div>
+              {items.length === 0 ? (
+                <p className="text-[12px]" style={{ color: "var(--m-ink3)", fontFamily: serif }}>暂无事项</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {items.slice(0, 3).map((t) => (
+                    <div key={t.id} className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label="标记为完成"
+                        onClick={() => toggleTodo(t.id)}
+                        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full transition-all"
+                        style={{ border: `1.5px solid ${q.color}`, background: "transparent" }}
+                      >
+                        <Check size={9} color="transparent" />
+                      </button>
+                      <span className="truncate text-[13px] leading-5" style={{ color: "var(--m-ink2)", fontFamily: serif }}>{t.text}</span>
+                    </div>
+                  ))}
+                  {items.length > 3 && (
+                    <Link href="/todo" className="block pt-0.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>
+                      还有 {items.length - 3} 项…
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function LifePathPage() {
   const [goals, setGoals] = useState<UserGoal[]>([]);
   const [mentorPlans, setMentorPlans] = useState<Record<string, MentorPlan>>({});
@@ -1662,6 +1755,9 @@ export default function LifePathPage() {
           ))}
         </div>
       )}
+
+      {/* ── Embedded four-quadrant todo (design: LifePath tab) ── */}
+      <EmbeddedQuadrantTodos />
       </div>
 
       {/* v5 Goal drawer (desktop only) */}
