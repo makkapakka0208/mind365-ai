@@ -2,9 +2,10 @@
 
 import {
   BookOpen,
-  CalendarRange,
+  Check,
   ChevronLeft,
   ChevronRight,
+  Compass,
   Flame,
   NotebookPen,
   Sparkles,
@@ -16,7 +17,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
 import { HomeTodoCard } from "@/components/dashboard/home-todo-card";
-import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -527,85 +527,92 @@ function BookPreview({ entry }: { entry: DailyLog }) {
 
 const SERIF = '"Noto Serif SC", "Songti SC", serif';
 
-function useYearProgress() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const tomorrow = new Date(now);
-    tomorrow.setHours(24, 0, 5, 0);
-    const ms = tomorrow.getTime() - Date.now();
-    const t = setTimeout(() => setNow(new Date()), Math.max(1000, ms));
-    return () => clearTimeout(t);
-  }, [now]);
-  const year = now.getFullYear();
-  const start = new Date(year, 0, 1);
-  const nextStart = new Date(year + 1, 0, 1);
-  const DAY = 86400000;
-  const daysInYear = Math.round((nextStart.getTime() - start.getTime()) / DAY);
-  const daysPassed = Math.max(0, Math.min(daysInYear, Math.floor((now.getTime() - start.getTime()) / DAY) + 1));
-  const daysRemaining = Math.max(0, daysInYear - daysPassed);
-  const pct = Math.round((daysPassed / daysInYear) * 100);
-  return { year, daysPassed, daysRemaining, pct };
-}
+// Mobile Home · time card with pendulum analog clock (design: OverviewScreen)
+function HomePendulumCard({ now }: { now: Date }) {
+  const yr = now.getFullYear();
+  const startOfYear = new Date(yr, 0, 1);
+  const daysPassed = Math.floor((now.getTime() - startOfYear.getTime()) / 86400000);
+  const daysLeft = 365 - daysPassed;
+  const pct = Math.round((daysPassed / 365) * 100);
 
-function MobileYearWidget() {
-  const { year, daysPassed, daysRemaining, pct } = useYearProgress();
+  const hrAngle = ((now.getHours() % 12) + now.getMinutes() / 60) * 30;
+  const minAngle = now.getMinutes() * 6;
+  const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
 
   return (
     <div
-      className="rounded-[24px] p-5"
+      className="rounded-[20px] p-[22px]"
       style={{
-        background: "linear-gradient(180deg, rgba(255,250,242,0.96), rgba(240,230,211,0.88))",
-        border: "1px solid rgba(139,94,60,0.1)",
-        boxShadow: "0 8px 24px rgba(180,150,110,0.12)",
+        background: "var(--m-base-light)",
+        border: "1px solid var(--m-rule)",
+        boxShadow: "var(--m-shadow-out)",
       }}
     >
-      <div className="flex items-start justify-between gap-3">
-        {/* Left: numbers */}
-        <div className="flex-1">
+      <div className="flex items-start justify-between">
+        <div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[2.2rem] font-semibold leading-none tracking-tight" style={{ color: "var(--m-ink)", fontFamily: SERIF }}>
-              {year}
+            <span className="font-bold leading-none" style={{ fontSize: 44, color: "var(--m-ink)", letterSpacing: "-0.04em", fontFamily: SERIF }}>
+              {yr}
             </span>
-            <span className="text-sm" style={{ color: "var(--m-ink3)" }}>年</span>
+            <span className="text-[13px]" style={{ color: "var(--m-ink3)" }}>年</span>
           </div>
-          <div className="mt-3 flex items-center gap-4">
+          <div className="mt-3.5 flex items-center gap-4">
             <div>
-              <span className="block text-xl font-semibold" style={{ color: "var(--m-accent)", fontFamily: SERIF }}>{daysPassed}</span>
-              <span className="mt-0.5 block text-[11px]" style={{ color: "var(--m-ink3)" }}>天已过</span>
+              <span className="block font-bold leading-none" style={{ fontSize: 26, color: "var(--m-accent)", letterSpacing: "-0.03em", fontFamily: SERIF }}>{daysPassed}</span>
+              <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>天已过</span>
             </div>
-            <div className="h-6 w-px" style={{ background: "rgba(139,94,60,0.14)" }} />
+            <div className="h-[26px] w-px" style={{ background: "rgba(139,94,60,0.14)" }} />
             <div>
-              <span className="block text-xl font-light" style={{ color: "var(--m-ink)", fontFamily: SERIF }}>{daysRemaining}</span>
-              <span className="mt-0.5 block text-[11px]" style={{ color: "var(--m-ink3)" }}>天未至</span>
+              <span className="block font-normal leading-none" style={{ fontSize: 26, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: SERIF }}>{daysLeft}</span>
+              <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>天未至</span>
             </div>
           </div>
         </div>
 
-        {/* Right: vintage clock + pendulum */}
-        <div className="shrink-0" style={{ width: 92 }}>
-          <TimePendulum />
-        </div>
+        {/* Pendulum clock */}
+        <svg width="90" height="110" viewBox="0 0 90 110" style={{ flexShrink: 0 }} aria-hidden>
+          <circle cx="45" cy="45" r="38" fill="rgba(255,248,236,0.85)" stroke="rgba(139,94,60,0.16)" strokeWidth="1.5" />
+          {Array.from({ length: 12 }).map((_, i) => {
+            const a = ((i * 30 - 90) * Math.PI) / 180;
+            const r1 = 31;
+            const r2 = i % 3 === 0 ? 23 : 27;
+            return (
+              <line
+                key={i}
+                x1={45 + r1 * Math.cos(a)} y1={45 + r1 * Math.sin(a)}
+                x2={45 + r2 * Math.cos(a)} y2={45 + r2 * Math.sin(a)}
+                stroke="rgba(139,94,60,0.3)" strokeWidth={i % 3 === 0 ? 2 : 1} strokeLinecap="round"
+              />
+            );
+          })}
+          {[{ t: "XII", a: -90 }, { t: "III", a: 0 }, { t: "VI", a: 90 }, { t: "IX", a: 180 }].map(({ t, a }) => {
+            const ra = (a * Math.PI) / 180;
+            return (
+              <text key={t} x={45 + 19 * Math.cos(ra)} y={45 + 19 * Math.sin(ra) + 3.5} textAnchor="middle" fontFamily="serif" fontSize="6" fill="rgba(44,26,14,0.45)">{t}</text>
+            );
+          })}
+          <line x1="45" y1="45" x2={45 + 16 * Math.cos(rad(hrAngle))} y2={45 + 16 * Math.sin(rad(hrAngle))} stroke="var(--m-ink)" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="45" y1="45" x2={45 + 24 * Math.cos(rad(minAngle))} y2={45 + 24 * Math.sin(rad(minAngle))} stroke="var(--m-ink)" strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="45" cy="45" r="2.5" fill="var(--m-accent)" />
+          <text x="45" y="62" textAnchor="middle" fontFamily="serif" fontSize="5.5" fill="rgba(44,26,14,0.35)">{yr} {pct}%</text>
+          <line x1="45" y1="83" x2="45" y2="100" stroke="rgba(139,94,60,0.45)" strokeWidth="1.2" />
+          <circle cx="45" cy="106" r="6" fill="var(--m-accent)" opacity="0.7" />
+        </svg>
       </div>
 
       {/* Progress bar */}
-      <div className="mt-4">
-        <div className="h-px w-full overflow-hidden" style={{ background: "rgba(139,94,60,0.1)" }}>
-          <div className="h-full transition-all duration-1000"
-            style={{ width: `${pct}%`, background: "rgba(139,94,60,0.5)" }} />
-        </div>
-        <div className="mt-1.5 flex justify-between">
-          <span className="text-[10px]" style={{ color: "rgba(139,94,60,0.4)" }}>1 月</span>
-          <span className="text-[10px]" style={{ color: "rgba(139,94,60,0.4)" }}>已走完 {pct}%</span>
-          <span className="text-[10px]" style={{ color: "rgba(139,94,60,0.4)" }}>12 月</span>
-        </div>
+      <div className="relative mt-4" style={{ height: 1, background: "rgba(139,94,60,0.1)" }}>
+        <div className="absolute left-0 top-0" style={{ height: 1, width: `${pct}%`, background: "rgba(139,94,60,0.45)" }} />
+      </div>
+      <div className="mt-1.5 flex justify-between" style={{ fontSize: 10.5, color: "rgba(139,94,60,0.4)" }}>
+        <span>1 月</span>
+        <span>已走完 {pct}%</span>
+        <span>12 月</span>
       </div>
 
-      {/* Link */}
-      <div className="mt-4 border-t border-dashed pt-3" style={{ borderColor: "rgba(139,94,60,0.1)" }}>
-        <Link className="text-xs" href="/timeline" style={{ color: "var(--m-accent)" }}>
-          翻开旧日记忆 →
-        </Link>
-      </div>
+      <Link href="/timeline" className="mt-3.5 block" style={{ fontSize: 13.5, color: "var(--m-accent)", fontFamily: SERIF }}>
+        翻开旧日记忆 →
+      </Link>
     </div>
   );
 }
@@ -1153,111 +1160,102 @@ export default function HomePage() {
       ) : null}
       <div className="w-full">
         <section className="md:hidden">
-          <div
-            className="rounded-[34px] px-4 py-5 sm:px-6"
-            style={{
-              background: "linear-gradient(180deg, rgba(253,246,235,0.98), rgba(240,230,211,0.94))",
-              border: "1px solid var(--m-rule)",
-              boxShadow: "0 24px 60px rgba(180,150,110,0.18)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="text-[2rem] font-semibold leading-none" style={{ color: "var(--m-ink)" }}>
-                {formatClock(now)}
+          <div className="grid gap-3.5">
+            {/* ─ Header ─ */}
+            <div className="flex items-start justify-between pt-1">
+              <div>
+                <div
+                  className="font-bold leading-none"
+                  style={{ fontSize: 34, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: SERIF, fontFeatureSettings: '"tnum" 1' }}
+                >
+                  {formatClock(now)}
+                </div>
+                <div className="mt-1.5 text-[13px]" style={{ color: "var(--m-ink3)" }}>{formatHeaderDate(now)}</div>
               </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  className="flex h-12 w-12 items-center justify-center rounded-[16px]"
-                  href="/week-plan"
-                  style={{
-                    background: "rgba(255,248,238,0.9)",
-                    border: "1px solid rgba(139,94,60,0.12)",
-                    boxShadow: "var(--m-shadow-out)",
-                  }}
-                >
-                  <CalendarRange size={18} style={{ color: "var(--m-accent)" }} />
-                </Link>
-                <Link
-                  className="flex h-12 w-12 items-center justify-center rounded-[16px]"
-                  href="/library"
-                  style={{
-                    background: "rgba(255,248,238,0.9)",
-                    border: "1px solid rgba(139,94,60,0.12)",
-                    boxShadow: "var(--m-shadow-out)",
-                  }}
-                >
-                  <BookOpen size={18} style={{ color: "var(--m-accent)" }} />
-                </Link>
-                <Link
-                  className="flex h-12 w-12 items-center justify-center rounded-[16px]"
-                  href="/review"
-                  style={{
-                    background: "rgba(255,248,238,0.9)",
-                    border: "1px solid rgba(139,94,60,0.12)",
-                    boxShadow: "var(--m-shadow-out)",
-                  }}
-                >
-                  <Sparkles size={18} style={{ color: "var(--m-accent)" }} />
-                </Link>
+              <div className="flex gap-2">
+                {[
+                  { href: "/life-path", label: "人生主线", Icon: Compass },
+                  { href: "/review", label: "复盘", Icon: Sparkles },
+                ].map(({ href, label, Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    aria-label={label}
+                    className="flex items-center justify-center"
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 14,
+                      background: "rgba(255,248,238,0.9)",
+                      border: "1px solid rgba(139,94,60,0.12)",
+                      boxShadow: "var(--m-shadow-out)",
+                      color: "var(--m-accent)",
+                    }}
+                  >
+                    <Icon size={18} />
+                  </Link>
+                ))}
               </div>
             </div>
 
-            <div className="mt-3 text-[15px]" style={{ color: "var(--m-ink3)" }}>
-              {formatHeaderDate(now)}
-            </div>
-
-            <div className="mt-3 text-[2.35rem] leading-none tracking-[-0.06em]" style={{ color: "var(--m-ink)" }}>
+            {/* ─ Greeting ─ */}
+            <div
+              className="px-0.5"
+              style={{ fontSize: 38, fontWeight: 600, letterSpacing: "-0.03em", color: "var(--m-ink)", lineHeight: 1.05, fontFamily: SERIF }}
+            >
               {getGreeting(now)}
             </div>
 
+            {/* ─ CTA ─ */}
             <Link
-              className="mt-6 block rounded-[24px] border px-5 py-4"
-              href="/record"
+              href={todayLog ? "/daily-log" : "/record"}
+              className="block rounded-[20px]"
               style={{
-                background: "rgba(246,233,212,0.82)",
-                borderColor: "rgba(139,94,60,0.14)",
-                boxShadow: "0 18px 35px rgba(180,150,110,0.16)",
+                padding: 18,
+                background: todayLog ? "rgba(246,233,212,0.78)" : "var(--m-base-light)",
+                border: `1px solid rgba(139,94,60,${todayLog ? "0.14" : "0.13"})`,
+                boxShadow: "var(--m-shadow-out)",
               }}
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3.5">
                 <span
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px]"
-                  style={{ background: "rgba(255,248,238,0.8)", color: "var(--m-accent)" }}
+                  className="flex shrink-0 items-center justify-center"
+                  style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: 14,
+                    background: todayLog ? "rgba(139,94,60,0.10)" : "rgba(139,94,60,0.09)",
+                    color: "var(--m-accent)",
+                    boxShadow: "var(--m-shadow-in)",
+                  }}
                 >
-                  <NotebookPen size={20} />
+                  {todayLog ? <Check size={20} /> : <NotebookPen size={20} />}
                 </span>
-                <div>
-                  <div className="text-[1.35rem] font-semibold" style={{ color: "var(--m-ink)" }}>
-                    {todayLog ? "今天已经记录" : "今日还未记录"}
+                <div className="flex-1">
+                  <div style={{ fontSize: 17, fontWeight: 600, color: "var(--m-ink)" }}>
+                    {todayLog ? "今天已落笔" : "今日还未记录"}
                   </div>
-                  <div className="mt-1 text-sm" style={{ color: "var(--m-ink2)" }}>
-                    {todayLog ? "点击查看或补充今天的记录。" : "记录一下今天的感受与想法。"}
+                  <div className="mt-0.5" style={{ fontSize: 12.5, color: "var(--m-ink2)" }}>
+                    {todayLog
+                      ? `写于 ${formatClock(new Date(todayLog.createdAt))} · 情绪 ${todayLog.mood}/10 · ${todayLog.thoughts.trim().length} 字`
+                      : "记录一下今天的感受与想法。"}
                   </div>
                 </div>
+                {todayLog ? <span style={{ fontSize: 12, color: "var(--m-accent)" }}>翻阅 →</span> : null}
               </div>
             </Link>
 
-            <div className="mt-5 flex items-center gap-2" style={{ color: "var(--m-accent)" }}>
-              <Flame size={18} />
-              <span className="text-sm sm:text-base">已连续记录 {streak} 天</span>
+            {/* ─ Streak ─ */}
+            <div className="flex items-center gap-1.5 px-1">
+              <Flame size={15} style={{ color: "var(--m-accent)" }} />
+              <span style={{ fontSize: 13.5, color: "var(--m-ink2)", fontFamily: SERIF }}>已连续记录 {streak} 天</span>
             </div>
 
-            <div className="mt-5">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-sm font-semibold tracking-[0.12em]" style={{ color: "var(--m-ink2)" }}>
-                  时间摆
-                </div>
-                <Link className="text-xs" href="/timeline" style={{ color: "var(--m-ink3)" }}>
-                  去年今日 →
-                </Link>
-              </div>
-              <MobileYearWidget />
-            </div>
+            {/* ─ Time card ─ */}
+            <HomePendulumCard now={now} />
 
-            {/* Todo quick card */}
-            <div className="mt-5">
-              <HomeTodoCard />
-            </div>
+            {/* ─ Todo quick card ─ */}
+            <HomeTodoCard />
           </div>
 
           {/* 4 stat cards — mirrors the desktop dashboard row, stacked 2×2 on mobile */}
