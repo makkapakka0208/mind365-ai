@@ -551,19 +551,19 @@ function HomePendulumCard({ now }: { now: Date }) {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-baseline gap-1.5">
-            <span className="font-bold leading-none" style={{ fontSize: 44, color: "var(--m-ink)", letterSpacing: "-0.04em", fontFamily: SERIF }}>
+            <span className="font-bold leading-none" style={{ fontSize: 44, color: "var(--m-ink)", letterSpacing: "-0.04em", fontFamily: "var(--m-font-display)" }}>
               {yr}
             </span>
             <span className="text-[13px]" style={{ color: "var(--m-ink3)" }}>年</span>
           </div>
           <div className="mt-3.5 flex items-center gap-4">
             <div>
-              <span className="block font-bold leading-none" style={{ fontSize: 26, color: "var(--m-accent)", letterSpacing: "-0.03em", fontFamily: SERIF }}>{daysPassed}</span>
+              <span className="block font-bold leading-none" style={{ fontSize: 26, color: "var(--m-accent)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)" }}>{daysPassed}</span>
               <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>天已过</span>
             </div>
             <div className="h-[26px] w-px" style={{ background: "rgba(139,94,60,0.14)" }} />
             <div>
-              <span className="block font-normal leading-none" style={{ fontSize: 26, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: SERIF }}>{daysLeft}</span>
+              <span className="block font-normal leading-none" style={{ fontSize: 26, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)" }}>{daysLeft}</span>
               <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>天未至</span>
             </div>
           </div>
@@ -1166,7 +1166,7 @@ export default function HomePage() {
               <div>
                 <div
                   className="font-bold leading-none"
-                  style={{ fontSize: 34, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: SERIF, fontFeatureSettings: '"tnum" 1' }}
+                  style={{ fontSize: 34, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)", fontFeatureSettings: '"tnum" 1' }}
                 >
                   {formatClock(now)}
                 </div>

@@ -173,7 +173,7 @@ export default function SettingsPage() {
             { v: notes.length, l: "笔记" },
           ].map((s) => (
             <Panel key={s.l} className="p-3 text-center">
-              <div className="font-semibold" style={{ fontSize: 22, color: "var(--m-ink)", letterSpacing: "-0.04em", fontFamily: SERIF }}>
+              <div className="font-semibold" style={{ fontSize: 22, color: "var(--m-ink)", letterSpacing: "-0.04em", fontFamily: "var(--m-font-display)" }}>
                 {s.v}
               </div>
               <div className="mt-0.5 text-[11px]" style={{ color: "var(--m-ink3)" }}>{s.l}</div>
