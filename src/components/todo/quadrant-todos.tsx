@@ -100,7 +100,7 @@ function DueChip({ todo }: { todo: TodoItem }) {
     );
   }
   return (
-    <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-0 transition-all group-hover:opacity-50" style={{ color: "var(--m-ink3)" }}>
+    <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-50 transition-all sm:opacity-0 sm:group-hover:opacity-50" style={{ color: "var(--m-ink3)" }}>
       <CalendarDays size={13} />
       {overlayInput}
     </span>
@@ -167,7 +167,7 @@ function TodoRow({ todo, color }: { todo: TodoItem; color: string }) {
         type="button"
         aria-label="删除"
         onClick={() => deleteTodo(todo.id)}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full opacity-0 transition-all hover:bg-[rgba(0,0,0,0.05)] group-hover:opacity-60"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full opacity-60 transition-all hover:bg-[rgba(0,0,0,0.05)] sm:opacity-0 sm:group-hover:opacity-60"
         style={{ color: "var(--m-ink3)" }}
       >
         <Trash2 size={13} />
