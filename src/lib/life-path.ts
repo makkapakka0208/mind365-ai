@@ -111,13 +111,17 @@ export function detectActions(
   const matches: string[] = [];
 
   for (const dir of directions) {
-    const allKeywords = [...dir.positiveActions, ...dir.negativeActions];
+    const allKeywords = [
+      ...dir.positiveActions,
+      ...(dir.aiPositivePatterns ?? []),
+      ...dir.negativeActions,
+      ...(dir.aiNegativePatterns ?? []),
+    ];
 
     for (const keyword of allKeywords) {
       const key = keyword.toLowerCase();
       if (!seen.has(key) && lower.includes(key)) {
         seen.add(key);
-        // Return the keyword in its original casing from the direction config
         matches.push(keyword);
       }
     }
@@ -166,8 +170,12 @@ export function calculateAlignmentScore(
   ];
 
   for (const dir of directions) {
-    const positiveSet = new Set(dir.positiveActions.map((a) => a.toLowerCase()));
-    const negativeSet = new Set(dir.negativeActions.map((a) => a.toLowerCase()));
+    const positiveSet = new Set(
+      [...dir.positiveActions, ...(dir.aiPositivePatterns ?? [])].map((a) => a.toLowerCase()),
+    );
+    const negativeSet = new Set(
+      [...dir.negativeActions, ...(dir.aiNegativePatterns ?? [])].map((a) => a.toLowerCase()),
+    );
 
     const positiveHits: string[] = [];
     const negativeHits: string[] = [];

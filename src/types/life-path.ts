@@ -53,6 +53,21 @@ export interface LifeDirection {
    * e.g. ["scrolling", "procrastinate", "binge"]
    */
   negativeActions: string[];
+
+  /**
+   * AI-generated extended keyword variants for positive behaviors.
+   * Populated once when the user saves/edits their life directions.
+   * Used alongside `positiveActions` in scoring to catch natural language variations.
+   */
+  aiPositivePatterns?: string[];
+
+  /**
+   * AI-generated extended keyword variants for negative behaviors.
+   */
+  aiNegativePatterns?: string[];
+
+  /** ISO datetime when AI enrichment was last run for this direction. */
+  aiEnrichedAt?: string;
 }
 
 // ── Daily Log (Life Path variant) ─────────────────────────────────────────────

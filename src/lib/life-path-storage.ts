@@ -231,6 +231,57 @@ export function saveDirections(dirs: LifeDirection[]): void {
   pushAsync("directions", dirs);
 }
 
+/**
+ * Save directions immediately, then asynchronously call the AI enrichment API
+ * to expand each direction's keyword patterns. The enriched result is saved
+ * back to storage so future scoring picks up the richer patterns automatically.
+ *
+ * Call this instead of `saveDirections` whenever the user creates or edits
+ * their life directions. The enrichment is fire-and-forget — the UI can
+ * proceed without waiting.
+ */
+export async function enrichAndSaveDirections(dirs: LifeDirection[]): Promise<LifeDirection[]> {
+  saveDirections(dirs);
+
+  try {
+    const resp = await fetch("/api/life-path-enrich", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ directions: dirs }),
+    });
+
+    if (!resp.ok) return dirs;
+
+    const payload = await resp.json() as {
+      available: boolean;
+      enriched: Array<{ id: string; aiPositivePatterns: string[]; aiNegativePatterns: string[] }>;
+    };
+
+    if (!payload.available || !Array.isArray(payload.enriched) || payload.enriched.length === 0) {
+      return dirs;
+    }
+
+    const byId = new Map(payload.enriched.map((e) => [e.id, e]));
+    const now = new Date().toISOString();
+
+    const enriched = dirs.map((dir) => {
+      const extra = byId.get(dir.id);
+      if (!extra) return dir;
+      return {
+        ...dir,
+        aiPositivePatterns: extra.aiPositivePatterns,
+        aiNegativePatterns: extra.aiNegativePatterns,
+        aiEnrichedAt: now,
+      };
+    });
+
+    saveDirections(enriched);
+    return enriched;
+  } catch {
+    return dirs;
+  }
+}
+
 // ── User Goals ────────────────────────────────────────────────────────────────
 
 export function loadGoals(): UserGoal[] {
