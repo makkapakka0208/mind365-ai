@@ -14,13 +14,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { sortLogsByDate } from "@/lib/analytics";
 import { formatDate, getTodayISODate } from "@/lib/date";
 import { isBase64DataUrl, migrateBase64Images } from "@/lib/image-storage";
-import { calculateAlignmentScore, detectActions } from "@/lib/life-path";
-import { loadDirections } from "@/lib/life-path-storage";
+import {
+  calculateAlignmentScore,
+  calculateAlignmentScoreWeighted,
+  detectActions,
+  fuseActions,
+  goalsToDirections,
+} from "@/lib/life-path";
+import { detectActionsByRules } from "@/lib/life-path-rules";
+import { loadGoals } from "@/lib/life-path-storage";
 import { saveDailyLog, updateDailyLog } from "@/lib/storage";
 import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import { useImageMigration } from "@/lib/use-image-migration";
 import type { DailyLog } from "@/types";
-import type { AlignmentResult, LifeDirection } from "@/types/life-path";
+import type { AlignmentResult, UserGoal } from "@/types/life-path";
 
 // ── Score helpers ─────────────────────────────────────────────────────────────
 
@@ -36,16 +43,29 @@ function scoreBg(score: number): string {
   return "rgba(192,57,43,0.08)";
 }
 
-function computeAlignment(
-  content: string,
-  directions: LifeDirection[],
-): AlignmentResult | null {
-  if (!directions.length || !content.trim()) return null;
-  const detectedActions = detectActions(content, directions);
-  return calculateAlignmentScore(
-    { id: "temp", date: "", content, detectedActions },
-    directions,
-  );
+function computeAlignment(content: string, goals: UserGoal[]): AlignmentResult | null {
+  if (!content.trim()) return null;
+
+  const directions = goalsToDirections(goals);
+
+  if (directions.length > 0) {
+    const detectedActions = detectActions(content, directions);
+    return calculateAlignmentScore(
+      { id: "temp", date: "", content, detectedActions },
+      directions,
+    );
+  }
+
+  // No goals with behaviors configured — fall back to universal rule matching.
+  const ruleActions = detectActionsByRules(content);
+  if (ruleActions.length === 0) return null;
+  const { score } = calculateAlignmentScoreWeighted(fuseActions(ruleActions, []));
+  return {
+    score,
+    positiveMatches: ruleActions.filter((a) => a.category === "positive").map((a) => a.type),
+    negativeMatches: ruleActions.filter((a) => a.category === "negative").map((a) => a.type),
+    breakdown: [],
+  };
 }
 
 const MOODS = [
@@ -156,10 +176,10 @@ function DailyLogInner() {
   const [isSaving, setIsSaving] = useState(false);
   const [alignmentResult, setAlignmentResult] = useState<AlignmentResult | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
-  const [directions, setDirections] = useState<LifeDirection[]>([]);
+  const [goals, setGoals] = useState<UserGoal[]>([]);
 
   useEffect(() => {
-    setDirections(loadDirections());
+    setGoals(loadGoals());
   }, []);
 
   useImageMigration();
@@ -236,9 +256,9 @@ function DailyLogInner() {
           });
 
       setMessage(result.synced ? "已保存，并同步到 Supabase。" : "已保存到本地缓存。");
-      const freshDirs = loadDirections();
-      setDirections(freshDirs);
-      setAlignmentResult(computeAlignment(thoughts.trim(), freshDirs));
+      const freshGoals = loadGoals();
+      setGoals(freshGoals);
+      setAlignmentResult(computeAlignment(thoughts.trim(), freshGoals));
       setShowBreakdown(false);
     } catch (error) {
       setMessage(`保存失败：${error instanceof Error ? error.message : "未知错误"}`);
@@ -345,7 +365,7 @@ function DailyLogInner() {
                       >
                         <CheckCircle2 size={13} />
                         <span>{message}</span>
-                        {alignmentResult && directions.length > 0 && (
+                        {alignmentResult && (
                           <>
                             <span className="opacity-30">·</span>
                             <span style={{ color: "var(--v5-ink3)" }}>对齐分</span>
@@ -477,7 +497,7 @@ function DailyLogInner() {
                 {recentLogs.length > 0 ? (
                   <div className="space-y-3">
                     {recentLogs.map((log) => {
-                      const result = computeAlignment(log.thoughts, directions);
+                      const result = computeAlignment(log.thoughts, goals);
                       return (
                         <RecentEntryButton
                           active={log.date === viewingDate}

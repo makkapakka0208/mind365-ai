@@ -356,6 +356,25 @@ export function calculateAlignmentScoreWeighted(
 }
 
 /**
+ * Convert UserGoal[] into the LifeDirection[] shape expected by the scoring
+ * functions.  Goals without any behavior keywords are excluded — they don't
+ * contribute to alignment scoring.
+ */
+export function goalsToDirections(goals: UserGoal[]): LifeDirection[] {
+  return goals
+    .filter((g) => (g.positiveActions?.length ?? 0) + (g.negativeActions?.length ?? 0) > 0)
+    .map((g) => ({
+      id: g.id,
+      name: g.title,
+      positiveActions: g.positiveActions ?? [],
+      negativeActions: g.negativeActions ?? [],
+      aiPositivePatterns: g.aiPositivePatterns,
+      aiNegativePatterns: g.aiNegativePatterns,
+      aiEnrichedAt: g.aiEnrichedAt,
+    }));
+}
+
+/**
  * Return logs sorted by alignment score (highest first).
  * Handy for surfacing the user's best days in a review screen.
  */
