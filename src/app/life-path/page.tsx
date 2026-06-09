@@ -16,9 +16,12 @@ import { calculateGoalProgress } from "@/lib/life-path";
 import {
   currentWeekKey,
   deleteMentorPlan,
+  enrichAndSaveDirections,
+  loadDirections,
   loadGoals,
   loadMentorPlans,
   refreshLifePathState,
+  saveDirections,
   saveGoals,
   saveMentorPlan,
   todayKey,
@@ -27,6 +30,7 @@ import type {
   AdjustNote,
   DailySuggestion,
   GoalPhase,
+  LifeDirection,
   MentorPlan,
   UserGoal,
   WeeklyPlan,
@@ -57,6 +61,139 @@ async function callMentor(
     }),
   });
   return resp.json() as Promise<{ available: boolean; data: unknown; message?: string }>;
+}
+
+// ── Direction helpers ─────────────────────────────────────────────────────────
+
+function parseTags(value: string): string[] {
+  return value.split(/[,，、\s]+/).map((s) => s.trim()).filter(Boolean);
+}
+
+// ── Direction card (v5) ───────────────────────────────────────────────────────
+
+function V5DirectionCard({
+  dir,
+  onEdit,
+  onDelete,
+}: {
+  dir: LifeDirection;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const aiEnhanced = !!dir.aiEnrichedAt;
+  const extraPositive = (dir.aiPositivePatterns ?? []).length;
+  const extraNegative = (dir.aiNegativePatterns ?? []).length;
+
+  return (
+    <div
+      style={{
+        background: "var(--v5-card)",
+        border: "1px solid var(--v5-rule)",
+        borderRadius: 18,
+        padding: "14px 16px",
+        boxShadow: "var(--v5-sh-1)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span
+          style={{
+            fontFamily: "var(--v5-serif)",
+            fontSize: 15,
+            fontWeight: 500,
+            color: "var(--v5-ink)",
+            lineHeight: 1.3,
+          }}
+        >
+          {dir.name}
+        </span>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {aiEnhanced && (
+            <span
+              title="AI 已增强关键词"
+              style={{
+                fontFamily: "var(--v5-sans)",
+                fontSize: 9,
+                color: "var(--v5-accent)",
+                opacity: 0.7,
+                marginRight: 4,
+              }}
+            >
+              ✦
+            </span>
+          )}
+          <button
+            className="rounded-md p-1 transition hover:opacity-60"
+            onClick={onEdit}
+            title="编辑"
+            type="button"
+          >
+            <Pencil size={11} style={{ color: "var(--v5-ink3)" }} />
+          </button>
+          <button
+            className="rounded-md p-1 transition hover:opacity-60"
+            onClick={onDelete}
+            title="删除"
+            type="button"
+          >
+            <Trash2 size={11} style={{ color: "var(--v5-ink3)" }} />
+          </button>
+        </div>
+      </div>
+
+      {dir.positiveActions.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {dir.positiveActions.slice(0, 4).map((a) => (
+            <span
+              key={a}
+              style={{
+                background: "rgba(74,155,111,0.10)",
+                color: "#4a9b6f",
+                borderRadius: 999,
+                padding: "1px 8px",
+                fontSize: 11,
+                fontFamily: "var(--v5-sans)",
+              }}
+            >
+              {a}
+            </span>
+          ))}
+          {(dir.positiveActions.length - 4 + extraPositive > 0) && (
+            <span style={{ fontSize: 10, color: "var(--v5-ink3)", alignSelf: "center" }}>
+              +{dir.positiveActions.length - 4 + extraPositive}
+            </span>
+          )}
+        </div>
+      )}
+
+      {dir.negativeActions.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {dir.negativeActions.slice(0, 3).map((a) => (
+            <span
+              key={a}
+              style={{
+                background: "rgba(192,57,43,0.08)",
+                color: "#c0392b",
+                borderRadius: 999,
+                padding: "1px 8px",
+                fontSize: 11,
+                fontFamily: "var(--v5-sans)",
+              }}
+            >
+              {a}
+            </span>
+          ))}
+          {(dir.negativeActions.length - 3 + extraNegative > 0) && (
+            <span style={{ fontSize: 10, color: "var(--v5-ink3)", alignSelf: "center" }}>
+              +{dir.negativeActions.length - 3 + extraNegative}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -1391,6 +1528,68 @@ export default function LifePathPage() {
   const [goals, setGoals] = useState<UserGoal[]>([]);
   const [mentorPlans, setMentorPlans] = useState<Record<string, MentorPlan>>({});
 
+  // ── Life directions ───────────────────────────────────────────────────────────
+  const [directions, setDirections] = useState<LifeDirection[]>([]);
+  const [enriching, setEnriching] = useState(false);
+  const [dirDialogOpen, setDirDialogOpen] = useState(false);
+  const [editingDir, setEditingDir] = useState<LifeDirection | null>(null);
+  const [draftDirName, setDraftDirName] = useState("");
+  const [draftDirPositive, setDraftDirPositive] = useState("");
+  const [draftDirNegative, setDraftDirNegative] = useState("");
+
+  const openAddDir = () => {
+    setEditingDir(null);
+    setDraftDirName(""); setDraftDirPositive(""); setDraftDirNegative("");
+    setDirDialogOpen(true);
+  };
+
+  const openEditDir = (dir: LifeDirection) => {
+    setEditingDir(dir);
+    setDraftDirName(dir.name);
+    setDraftDirPositive(dir.positiveActions.join(", "));
+    setDraftDirNegative(dir.negativeActions.join(", "));
+    setDirDialogOpen(true);
+  };
+
+  const submitDir = (e: FormEvent) => {
+    e.preventDefault();
+    if (!draftDirName.trim()) return;
+    const next: LifeDirection = editingDir
+      ? {
+          ...editingDir,
+          name: draftDirName.trim(),
+          positiveActions: parseTags(draftDirPositive),
+          negativeActions: parseTags(draftDirNegative),
+          // Clear AI enrichment so it re-runs for the updated direction
+          aiPositivePatterns: undefined,
+          aiNegativePatterns: undefined,
+          aiEnrichedAt: undefined,
+        }
+      : {
+          id: crypto.randomUUID(),
+          name: draftDirName.trim(),
+          positiveActions: parseTags(draftDirPositive),
+          negativeActions: parseTags(draftDirNegative),
+        };
+    const updated = editingDir
+      ? directions.map((d) => (d.id === editingDir.id ? next : d))
+      : [...directions, next];
+    setDirections(updated);
+    setDirDialogOpen(false);
+    setEnriching(true);
+    void enrichAndSaveDirections(updated).then((enriched) => {
+      setDirections(enriched);
+      setEnriching(false);
+    }).catch(() => setEnriching(false));
+  };
+
+  const deleteDir = (id: string) => {
+    if (!window.confirm("确认删除该方向？关联的日记对齐分将不再计算此方向。")) return;
+    const next = directions.filter((d) => d.id !== id);
+    setDirections(next);
+    saveDirections(next);
+  };
+
   // ── Add goal dialog ──────────────────────────────────────────────────────────
   const [addOpen, setAddOpen] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
@@ -1403,10 +1602,12 @@ export default function LifePathPage() {
   const [editCurrent, setEditCurrent] = useState("");
 
   useEffect(() => {
+    setDirections(loadDirections());
     setGoals(loadGoals());
     setMentorPlans(loadMentorPlans());
     // Pull cloud state on mount so a freshly logged-in device backfills.
     void refreshLifePathState().then(() => {
+      setDirections(loadDirections());
       setGoals(loadGoals());
       setMentorPlans(loadMentorPlans());
     });
@@ -1516,6 +1717,105 @@ export default function LifePathPage() {
 
           <V5HeroStat completed={completedCount} onAdd={openAdd} total={goals.length} />
 
+          {/* ── Life Directions section ── */}
+          <div>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="v5-eyebrow">ALIGNMENT · 人生方向</div>
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    fontFamily: "var(--v5-serif)",
+                    fontStyle: "italic",
+                    fontSize: 12.5,
+                    color: "var(--v5-ink3)",
+                  }}
+                >
+                  {directions.length === 0
+                    ? "设定方向，每篇日记都会自动计算对齐分"
+                    : `${directions.length} 个方向 · 日记保存时自动评分`}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {enriching && (
+                  <span
+                    className="inline-flex items-center gap-1.5"
+                    style={{
+                      fontFamily: "var(--v5-sans)",
+                      fontSize: 11,
+                      color: "var(--v5-accent)",
+                    }}
+                  >
+                    <Loader2 className="animate-spin" size={11} />
+                    AI 正在丰富关键词…
+                  </span>
+                )}
+                <button
+                  className="inline-flex items-center"
+                  onClick={openAddDir}
+                  type="button"
+                  style={{
+                    gap: 5,
+                    padding: "7px 14px",
+                    borderRadius: 999,
+                    border: "1px solid var(--v5-rule-strong)",
+                    background: "transparent",
+                    color: "var(--v5-ink2)",
+                    fontFamily: "var(--v5-sans)",
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    transition: "border-color 0.2s, color 0.2s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--v5-accent)"; e.currentTarget.style.color = "var(--v5-accent)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--v5-rule-strong)"; e.currentTarget.style.color = "var(--v5-ink2)"; }}
+                >
+                  <Plus size={12} />
+                  添加方向
+                </button>
+              </div>
+            </div>
+
+            {directions.length === 0 ? (
+              <button
+                className="w-full rounded-[18px] border border-dashed px-6 py-8 text-center transition hover:border-[var(--v5-accent)]"
+                onClick={openAddDir}
+                type="button"
+                style={{ borderColor: "var(--v5-rule-strong)", background: "var(--v5-card)" }}
+              >
+                <Compass className="mx-auto mb-2" size={22} style={{ color: "var(--v5-accent)", opacity: 0.6 }} />
+                <p style={{ margin: 0, fontFamily: "var(--v5-serif)", fontSize: 14, color: "var(--v5-ink2)" }}>
+                  还没有人生方向
+                </p>
+                <p
+                  style={{
+                    margin: "5px 0 0",
+                    fontFamily: "var(--v5-serif)",
+                    fontStyle: "italic",
+                    fontSize: 12,
+                    color: "var(--v5-ink3)",
+                  }}
+                >
+                  例如：健康 · 学习 · 财富 · 人际关系
+                </p>
+              </button>
+            ) : (
+              <div
+                className="grid gap-3"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}
+              >
+                {directions.map((dir) => (
+                  <V5DirectionCard
+                    dir={dir}
+                    key={dir.id}
+                    onDelete={() => deleteDir(dir.id)}
+                    onEdit={() => openEditDir(dir)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
           {goals.length > 0 && <V5TimelineStrip goals={goals} />}
 
           <div>
@@ -1614,6 +1914,53 @@ export default function LifePathPage() {
         )}
       </div>
 
+      {/* ── Life Directions (mobile) ── */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--m-ink3)" }}>
+            人生方向
+          </span>
+          <button
+            className="flex items-center gap-1 text-xs"
+            onClick={openAddDir}
+            type="button"
+            style={{ color: "var(--m-accent)" }}
+          >
+            <Plus size={12} />
+            添加方向
+          </button>
+        </div>
+
+        {directions.length === 0 ? (
+          <button
+            className="w-full rounded-2xl border border-dashed px-4 py-6 text-center text-xs"
+            onClick={openAddDir}
+            type="button"
+            style={{ borderColor: "var(--m-rule)", color: "var(--m-ink3)" }}
+          >
+            还没有人生方向 · 点击添加（健康、学习、财富…）
+          </button>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {directions.map((dir) => (
+              <V5DirectionCard
+                dir={dir}
+                key={dir.id}
+                onDelete={() => deleteDir(dir.id)}
+                onEdit={() => openEditDir(dir)}
+              />
+            ))}
+          </div>
+        )}
+
+        {enriching && (
+          <p className="mt-2 flex items-center gap-1 text-[11px]" style={{ color: "var(--m-accent)" }}>
+            <Loader2 className="animate-spin" size={10} />
+            AI 正在丰富关键词…
+          </p>
+        )}
+      </div>
+
       {/* Goal list */}
       {goals.length === 0 ? (
         <div
@@ -1669,6 +2016,87 @@ export default function LifePathPage() {
         }}
         onRunMentor={runMentorForDrawer}
       />
+
+      {/* ── Add / Edit Direction Dialog ── */}
+      <Dialog
+        onClose={() => setDirDialogOpen(false)}
+        open={dirDialogOpen}
+        title={editingDir ? `编辑方向 — ${editingDir.name}` : "添加人生方向"}
+      >
+        <form className="space-y-4" onSubmit={submitDir}>
+          <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+            方向名称 *
+            <Input
+              autoFocus
+              onChange={(e) => setDraftDirName(e.target.value)}
+              placeholder="例：健康 / 学习 / 财富 / 人际关系"
+              required
+              value={draftDirName}
+            />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+            正向行为关键词
+            <Input
+              onChange={(e) => setDraftDirPositive(e.target.value)}
+              placeholder="例：运动, 读书, 早睡（逗号分隔）"
+              value={draftDirPositive}
+            />
+            {parseTags(draftDirPositive).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {parseTags(draftDirPositive).map((t) => (
+                  <span
+                    key={t}
+                    style={{
+                      background: "rgba(74,155,111,0.10)",
+                      color: "#4a9b6f",
+                      borderRadius: 999,
+                      padding: "1px 8px",
+                      fontSize: 11,
+                    }}
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+            负向行为关键词
+            <Input
+              onChange={(e) => setDraftDirNegative(e.target.value)}
+              placeholder="例：熬夜, 拖延, 摆烂（逗号分隔）"
+              value={draftDirNegative}
+            />
+            {parseTags(draftDirNegative).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {parseTags(draftDirNegative).map((t) => (
+                  <span
+                    key={t}
+                    style={{
+                      background: "rgba(192,57,43,0.08)",
+                      color: "#c0392b",
+                      borderRadius: 999,
+                      padding: "1px 8px",
+                      fontSize: 11,
+                    }}
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+          </label>
+          <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
+            保存后 AI 会自动扩展更多自然语言变体，无需手动穷举。
+          </p>
+          <div className="flex justify-end gap-3 pt-1">
+            <Button onClick={() => setDirDialogOpen(false)} type="button" variant="ghost">取消</Button>
+            <Button disabled={!draftDirName.trim()} type="submit" variant="primary">
+              {editingDir ? "保存修改" : "添加方向"}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
 
       {/* ── Add Goal Dialog ── */}
       <Dialog onClose={() => setAddOpen(false)} open={addOpen} title="新增人生目标">
