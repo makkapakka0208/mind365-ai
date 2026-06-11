@@ -2,10 +2,11 @@
   createDefaultSupabaseUserId,
   createMind365SupabaseClient,
   DEFAULT_SETTINGS,
+  getActiveSyncConfig,
   getSupabaseConfig,
   normalizeMind365Settings,
 } from "@/lib/supabase";
-import { getAuthSupabaseClient } from "@/lib/auth";
+import { getCachedAuthUserId } from "@/lib/auth";
 import {
   getLifePathBackupData,
   importLifePathBackupData,
@@ -23,12 +24,23 @@ export const STORAGE_KEYS = {
   todos: "todos",
 } as const;
 
-const DELETED_QUOTE_IDS_KEY = "mind365-deleted-quote-ids";
+/**
+ * 本地删除墓碑：防止远端（或同步失败的离线删除）把已删记录复活。
+ * 服务端另有 deleted 列做跨设备传播，两者配合。
+ */
+const DELETED_IDS_KEYS = {
+  dailyLogs: "mind365-deleted-daily-log-ids",
+  notes: "mind365-deleted-note-ids",
+  quotes: "mind365-deleted-quote-ids",
+  reviewReports: "mind365-deleted-review-report-ids",
+} as const;
 
-function getDeletedQuoteIds(): Set<string> {
+type TombstoneKind = keyof typeof DELETED_IDS_KEYS;
+
+function getDeletedIds(kind: TombstoneKind): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
-    const raw = window.localStorage.getItem(DELETED_QUOTE_IDS_KEY);
+    const raw = window.localStorage.getItem(DELETED_IDS_KEYS[kind]);
     const arr = raw ? (JSON.parse(raw) as unknown) : [];
     return new Set(Array.isArray(arr) ? (arr as string[]).filter((v) => typeof v === "string") : []);
   } catch {
@@ -36,19 +48,21 @@ function getDeletedQuoteIds(): Set<string> {
   }
 }
 
-function addDeletedQuoteId(id: string) {
+function addDeletedId(kind: TombstoneKind, id: string) {
   if (typeof window === "undefined") return;
   try {
-    const ids = getDeletedQuoteIds();
+    const ids = getDeletedIds(kind);
     ids.add(id);
-    window.localStorage.setItem(DELETED_QUOTE_IDS_KEY, JSON.stringify([...ids]));
+    window.localStorage.setItem(DELETED_IDS_KEYS[kind], JSON.stringify([...ids]));
   } catch {}
 }
 
-/** Called after a successful import — clears the tombstone list so previously-deleted quotes can be restored. */
-function clearDeletedQuoteIds() {
+/** Called after a successful import — clears tombstones so imported records can be restored. */
+function clearAllDeletedIds() {
   if (typeof window === "undefined") return;
-  try { window.localStorage.removeItem(DELETED_QUOTE_IDS_KEY); } catch {}
+  for (const key of Object.values(DELETED_IDS_KEYS)) {
+    try { window.localStorage.removeItem(key); } catch {}
+  }
 }
 
 export const STORAGE_CHANGE_EVENT = "mind365:storage";
@@ -408,47 +422,80 @@ function areDailyLogsEqual(left: DailyLog[], right: DailyLog[]): boolean {
   return JSON.stringify(normalizeDailyLogs(left)) === JSON.stringify(normalizeDailyLogs(right));
 }
 
-async function fetchRemoteDailyLogs(settings: Mind365Settings): Promise<DailyLog[]> {
+async function fetchRemoteDailyLogs(
+  settings: Mind365Settings,
+): Promise<{ logs: DailyLog[]; deletedIds: Set<string> }> {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
-  if (!client || !config) return [];
-  const { data, error } = await client.from("diaries").select("id, user_id, content, ai_analysis, created_at").eq("user_id", config.userId).order("created_at", { ascending: false });
+  const config = getActiveSyncConfig(settings, getAuthUserId());
+  if (!client || !config) return { logs: [], deletedIds: new Set() };
+  const { data, error } = await client.from("diaries").select("id, user_id, content, ai_analysis, created_at, deleted").eq("user_id", config.userId).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  const rows = Array.isArray(data) ? (data as SupabaseDiaryRow[]) : [];
-  return normalizeDailyLogs(rows.map(parseDiaryRow).filter((log): log is DailyLog => log !== null));
+  const rows = Array.isArray(data) ? (data as Array<SupabaseDiaryRow & { deleted?: boolean }>) : [];
+  const deletedIds = new Set(rows.filter((r) => r.deleted).map((r) => r.id));
+  const live = rows.filter((r) => !r.deleted);
+  return {
+    logs: normalizeDailyLogs(live.map(parseDiaryRow).filter((log): log is DailyLog => log !== null)),
+    deletedIds,
+  };
 }
 
-async function fetchRemoteQuotes(settings: Mind365Settings): Promise<Quote[]> {
+/** Mark rows as deleted on the remote (cross-device tombstone). Fire-safe. */
+async function markRemoteDeleted(
+  table: "diaries" | "notes" | "quotes" | "review_reports",
+  ids: string[],
+  settings: Mind365Settings,
+): Promise<void> {
+  if (ids.length === 0) return;
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
-  if (!client || !config) return [];
+  const config = getActiveSyncConfig(settings, getAuthUserId());
+  if (!client || !config) return;
+  await client.from(table).update({ deleted: true }).in("id", ids).eq("user_id", config.userId);
+}
+
+async function fetchRemoteQuotes(
+  settings: Mind365Settings,
+): Promise<{ quotes: Quote[]; deletedIds: Set<string> }> {
+  const client = createMind365SupabaseClient(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
+  if (!client || !config) return { quotes: [], deletedIds: new Set() };
   const { data, error } = await client.from("quotes").select("*").eq("user_id", config.userId).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return normalizeQuotes(
-    Array.isArray(data)
-      ? data.map((item) => ({
-          ...(isRecord(item) ? item : {}),
-          createdAt:
-            isRecord(item) && typeof item.created_at === "string"
-              ? item.created_at
-              : new Date().toISOString(),
-        }))
-      : [],
+  const rows = Array.isArray(data) ? data.filter(isRecord) : [];
+  const deletedIds = new Set(
+    rows.filter((r) => r.deleted === true && typeof r.id === "string").map((r) => r.id as string),
   );
+  const quotes = normalizeQuotes(
+    rows
+      .filter((r) => r.deleted !== true)
+      .map((item) => ({
+        ...item,
+        createdAt: typeof item.created_at === "string" ? item.created_at : new Date().toISOString(),
+      })),
+  );
+  return { quotes, deletedIds };
 }
 
-async function fetchRemoteNotes(settings: Mind365Settings): Promise<Note[]> {
+async function fetchRemoteNotes(
+  settings: Mind365Settings,
+): Promise<{ notes: Note[]; deletedIds: Set<string> }> {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
-  if (!client || !config) return [];
+  const config = getActiveSyncConfig(settings, getAuthUserId());
+  if (!client || !config) return { notes: [], deletedIds: new Set() };
   const { data, error } = await client.from("notes").select("*").eq("user_id", config.userId).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return normalizeCollection(data, isNote);
+  const rows = Array.isArray(data) ? data.filter(isRecord) : [];
+  const deletedIds = new Set(
+    rows.filter((r) => r.deleted === true && typeof r.id === "string").map((r) => r.id as string),
+  );
+  return {
+    notes: normalizeCollection(rows.filter((r) => r.deleted !== true), isNote),
+    deletedIds,
+  };
 }
 
 async function fetchRemoteTimeEntries(settings: Mind365Settings): Promise<TimeEntry[]> {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!client || !config) return [];
   const { data, error } = await client.from("time_entries").select("*").eq("user_id", config.userId).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -465,14 +512,21 @@ async function fetchRemoteTimeEntries(settings: Mind365Settings): Promise<TimeEn
     .filter((e): e is TimeEntry => e !== null);
 }
 
-async function fetchRemoteReviewReports(settings: Mind365Settings): Promise<ReviewReport[]> {
+async function fetchRemoteReviewReports(
+  settings: Mind365Settings,
+): Promise<{ reports: ReviewReport[]; deletedIds: Set<string> }> {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
-  if (!client || !config) return [];
+  const config = getActiveSyncConfig(settings, getAuthUserId());
+  if (!client || !config) return { reports: [], deletedIds: new Set() };
   const { data, error } = await client.from("review_reports").select("*").eq("user_id", config.userId).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  if (!Array.isArray(data)) return [];
-  return data
+  if (!Array.isArray(data)) return { reports: [], deletedIds: new Set() };
+  const rows = data.filter(isRecord);
+  const deletedIds = new Set(
+    rows.filter((r) => r.deleted === true && typeof r.id === "string").map((r) => r.id as string),
+  );
+  const reports = rows
+    .filter((r) => r.deleted !== true)
     .map((row: Record<string, unknown>) => {
       try {
         const content = typeof row.content === "string" ? JSON.parse(row.content) : row.content;
@@ -481,13 +535,14 @@ async function fetchRemoteReviewReports(settings: Mind365Settings): Promise<Revi
       } catch { return null; }
     })
     .filter((r): r is ReviewReport => r !== null);
+  return { reports, deletedIds };
 }
 
 async function upsertRemoteDailyLogs(logs: DailyLog[], settings: Mind365Settings): Promise<boolean> {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!client || !config || logs.length === 0) return false;
-  const payload = logs.map((log) => ({ ai_analysis: null, content: serializeDailyLog(log), created_at: log.createdAt, id: log.id, user_id: config.userId }));
+  const payload = logs.map((log) => ({ ai_analysis: null, content: serializeDailyLog(log), created_at: log.createdAt, id: log.id, user_id: config.userId, deleted: false }));
   const { error } = await client.from("diaries").upsert(payload, { onConflict: "id" });
   if (error) throw new Error(error.message);
   return true;
@@ -495,7 +550,7 @@ async function upsertRemoteDailyLogs(logs: DailyLog[], settings: Mind365Settings
 
 async function upsertRemoteQuotes(quotes: Quote[], settings: Mind365Settings) {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!client || !config || quotes.length === 0) return false;
   const payload = quotes.map((q) => ({
     id: q.id,
@@ -505,6 +560,7 @@ async function upsertRemoteQuotes(quotes: Quote[], settings: Mind365Settings) {
     author: q.author,
     book: q.book,
     tags: q.tags,
+    deleted: false,
   }));
   const { error } = await client.from("quotes").upsert(payload, { onConflict: "id" });
   if (error) throw new Error(error.message);
@@ -513,9 +569,9 @@ async function upsertRemoteQuotes(quotes: Quote[], settings: Mind365Settings) {
 
 async function upsertRemoteNotes(notes: Note[], settings: Mind365Settings) {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!client || !config || notes.length === 0) return false;
-  const payload = notes.map((n) => ({ id: n.id, user_id: config.userId, title: n.title, content: n.content, tags: n.tags }));
+  const payload = notes.map((n) => ({ id: n.id, user_id: config.userId, title: n.title, content: n.content, tags: n.tags, deleted: false }));
   const { error } = await client.from("notes").upsert(payload, { onConflict: "id" });
   if (error) throw new Error(error.message);
   return true;
@@ -523,7 +579,7 @@ async function upsertRemoteNotes(notes: Note[], settings: Mind365Settings) {
 
 async function upsertRemoteTimeEntries(entries: TimeEntry[], settings: Mind365Settings) {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!client || !config || entries.length === 0) return false;
   const payload = entries.map((e) => ({
     id: e.id,
@@ -541,10 +597,10 @@ async function upsertRemoteTimeEntries(entries: TimeEntry[], settings: Mind365Se
 
 async function upsertRemoteReviewReports(reports: ReviewReport[], settings: Mind365Settings) {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!client || !config || reports.length === 0) return false;
   const payload = reports.map((r) => ({
-    id: r.id, user_id: config.userId, created_at: r.createdAt,
+    id: r.id, user_id: config.userId, created_at: r.createdAt, deleted: false,
     content: JSON.stringify({ period: r.period, rangeStart: r.rangeStart, rangeEnd: r.rangeEnd, title: r.title, metrics: r.metrics, notes: r.notes }),
   }));
   const { error } = await client.from("review_reports").upsert(payload, { onConflict: "id" });
@@ -557,47 +613,11 @@ export function getSettings(): Mind365Settings {
 }
 
 /**
- * Try to get the authenticated user's ID from the Supabase auth session.
- * Returns null if not authenticated or not in a browser context.
- *
- * The auth client caches the session in memory; we mirror that cache here
- * and refresh it in the background so every sync call gets the latest ID.
+ * The auth module owns the session cache (initialized at client creation,
+ * updated via onAuthStateChange); we just read its synchronous snapshot.
  */
-let _cachedAuthUserId: string | null = null;
-
 function getAuthUserId(): string | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const client = getAuthSupabaseClient();
-    // Kick off a background refresh — the result is used on the *next* call
-    client.auth.getSession().then(({ data: { session } }) => {
-      _cachedAuthUserId = session?.user?.id ?? null;
-    });
-    return _cachedAuthUserId;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Eagerly initialize the auth user ID cache.
- * Called once at module load in browser contexts so that the first
- * sync operation already has the correct user ID.
- */
-if (typeof window !== "undefined") {
-  try {
-    const client = getAuthSupabaseClient();
-    client.auth.getSession().then(({ data: { session } }) => {
-      _cachedAuthUserId = session?.user?.id ?? null;
-    });
-    // Also listen for future auth changes
-    client.auth.onAuthStateChange((_event, session) => {
-      _cachedAuthUserId = session?.user?.id ?? null;
-    });
-  } catch {
-    // Auth module not available yet — will be populated on first getAuthUserId() call
-  }
+  return getCachedAuthUserId();
 }
 
 function getSettingsForSync(): Mind365Settings {
@@ -619,6 +639,7 @@ export function saveSettings(settings: Mind365Settings): Mind365Settings {
 
 export function getCloudSyncStatus(): CloudSyncStatus {
   const settings = getSettingsForSync();
+  // 状态展示用原始 config：即使未登录也要能报告"已配置但未登录"
   const config = getSupabaseConfig(settings);
 
   if (!config) {
@@ -654,7 +675,7 @@ export function setDailyLogs(logs: DailyLog[]) { writeCollection(STORAGE_KEYS.da
 export async function refreshDailyLogs(options?: { force?: boolean }): Promise<DailyLog[]> {
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!config) return readDailyLogs();
   const signature = `${config.url}::${config.userId}`;
   if (!options?.force && refreshPromise && refreshSignature === signature) return refreshPromise;
@@ -662,10 +683,18 @@ export async function refreshDailyLogs(options?: { force?: boolean }): Promise<D
   refreshPromise = (async () => {
     const localLogs = readDailyLogs();
     try {
-      const remoteLogs = await fetchRemoteDailyLogs(settings);
-      const mergedLogs = mergeDailyLogs(localLogs, remoteLogs);
+      const { logs: remoteLogs, deletedIds: remoteDeleted } = await fetchRemoteDailyLogs(settings);
+      const localTombstones = getDeletedIds("dailyLogs");
+      // 远端墓碑清掉本地副本；本地墓碑（离线删除）过滤远端并回写远端
+      const localLive = localLogs.filter((l) => !remoteDeleted.has(l.id) && !localTombstones.has(l.id));
+      const remoteLive = remoteLogs.filter((l) => !localTombstones.has(l.id));
+      const offlineDeleted = remoteLogs.filter((l) => localTombstones.has(l.id)).map((l) => l.id);
+      if (offlineDeleted.length > 0) {
+        void markRemoteDeleted("diaries", offlineDeleted, settings).catch(() => undefined);
+      }
+      const mergedLogs = mergeDailyLogs(localLive, remoteLive);
       if (!areDailyLogsEqual(localLogs, mergedLogs)) writeCollection(STORAGE_KEYS.dailyLogs, mergedLogs);
-      if (!areDailyLogsEqual(remoteLogs, mergedLogs)) await upsertRemoteDailyLogs(mergedLogs, settings);
+      if (!areDailyLogsEqual(remoteLive, mergedLogs)) await upsertRemoteDailyLogs(mergedLogs, settings);
       return mergedLogs;
     } catch { return localLogs; }
     finally { refreshPromise = null; }
@@ -676,19 +705,25 @@ export async function refreshDailyLogs(options?: { force?: boolean }): Promise<D
 export async function refreshQuotes(): Promise<Quote[]> {
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!config) return getQuotes();
   const local = getQuotes();
   try {
-    const remote = await fetchRemoteQuotes(settings);
-    const deleted = getDeletedQuoteIds();
+    const { quotes: remote, deletedIds: remoteDeleted } = await fetchRemoteQuotes(settings);
+    const localTombstones = getDeletedIds("quotes");
     const merged = new Map<string, Quote>();
-    // Remote goes in first; local overwrites. Tombstoned IDs are skipped so
-    // deleted quotes are never resurrected from Supabase.
+    // Remote goes in first; local overwrites. Tombstoned IDs (local or remote)
+    // are skipped so deleted quotes are never resurrected.
     for (const q of remote) {
-      if (!deleted.has(q.id)) merged.set(q.id, q);
+      if (!localTombstones.has(q.id)) merged.set(q.id, q);
     }
-    for (const q of local) merged.set(q.id, q);
+    for (const q of local) {
+      if (!localTombstones.has(q.id) && !remoteDeleted.has(q.id)) merged.set(q.id, q);
+    }
+    const offlineDeleted = remote.filter((q) => localTombstones.has(q.id)).map((q) => q.id);
+    if (offlineDeleted.length > 0) {
+      void markRemoteDeleted("quotes", offlineDeleted, settings).catch(() => undefined);
+    }
     const mergedArr = [...merged.values()];
     setQuotes(mergedArr);
     const remoteIds = new Set(remote.map((q) => q.id));
@@ -701,14 +736,23 @@ export async function refreshQuotes(): Promise<Quote[]> {
 export async function refreshNotes(): Promise<Note[]> {
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!config) return getNotes();
   const local = getNotes();
   try {
-    const remote = await fetchRemoteNotes(settings);
+    const { notes: remote, deletedIds: remoteDeleted } = await fetchRemoteNotes(settings);
+    const localTombstones = getDeletedIds("notes");
     const merged = new Map<string, Note>();
-    for (const n of remote) merged.set(n.id, n);
-    for (const n of local) merged.set(n.id, n);
+    for (const n of remote) {
+      if (!localTombstones.has(n.id)) merged.set(n.id, n);
+    }
+    for (const n of local) {
+      if (!localTombstones.has(n.id) && !remoteDeleted.has(n.id)) merged.set(n.id, n);
+    }
+    const offlineDeleted = remote.filter((n) => localTombstones.has(n.id)).map((n) => n.id);
+    if (offlineDeleted.length > 0) {
+      void markRemoteDeleted("notes", offlineDeleted, settings).catch(() => undefined);
+    }
     const mergedArr = [...merged.values()];
     setNotes(mergedArr);
     const remoteIds = new Set(remote.map((n) => n.id));
@@ -721,14 +765,23 @@ export async function refreshNotes(): Promise<Note[]> {
 export async function refreshReviewReports(): Promise<ReviewReport[]> {
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!config) return getReviewReports();
   const local = getReviewReports();
   try {
-    const remote = await fetchRemoteReviewReports(settings);
+    const { reports: remote, deletedIds: remoteDeleted } = await fetchRemoteReviewReports(settings);
+    const localTombstones = getDeletedIds("reviewReports");
     const merged = new Map<string, ReviewReport>();
-    for (const r of remote) merged.set(r.id, r);
-    for (const r of local) merged.set(r.id, r);
+    for (const r of remote) {
+      if (!localTombstones.has(r.id)) merged.set(r.id, r);
+    }
+    for (const r of local) {
+      if (!localTombstones.has(r.id) && !remoteDeleted.has(r.id)) merged.set(r.id, r);
+    }
+    const offlineDeleted = remote.filter((r) => localTombstones.has(r.id)).map((r) => r.id);
+    if (offlineDeleted.length > 0) {
+      void markRemoteDeleted("review_reports", offlineDeleted, settings).catch(() => undefined);
+    }
     const mergedArr = [...merged.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     setReviewReports(mergedArr);
     const remoteIds = new Set(remote.map((r) => r.id));
@@ -741,7 +794,7 @@ export async function refreshReviewReports(): Promise<ReviewReport[]> {
 export async function refreshTimeEntries(): Promise<TimeEntry[]> {
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!config) return getTimeEntries();
   const local = getTimeEntries();
   try {
@@ -783,14 +836,11 @@ export async function updateDailyLog(nextLog: DailyLog): Promise<DailyLogMutatio
 export async function deleteDailyLog(id: string): Promise<DailyLogMutationResult> {
   const logs = getDailyLogs().filter((log) => log.id !== id);
   setDailyLogs(logs);
+  // 软删除：远端留墓碑行，其他设备的本地副本才不会把它复活
+  addDeletedId("dailyLogs", id);
   try {
     const settings = getSettingsForSync();
-    const config = getSupabaseConfig(settings);
-    const client = createMind365SupabaseClient(settings);
-    if (config && client) {
-      const deleteOp = client.from("diaries").delete().eq("id", id).eq("user_id", config.userId);
-      await withTimeout(Promise.resolve(deleteOp), 8000, undefined as unknown as Awaited<typeof deleteOp>);
-    }
+    await withTimeout(markRemoteDeleted("diaries", [id], settings), 8000, undefined);
     return { logs, synced: true };
   } catch { return { logs, synced: false }; }
 }
@@ -832,19 +882,14 @@ export async function updateQuote(quote: Quote): Promise<Quote[]> {
   return updated;
 }
 
-/** Delete a quote by ID from local storage and remote. */
+/** Delete a quote by ID from local storage and remote (soft delete). */
 export async function deleteQuote(id: string): Promise<Quote[]> {
   const updated = getQuotes().filter((q) => q.id !== id);
   setQuotes(updated);
   // Record tombstone so refreshQuotes won't restore this quote from Supabase.
-  addDeletedQuoteId(id);
+  addDeletedId("quotes", id);
   try {
-    const settings = getSettingsForSync();
-    const client = createMind365SupabaseClient(settings);
-    const config = getSupabaseConfig(settings);
-    if (client && config) {
-      await client.from("quotes").delete().eq("id", id).eq("user_id", config.userId);
-    }
+    await markRemoteDeleted("quotes", [id], getSettingsForSync());
   } catch {}
   return updated;
 }
@@ -856,6 +901,17 @@ export async function saveNote(note: Note): Promise<Note[]> {
   const updated = [note, ...getNotes()];
   setNotes(updated);
   try { await upsertRemoteNotes([note], getSettingsForSync()); } catch {}
+  return updated;
+}
+
+/** Delete a note by ID from local storage and remote (soft delete). */
+export async function deleteNote(id: string): Promise<Note[]> {
+  const updated = getNotes().filter((n) => n.id !== id);
+  setNotes(updated);
+  addDeletedId("notes", id);
+  try {
+    await markRemoteDeleted("notes", [id], getSettingsForSync());
+  } catch {}
   return updated;
 }
 
@@ -895,7 +951,7 @@ async function upsertRemoteTodos(
   settings: Mind365Settings,
 ): Promise<boolean> {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!client || !config || rows.length === 0) return false;
   const payload = rows.map((t) => ({
     id: t.id,
@@ -920,7 +976,7 @@ async function fetchRemoteTodos(
   settings: Mind365Settings,
 ): Promise<Array<{ item: TodoItem; deleted: boolean }>> {
   const client = createMind365SupabaseClient(settings);
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!client || !config) return [];
   const { data, error } = await client.from("todos").select("*").eq("user_id", config.userId);
   if (error) throw new Error(error.message);
@@ -962,7 +1018,7 @@ function pushTodoRemote(item: TodoItem, deleted = false) {
 export async function refreshTodos(): Promise<TodoItem[]> {
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!config) return getTodos();
   const local = getTodos();
   const ts = (s: string) => Date.parse(s) || 0;
@@ -1148,6 +1204,10 @@ export async function saveReviewReport(report: ReviewReport): Promise<ReviewRepo
 export async function deleteReviewReport(id: string): Promise<ReviewReport[]> {
   const reports = getReviewReports().filter((r) => r.id !== id);
   setReviewReports(reports);
+  addDeletedId("reviewReports", id);
+  try {
+    await markRemoteDeleted("review_reports", [id], getSettingsForSync());
+  } catch {}
   return reports;
 }
 
@@ -1190,8 +1250,8 @@ export function importMind365Backup(raw: string): BackupImportResult {
     ? importLifePathBackupData(parsed.life_path)
     : { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0 };
 
-  // Clear tombstones so quotes in the imported backup can be restored from Supabase.
-  clearDeletedQuoteIds();
+  // Clear tombstones so records in the imported backup can be restored.
+  clearAllDeletedIds();
   window.localStorage.setItem(STORAGE_KEYS.dailyLogs, JSON.stringify(dailyLogs));
   window.localStorage.setItem(STORAGE_KEYS.quotes, JSON.stringify(quotes));
   window.localStorage.setItem(STORAGE_KEYS.notes, JSON.stringify(notes));

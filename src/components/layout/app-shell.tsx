@@ -127,16 +127,14 @@ export function AppShell({ children }: AppShellProps) {
                     fontFamily: "var(--v5-serif)",
                     fontSize: 14.5,
                     fontWeight: active ? 500 : 400,
-                    background: active ? "rgba(244,228,200,0.45)" : "transparent",
-                    boxShadow: active
-                      ? "inset 2.5px 2.5px 5px rgba(75,51,27,0.11), inset -2px -2px 4px rgba(255,255,255,0.85)"
-                      : "none",
+                    background: active ? "var(--v5-nav-active-bg)" : "transparent",
+                    boxShadow: active ? "var(--v5-nav-active-shadow)" : "none",
                     color: active ? "var(--v5-ink)" : "var(--v5-ink2)",
                     transition:
                       "background var(--v5-dur-fast) var(--v5-ease), color var(--v5-dur-fast) var(--v5-ease)",
                   }}
                   onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = "rgba(75,51,27,0.04)";
+                    if (!active) e.currentTarget.style.background = "var(--v5-nav-hover-bg)";
                   }}
                   onMouseLeave={(e) => {
                     if (!active) e.currentTarget.style.background = "transparent";

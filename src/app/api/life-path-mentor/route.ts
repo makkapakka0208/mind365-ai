@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { guardApiRequest } from "@/lib/server/api-guard";
+
 export const runtime = "nodejs";
 
 // ── Request / response types ──────────────────────────────────────────────────
@@ -172,6 +174,9 @@ function parseRequest(raw: unknown): MentorRequest | null {
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  const guardError = await guardApiRequest(request);
+  if (guardError) return guardError;
+
   let rawBody: unknown;
   try { rawBody = await request.json(); }
   catch { return NextResponse.json({ message: "请求格式无效。" }, { status: 400 }); }

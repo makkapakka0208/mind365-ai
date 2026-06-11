@@ -13,7 +13,7 @@ const TONE_VARIANTS = {
   warm: {
     bg: "linear-gradient(135deg, #f7e7c8 0%, #ead4ad 100%)",
     eyebrow: "下一步",
-    cta: "var(--v5-accent)",
+    cta: "#8b5e3c",
   },
   alert: {
     bg: "linear-gradient(135deg, #f4d4c6 0%, #e0a892 100%)",
@@ -23,7 +23,7 @@ const TONE_VARIANTS = {
   info: {
     bg: "linear-gradient(135deg, #efe6d4 0%, #d9c9a8 100%)",
     eyebrow: "本周节点",
-    cta: "var(--v5-accent)",
+    cta: "#8b5e3c",
   },
 } as const;
 
@@ -46,7 +46,7 @@ export function SmartActionCard() {
       href={action.ctaHref}
       style={{
         background: variant.bg,
-        color: "var(--v5-ink)",
+        color: "#211611",
         boxShadow: "var(--v5-sh-1)",
         transitionDuration: "var(--v5-dur)",
         transitionTimingFunction: "var(--v5-ease)",
@@ -66,7 +66,7 @@ export function SmartActionCard() {
           fontFamily: "var(--v5-sans)",
           fontSize: 11,
           letterSpacing: "0.04em",
-          color: "var(--v5-ink2)",
+          color: "#5d4429",
         }}
       >
         {variant.eyebrow}
@@ -77,7 +77,7 @@ export function SmartActionCard() {
           fontSize: 14.5,
           fontWeight: 500,
           lineHeight: 1.55,
-          color: "var(--v5-ink)",
+          color: "#211611",
         }}
       >
         {action.message}

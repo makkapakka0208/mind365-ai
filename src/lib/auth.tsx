@@ -12,7 +12,11 @@ import { createClient, type SupabaseClient, type User } from "@supabase/supabase
 
 // ── Auth-aware Supabase singleton ──────────────────────────────────────────
 
+/** Fired on window whenever the signed-in user id changes (login/logout). */
+export const AUTH_CHANGE_EVENT = "mind365:auth-changed";
+
 let authClient: SupabaseClient | null = null;
+let cachedAuthUserId: string | null = null;
 
 function getOrCreateAuthClient(): SupabaseClient {
   if (authClient) return authClient;
@@ -31,7 +35,37 @@ function getOrCreateAuthClient(): SupabaseClient {
     },
   });
 
+  // Keep a synchronously-readable user id for non-React callers (storage sync).
+  const updateCachedUserId = (userId: string | null) => {
+    const changed = cachedAuthUserId !== userId;
+    cachedAuthUserId = userId;
+    // 登录/登出后通知存储层重新同步（初始同步可能发生在会话恢复之前）
+    if (changed && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+    }
+  };
+  authClient.auth.getSession().then(({ data: { session } }) => {
+    updateCachedUserId(session?.user?.id ?? null);
+  });
+  authClient.auth.onAuthStateChange((_event, session) => {
+    updateCachedUserId(session?.user?.id ?? null);
+  });
+
   return authClient;
+}
+
+/**
+ * Synchronous snapshot of the signed-in user's id (null when logged out or
+ * the session hasn't hydrated yet). Safe to call from non-React modules.
+ */
+export function getCachedAuthUserId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    getOrCreateAuthClient();
+  } catch {
+    return null;
+  }
+  return cachedAuthUserId;
 }
 
 /**

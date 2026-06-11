@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { guardApiRequest } from "@/lib/server/api-guard";
+
 export const runtime = "nodejs";
 
 const SYSTEM_PROMPT = `
@@ -49,6 +51,9 @@ function normalizeStringArray(v: unknown, max = 6): string[] {
 }
 
 export async function POST(request: NextRequest) {
+  const guardError = await guardApiRequest(request);
+  if (guardError) return guardError;
+
   let body: unknown;
   try {
     body = await request.json();

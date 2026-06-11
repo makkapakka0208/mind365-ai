@@ -47,9 +47,18 @@ OPENAI_API_KEY=your_backup_key
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 NEXT_PUBLIC_MIND365_USER_ID=your_uuid
+
+# Required for Capacitor (Android/iOS) builds: the static export has no /api/*
+# routes, so AI calls must hit the deployed site instead.
+NEXT_PUBLIC_API_BASE_URL=https://your-deployed-site.vercel.app
 ```
 
 If you do not configure AI or Supabase, the app still works with local caching only.
+
+Notes on AI endpoints: when Supabase is configured, the `/api/*` AI routes
+require a signed-in user (Bearer token, attached automatically by the client)
+and are rate-limited per user. Without Supabase they fall back to per-IP rate
+limiting only.
 
 ## Supabase Schema
 
@@ -61,13 +70,19 @@ create table if not exists public.diaries (
   user_id uuid not null,
   content text not null,
   ai_analysis text,
-  created_at timestamp with time zone not null default now()
+  created_at timestamp with time zone not null default now(),
+  deleted boolean not null default false
 );
 ```
 
+`diaries`, `notes`, `quotes` and `review_reports` all carry a
+`deleted boolean not null default false` column: deletions are soft (tombstone
+rows) so they propagate across devices instead of being resurrected by another
+device's local copy.
+
 Notes:
 - The current app serializes the full diary object into `content` so existing fields like `mood`, `studyHours`, `reading`, `tags`, and `thoughts` are preserved.
-- Use the same `user_id` on multiple devices if you want them to sync the same diary stream.
+- Sync requires a signed-in Supabase user — RLS policies enforce `user_id = auth.uid()`.
 
 ## Data Storage
 

@@ -50,7 +50,7 @@ import {
   groupQuotesByTheme,
   removeTheme,
 } from "@/lib/quote-classify";
-import { deleteQuote, refreshNotes, refreshQuotes, saveNote, saveQuote, updateQuote } from "@/lib/storage";
+import { deleteNote, deleteQuote, refreshNotes, refreshQuotes, saveNote, saveQuote, updateQuote } from "@/lib/storage";
 import { useNotesStore, useQuotesStore } from "@/lib/storage-store";
 import type { Note, Quote } from "@/types";
 
@@ -3212,7 +3212,7 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
           onSubmit={onSubmit}
           style={{
             background:
-              "linear-gradient(180deg, rgba(255,252,246,0.98), rgba(249,240,225,0.96)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
+              "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
             backgroundSize: "auto, 44px 44px",
             border: "1px solid rgba(139,94,60,0.12)",
             boxShadow: "0 30px 70px rgba(122,79,43,0.13)",
@@ -3435,7 +3435,7 @@ function ReadingNotebookSection() {
           onSubmit={onSubmit}
           style={{
             background:
-              "linear-gradient(180deg, rgba(255,252,246,0.98), rgba(249,240,225,0.96)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
+              "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
             backgroundSize: "auto, 44px 44px",
             border: "1px solid rgba(139,94,60,0.12)",
             boxShadow: "0 30px 70px rgba(122,79,43,0.13)",
@@ -3616,14 +3616,29 @@ function ReadingNotebookSection() {
                           </span>
                         ))}
                       </div>
-                      <button
-                        className="rounded-full px-4 py-1.5 text-sm transition-all hover:opacity-80"
-                        onClick={() => toggleExpanded(note.id)}
-                        style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
-                        type="button"
-                      >
-                        {isExpanded ? "收起" : "展开阅读"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          aria-label="删除笔记"
+                          className="rounded-full p-1.5 transition-all hover:opacity-80"
+                          onClick={() => {
+                            if (window.confirm("确定删除这篇笔记吗？删除后无法恢复。")) {
+                              void deleteNote(note.id);
+                            }
+                          }}
+                          style={{ background: "rgba(178,76,56,0.08)", color: "var(--m-danger, #b24c38)" }}
+                          type="button"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <button
+                          className="rounded-full px-4 py-1.5 text-sm transition-all hover:opacity-80"
+                          onClick={() => toggleExpanded(note.id)}
+                          style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                          type="button"
+                        >
+                          {isExpanded ? "收起" : "展开阅读"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

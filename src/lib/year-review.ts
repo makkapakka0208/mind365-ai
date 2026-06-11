@@ -5,6 +5,7 @@
  * Zero I/O beyond the single generateYearSummary() fetch call.
  */
 
+import { apiFetch } from "@/lib/api";
 import type {
   ComputedYearStats,
   HighlightDay,
@@ -158,7 +159,7 @@ export async function generateYearSummary(
   const payload = buildPayload(data, stats);
 
   try {
-    const res = await fetch("/api/year-summary", {
+    const res = await apiFetch("/api/year-summary", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

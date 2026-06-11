@@ -820,7 +820,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
       style={{
         borderRadius: 32,
         padding: "28px 48px",
-        background: "linear-gradient(135deg, #fff 0%, #fef7e8 50%, #f6e5c8 100%)",
+        background: "linear-gradient(135deg, var(--m-paper-hi) 0%, var(--m-paper-lo) 100%)",
         boxShadow: "var(--v5-sh-3)",
       }}
     >
@@ -895,7 +895,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
                 padding: "12px 22px",
                 borderRadius: 999,
                 background: "var(--v5-ink)",
-                color: "#fff",
+                color: "var(--m-on-accent)",
                 boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
                 transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
               }}
@@ -932,7 +932,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
               {reviewBadge && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full px-2 py-0.5"
-                  style={{ background: "#C0392B", color: "#fff", fontSize: 10, fontWeight: 600 }}
+                  style={{ background: "#C0392B", color: "var(--m-on-accent)", fontSize: 10, fontWeight: 600 }}
                 >
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
                   {reviewBadge}
@@ -997,7 +997,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
         <div
           className="relative flex min-w-0 flex-col"
           style={{
-            background: "rgba(255, 251, 240, 0.55)",
+            background: "var(--glass-bg)",
             backdropFilter: "blur(8px)",
             WebkitBackdropFilter: "blur(8px)",
             border: "1px solid rgba(139, 94, 60, 0.10)",
@@ -1186,7 +1186,7 @@ export default function HomePage() {
                       width: 42,
                       height: 42,
                       borderRadius: 14,
-                      background: "rgba(255,248,238,0.9)",
+                      background: "var(--m-base-light)",
                       border: "1px solid rgba(139,94,60,0.12)",
                       boxShadow: "var(--m-shadow-out)",
                       color: "var(--m-accent)",
@@ -1212,7 +1212,7 @@ export default function HomePage() {
               className="block rounded-[20px]"
               style={{
                 padding: 18,
-                background: todayLog ? "rgba(246,233,212,0.78)" : "var(--m-base-light)",
+                background: todayLog ? "var(--m-paper-lo)" : "var(--m-base-light)",
                 border: `1px solid rgba(139,94,60,${todayLog ? "0.14" : "0.13"})`,
                 boxShadow: "var(--m-shadow-out)",
               }}
@@ -1454,7 +1454,7 @@ export default function HomePage() {
                           disabled={recentLogs.length <= 1}
                           onClick={() => turnPage("prev")}
                           style={{
-                            background: "rgba(255,248,238,0.78)",
+                            background: "var(--m-base-light)",
                             borderColor: "rgba(139,94,60,0.12)",
                             color: "var(--m-accent)",
                           }}
@@ -1468,7 +1468,7 @@ export default function HomePage() {
                           disabled={recentLogs.length <= 1}
                           onClick={() => turnPage("next")}
                           style={{
-                            background: "rgba(255,248,238,0.78)",
+                            background: "var(--m-base-light)",
                             borderColor: "rgba(139,94,60,0.12)",
                             color: "var(--m-accent)",
                           }}

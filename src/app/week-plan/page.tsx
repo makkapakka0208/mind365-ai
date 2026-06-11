@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -53,7 +54,7 @@ type MentorWeeklyResponse = {
 };
 
 async function generateWeeklyForGoal(goal: UserGoal): Promise<MentorWeeklyResponse> {
-  const resp = await fetch("/api/life-path-mentor", {
+  const resp = await apiFetch("/api/life-path-mentor", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

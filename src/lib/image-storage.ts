@@ -1,7 +1,7 @@
 "use client";
 
-import { getAuthSupabaseClient } from "@/lib/auth";
-import { getSupabaseConfig } from "@/lib/supabase";
+import { getAuthSupabaseClient, getCachedAuthUserId } from "@/lib/auth";
+import { getActiveSyncConfig } from "@/lib/supabase";
 import { getSettings } from "@/lib/storage";
 
 const BUCKET_NAME = "diary-images";
@@ -32,10 +32,14 @@ function getStorageClient() {
   }
 }
 
-/** Get user ID — prefer auth user, then settings user */
+/**
+ * Get user ID for the storage path. Storage RLS requires the top-level
+ * folder to equal auth.uid(), so only an authenticated id is usable here
+ * (manual self-hosted setups keep their settings-based id).
+ */
 function getStorageUserId(): string | null {
   const settings = getSettings();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getCachedAuthUserId());
   return config?.userId ?? null;
 }
 

@@ -1,4 +1,5 @@
-﻿import { parseReadingHours } from "@/lib/analytics";
+﻿import { apiFetch } from "@/lib/api";
+import { parseReadingHours } from "@/lib/analytics";
 import { toISODate } from "@/lib/date";
 import type { DailyLog } from "@/types";
 
@@ -168,13 +169,19 @@ export function buildReviewPayload(
   };
 }
 
+/**
+ * 请求 AI 复盘。服务端以纯文本流返回正文，每收到一段就调用
+ * onDelta(累计全文)，UI 可边生成边渲染；配置缺失/出错时服务端
+ * 返回 JSON，走原来的一次性逻辑。
+ */
 export async function requestAiReflection(
   period: ReviewPeriod,
   logs: DailyLog[],
   range: { end: Date; start: Date },
   summary: ReviewSummary,
+  onDelta?: (fullText: string) => void,
 ): Promise<ReviewResponse> {
-  const response = await fetch("/api/ai-review", {
+  const response = await apiFetch("/api/ai-review", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -182,15 +189,38 @@ export async function requestAiReflection(
     body: JSON.stringify(buildReviewPayload(period, logs, range, summary)),
   });
 
-  const data = (await response.json()) as ReviewResponse;
+  const contentType = response.headers.get("content-type") ?? "";
 
-  if (!response.ok) {
-    return {
-      available: false,
-      message: data.message ?? "AI 复盘生成失败。",
-      reflection: null,
-    };
+  // 非流式（错误、未配置 AI、网关不支持流）→ 原 JSON 逻辑
+  if (contentType.includes("application/json")) {
+    const data = (await response.json()) as ReviewResponse;
+    if (!response.ok) {
+      return {
+        available: false,
+        message: data.message ?? "AI 复盘生成失败。",
+        reflection: null,
+      };
+    }
+    return data;
   }
 
-  return data;
+  if (!response.ok || !response.body) {
+    return { available: false, message: "AI 复盘生成失败。", reflection: null };
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    fullText += decoder.decode(value, { stream: true });
+    if (fullText && onDelta) onDelta(fullText);
+  }
+  fullText = (fullText + decoder.decode()).trim();
+
+  if (!fullText) {
+    return { available: false, message: "模型没有返回有效内容。", reflection: null };
+  }
+  return { available: true, reflection: fullText };
 }
