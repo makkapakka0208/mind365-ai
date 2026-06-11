@@ -3,6 +3,21 @@ import type { Metadata, Viewport } from "next";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider } from "@/lib/auth";
 
+// 自托管字体（构建时打包，国内无需访问 Google Fonts）
+import "@fontsource/noto-serif-sc/400.css";
+import "@fontsource/noto-serif-sc/500.css";
+import "@fontsource/noto-serif-sc/600.css";
+import "@fontsource/noto-serif-sc/700.css";
+import "@fontsource/playfair-display/500.css";
+import "@fontsource/playfair-display/600.css";
+import "@fontsource/playfair-display/700.css";
+import "@fontsource/ma-shan-zheng/400.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource-variable/fraunces/full.css";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -35,8 +50,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <head>
+        {/* 首屏前同步应用主题，防止暗色模式闪白（与 src/lib/theme.ts 逻辑一致） */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=localStorage.getItem("mind365-theme");var d=p==="dark"||(p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.setAttribute("data-theme","dark");}}catch(e){}})();`,
+          }}
+        />
         {/* PWA Icons */}
         <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
@@ -46,18 +67,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-        {/* Preconnect to Google Fonts for faster load */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Ma+Shan+Zheng&display=swap"
-          rel="stylesheet"
-        />
-        {/* v5 typography — Fraunces variable serif + Inter UI sans */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..800,0..100&family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body className="antialiased">
         <AuthProvider>

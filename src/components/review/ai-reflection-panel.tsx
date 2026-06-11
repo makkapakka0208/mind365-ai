@@ -429,7 +429,10 @@ export function AiReflectionPanel({
     setMessage("");
 
     try {
-      const data = await requestAiReflection(period, logs, range, summary);
+      // 流式生成：每收到一段就更新正文，报告区边生成边展开
+      const data = await requestAiReflection(period, logs, range, summary, (partial) => {
+        setReflection(partial);
+      });
       if (!data.reflection) {
         setReflection("");
         setHasSavedReflection(false);
@@ -441,6 +444,7 @@ export function AiReflectionPanel({
       setHasSavedReflection(true);
       setMessage(`复盘已生成并保存（${savedKey}）。`);
     } catch {
+      setReflection("");
       setMessage("AI 复盘生成失败，请稍后再试。");
     } finally {
       setIsGenerating(false);
@@ -515,7 +519,7 @@ export function AiReflectionPanel({
           <div
             className="rounded-2xl px-5 py-5 sm:px-6"
             style={{
-              background: "linear-gradient(135deg, rgba(253,246,235,0.98), rgba(245,237,222,0.96))",
+              background: "linear-gradient(135deg, var(--m-paper-hi), var(--m-paper-lo))",
               border: "1px solid var(--m-rule)",
               boxShadow: "var(--m-shadow-out)",
             }}
@@ -529,14 +533,24 @@ export function AiReflectionPanel({
                   {title}
                 </h2>
               </div>
-              <button
-                className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
-                onClick={onGenerate}
-                type="button"
-                style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
-              >
-                重新加载
-              </button>
+              {isGenerating ? (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium"
+                  style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                >
+                  <Loader2 className="animate-spin" size={13} />
+                  生成中…
+                </span>
+              ) : (
+                <button
+                  className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
+                  onClick={onGenerate}
+                  type="button"
+                  style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                >
+                  重新加载
+                </button>
+              )}
             </div>
 
             {keyInsight && (
@@ -595,7 +609,19 @@ export function AiReflectionPanel({
             ))}
           </div>
 
+          {/* Streaming indicator under the growing sections */}
+          {isGenerating && (
+            <p
+              className="flex items-center justify-center gap-2 text-xs"
+              style={{ color: "var(--m-ink3)" }}
+            >
+              <Loader2 className="animate-spin" size={13} />
+              AI 正在逐段生成报告，已生成的部分可以先读…
+            </p>
+          )}
+
           {/* Archive to review history */}
+          {!isGenerating && (
           <div
             className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-4"
             style={{
@@ -634,6 +660,7 @@ export function AiReflectionPanel({
               </Button>
             )}
           </div>
+          )}
 
           {/* Status message */}
           {message && (

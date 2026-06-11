@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { QuadrantTodos } from "@/components/todo/quadrant-todos";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,7 @@ async function callMentor(
   goal: UserGoal,
   context?: string,
 ): Promise<{ available: boolean; data: unknown; message?: string }> {
-  const resp = await fetch("/api/life-path-mentor", {
+  const resp = await apiFetch("/api/life-path-mentor", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

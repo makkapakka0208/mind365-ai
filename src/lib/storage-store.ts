@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { AUTH_CHANGE_EVENT } from "@/lib/auth";
 import {
   getDailyLogs,
   getNotes,
@@ -49,6 +50,19 @@ let notesSnapshot: Note[] = EMPTY_NOTES;
 let reviewReportsSnapshot: ReviewReport[] = EMPTY_REVIEW_REPORTS;
 let timeEntriesSnapshot: TimeEntry[] = EMPTY_TIME_ENTRIES;
 let todosSnapshot: TodoItem[] = EMPTY_TODOS;
+
+// 登录/登出后重新拉一次全量同步：初始同步可能发生在会话恢复之前，
+// 没有这一步的话登录后要等下次手动刷新才能看到云端数据。
+if (typeof window !== "undefined") {
+  window.addEventListener(AUTH_CHANGE_EVENT, () => {
+    void refreshDailyLogs({ force: true });
+    void refreshQuotes();
+    void refreshNotes();
+    void refreshReviewReports();
+    void refreshTimeEntries();
+    void refreshTodos();
+  });
+}
 
 function subscribe(callback: StoreCallback) {
   if (typeof window === "undefined") return () => undefined;

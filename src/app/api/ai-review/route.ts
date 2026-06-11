@@ -1,5 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 
+import { guardApiRequest } from "@/lib/server/api-guard";
+
 export const runtime = "nodejs";
 
 type ReviewPeriod = "week" | "month" | "year";
@@ -349,11 +351,64 @@ function readErrorMessage(value: unknown): string {
   return "AI 复盘生成失败。";
 }
 
+/**
+ * 把上游 OpenAI 兼容的 SSE 流转成纯文本增量流。
+ * 客户端按 text/plain 读取，每个 chunk 就是新增的正文片段。
+ */
+function sseToTextStream(upstream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  const extractDelta = (data: string): string => {
+    try {
+      const parsed = JSON.parse(data) as unknown;
+      if (!isRecord(parsed) || !Array.isArray(parsed.choices)) return "";
+      const choice = parsed.choices[0];
+      if (!isRecord(choice) || !isRecord(choice.delta)) return "";
+      return typeof choice.delta.content === "string" ? choice.delta.content : "";
+    } catch {
+      return "";
+    }
+  };
+
+  return new ReadableStream({
+    async start(controller) {
+      const reader = upstream.getReader();
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const data = trimmed.slice(5).trim();
+            if (data === "[DONE]") continue;
+            const delta = extractDelta(data);
+            if (delta) controller.enqueue(encoder.encode(delta));
+          }
+        }
+      } catch {
+        // 上游中断：把已有内容交给客户端，不抛错
+      } finally {
+        controller.close();
+        reader.releaseLock();
+      }
+    },
+  });
+}
+
 /* ─────────────────────────────────────────────
    API Handler
    ───────────────────────────────────────────── */
 
 export async function POST(request: NextRequest) {
+  const guardError = await guardApiRequest(request);
+  if (guardError) return guardError;
+
   let rawBody: unknown;
 
   try {
@@ -426,6 +481,7 @@ export async function POST(request: NextRequest) {
               { role: "user", content: userPrompt },
             ],
             temperature: 0.6,
+            stream: true,
           }),
         })
       : fetch("https://api.siliconflow.cn/v1/chat/completions", {
@@ -441,15 +497,31 @@ export async function POST(request: NextRequest) {
               { role: "user", content: userPrompt },
             ],
             temperature: 0.6,
+            stream: true,
           }),
         }));
 
-    const json = (await response.json()) as unknown;
-
     if (!response.ok) {
+      // 出错时上游返回的是 JSON，照旧解析并透传错误信息
+      const json = (await response.json().catch(() => null)) as unknown;
       return NextResponse.json({ message: readErrorMessage(json) }, { status: response.status });
     }
 
+    const contentType = response.headers.get("content-type") ?? "";
+    if (response.body && contentType.includes("text/event-stream")) {
+      // 流式：把 SSE 转成纯文本增量流（客户端边收边渲染）
+      return new NextResponse(sseToTextStream(response.body), {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    }
+
+    // 上游没有按流返回（个别兼容网关）：退回一次性 JSON
+    const json = (await response.json()) as unknown;
     const reflection = extractResponseText(json);
 
     if (!reflection) {

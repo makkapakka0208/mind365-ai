@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-/* v5 fonts (Fraunces / Inter) are loaded via <link> tags in app/layout.tsx
-   because Tailwind v4 forbids @import after its directive. */
+/* v5 fonts (Fraunces Variable / Inter) are self-hosted via @fontsource
+   imports in app/layout.tsx — no external font CDN. */
 
 :root {
   /* ── v5 商业化升级 tokens (additive — m-* still in use elsewhere) ── */
@@ -41,7 +41,7 @@
   --v5-dur:         320ms;
   --v5-dur-slow:    560ms;
 
-  --v5-serif:  "Fraunces", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --v5-serif:  "Fraunces Variable", "Fraunces", "Noto Serif SC", "Songti SC", Georgia, serif;
   --v5-sans:   "Inter", -apple-system, "Helvetica Neue", sans-serif;
   --v5-mono:   "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
@@ -58,6 +58,20 @@
     inset -2px -2px 5px rgba(255, 250, 240, 0.9);
   --m-success: #5a8a3c;
   --m-danger: #b04040;
+  /* 大面积纸张渐变的两端 + 强调色上的文字色（暗色主题会重定义） */
+  --m-paper-hi: rgba(255, 252, 246, 0.98);
+  --m-paper-lo: rgba(247, 238, 223, 0.96);
+  --m-on-accent: #ffffff;
+  --v5-nav-active-bg: rgba(244, 228, 200, 0.45);
+  --v5-nav-active-shadow: inset 2.5px 2.5px 5px rgba(75, 51, 27, 0.11), inset -2px -2px 4px rgba(255, 255, 255, 0.85);
+  --v5-nav-hover-bg: rgba(75, 51, 27, 0.04);
+  /* Liquid Glass（液态玻璃）：悬浮控件层的毛玻璃材质 */
+  --glass-bg: rgba(255, 250, 240, 0.58);
+  --glass-bg-strong: rgba(255, 250, 240, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-edge: rgba(75, 51, 27, 0.10);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 18px 40px rgba(122, 88, 50, 0.18);
 
   /* Mobile design type faces (per tokens/colors_and_type.css):
      display = Playfair Display numerals, serif = Noto Serif body. */
@@ -115,11 +129,14 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: 10px 10px;
-  border: 1px solid rgba(139, 94, 60, 0.12);
+  border: 1px solid var(--glass-edge);
   border-radius: 30px;
-  background: rgba(252, 244, 232, 0.94);
-  box-shadow: 0 18px 40px rgba(180, 150, 110, 0.26);
-  backdrop-filter: blur(14px);
+  background: var(--glass-bg-strong);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+  -webkit-backdrop-filter: blur(26px) saturate(170%);
+  backdrop-filter: blur(26px) saturate(170%);
   font-family: inherit;
 }
 
@@ -509,3 +526,156 @@ button {
   }
 }
 
+
+/* ── 夜间模式 ──────────────────────────────────────────────────────
+   通过 html[data-theme="dark"] 生效（src/lib/theme.ts 控制）。
+   原则：保持"温暖纸张"的质感，只是把纸换成深色牛皮纸。 */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --v5-bg:           #16100b;
+  --v5-bg-warm:      #1b140e;
+  --v5-card:         #221912;
+  --v5-card-soft:    #281e15;
+  --v5-rule:         rgba(235, 210, 180, 0.10);
+  --v5-rule-strong:  rgba(235, 210, 180, 0.18);
+
+  --v5-ink:          #f0e4d4;
+  --v5-ink2:         #c9ae8e;
+  --v5-ink3:         #a3865f;
+  --v5-ink-mute:     #6f5b41;
+
+  --v5-accent:       #c89a6e;
+  --v5-accent-soft:  #a87b52;
+  --v5-accent-bg:    rgba(200, 154, 110, 0.10);
+  --v5-rose:         #cf9d8a;
+  --v5-amber:        #d9a254;
+
+  --v5-sh-1:     0 1px 2px rgba(0,0,0,0.35), 0 0 0 1px rgba(235,210,180,0.05);
+  --v5-sh-2:     0 1px 3px rgba(0,0,0,0.40), 0 4px 12px rgba(0,0,0,0.30), 0 0 0 1px rgba(235,210,180,0.05);
+  --v5-sh-3:     0 1px 3px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.38), 0 0 0 1px rgba(235,210,180,0.05);
+  --v5-sh-hover: 0 2px 4px rgba(0,0,0,0.40), 0 16px 36px rgba(0,0,0,0.50), 0 0 0 1px rgba(200,154,110,0.14);
+
+  --m-base:       #18120c;
+  --m-base-light: #251c12;
+  --m-ink:  #efe3d2;
+  --m-ink2: #c3a785;
+  --m-ink3: #9a7c5b;
+  --m-accent: #c89a6e;
+  --m-rule: #3b2e20;
+  --m-shadow-out: 4px 4px 12px rgba(0, 0, 0, 0.45),
+    -2px -2px 6px rgba(255, 235, 200, 0.045);
+  --m-shadow-in: inset 2px 2px 6px rgba(0, 0, 0, 0.5),
+    inset -2px -2px 5px rgba(255, 235, 200, 0.05);
+  --m-success: #8fbf6f;
+  --m-danger: #d97f6d;
+  --m-paper-hi: rgba(44, 34, 22, 0.98);
+  --m-paper-lo: rgba(34, 26, 17, 0.96);
+  --m-on-accent: #1b140e;
+  --v5-nav-active-bg: rgba(200, 154, 110, 0.14);
+  --v5-nav-active-shadow: inset 2.5px 2.5px 5px rgba(0, 0, 0, 0.35), inset -2px -2px 4px rgba(255, 235, 200, 0.05);
+  --v5-nav-hover-bg: rgba(235, 210, 180, 0.05);
+  --glass-bg: rgba(38, 29, 19, 0.52);
+  --glass-bg-strong: rgba(34, 26, 17, 0.75);
+  --glass-border: rgba(255, 240, 215, 0.14);
+  --glass-edge: rgba(255, 240, 215, 0.08);
+  --glass-highlight: rgba(255, 245, 225, 0.10);
+  --glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top, rgba(46, 35, 23, 0.85), transparent 38%),
+    linear-gradient(180deg, #1c150e 0%, var(--m-base) 42%, #120d08 100%);
+}
+
+html[data-theme="dark"] ::selection {
+  background: rgba(200, 154, 110, 0.35);
+}
+
+html[data-theme="dark"] .m-tab-bar a.active .m-tab-icon {
+  color: #1b140e;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme="dark"] .v5-page-bg {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(48, 36, 23, 0.9) 0%, transparent 50%),
+    radial-gradient(circle at 80% 30%, rgba(64, 47, 29, 0.45) 0%, transparent 60%),
+    linear-gradient(180deg, var(--v5-bg) 0%, var(--v5-bg-warm) 100%);
+}
+
+html[data-theme="dark"] .daily-log-hero,
+html[data-theme="dark"] .daily-log-paper,
+html[data-theme="dark"] .daily-log-side-card {
+  background:
+    linear-gradient(180deg, rgba(46, 36, 24, 0.65), rgba(38, 29, 19, 0.30)),
+    var(--v5-card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 34px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="dark"] .daily-log-hero {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(96, 70, 32, 0.35), transparent 42%),
+    linear-gradient(135deg, #251c12 0%, #2b2113 100%);
+}
+
+html[data-theme="dark"] .daily-log-textarea {
+  border-color: rgba(235, 210, 180, 0.10);
+  background:
+    linear-gradient(180deg, rgba(40, 31, 20, 0.94), rgba(33, 25, 16, 0.86)),
+    repeating-linear-gradient(180deg, transparent, transparent 43px, rgba(235, 210, 180, 0.06) 44px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] .daily-log-textarea::placeholder {
+  color: rgba(195, 167, 133, 0.42);
+}
+
+html[data-theme="dark"] .daily-log-soft-panel {
+  border-color: rgba(235, 210, 180, 0.08);
+  background: rgba(41, 32, 21, 0.62);
+}
+
+html[data-theme="dark"] .daily-log-calendar {
+  background: rgba(37, 28, 18, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(235, 210, 180, 0.07), 0 14px 28px rgba(0, 0, 0, 0.40);
+}
+
+html[data-theme="dark"] .daily-log-calendar-arrow {
+  border-color: rgba(235, 210, 180, 0.12);
+}
+
+html[data-theme="dark"] .daily-log-calendar-arrow:hover {
+  background: rgba(200, 154, 110, 0.12);
+}
+
+/* ── Liquid Glass 材质（参考 Apple：模糊 + 饱和提升 + 边缘高光）──
+   只用于悬浮的 chrome 层（导航、浮层、分段控件），内容保持纸张质感。 */
+.liquid-glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 0 0 0.5px var(--glass-border),
+    var(--glass-shadow);
+}
+
+.liquid-glass-strong {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+}
+
+/* 不支持 backdrop-filter 时退化为更实的底色 */
+@supports not (backdrop-filter: blur(1px)) {
+  .liquid-glass, .liquid-glass-strong {
+    background: var(--glass-bg-strong);
+  }
+}

@@ -67,7 +67,7 @@ export default function LoginPage() {
       <div
         className="flex min-h-screen items-center justify-center"
         style={{
-          background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
+          background: "linear-gradient(160deg, var(--m-paper-hi), var(--m-paper-lo))",
           color: "var(--m-ink)",
         }}
       >
@@ -86,7 +86,7 @@ export default function LoginPage() {
     <div
       className="flex min-h-screen items-center justify-center px-4"
       style={{
-        background: "linear-gradient(160deg, #FDFAF3 0%, #F8F1E4 50%, #F3EAD8 100%)",
+        background: "linear-gradient(160deg, var(--m-paper-hi), var(--m-paper-lo))",
         color: "var(--m-ink)",
         fontFamily: "'Noto Serif SC', serif",
       }}

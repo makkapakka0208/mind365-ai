@@ -20,12 +20,12 @@ const variants: Record<ButtonVariant, string> = {
 const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
   primary: {
     background: "var(--m-accent)",
-    color: "#fffaf3",
+    color: "var(--m-on-accent)",
     boxShadow: "var(--m-shadow-out)",
   },
   secondary: {
-    background: "#7e6046",
-    color: "#fffaf3",
+    background: "var(--v5-accent-soft, #7e6046)",
+    color: "var(--m-on-accent)",
     boxShadow: "var(--m-shadow-out)",
   },
   ghost: {
@@ -36,7 +36,7 @@ const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
   },
   accent: {
     background: "var(--m-success)",
-    color: "#fff",
+    color: "var(--m-on-accent)",
     boxShadow: "var(--m-shadow-out)",
   },
 };

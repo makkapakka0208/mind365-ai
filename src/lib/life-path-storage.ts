@@ -30,7 +30,8 @@
  * localStorage so a fresh device boots up with the cloud copy.
  */
 
-import { createMind365SupabaseClient, getSupabaseConfig, normalizeMind365Settings } from "@/lib/supabase";
+import { getCachedAuthUserId } from "@/lib/auth";
+import { createMind365SupabaseClient, getActiveSyncConfig, normalizeMind365Settings } from "@/lib/supabase";
 import type { Mind365Settings } from "@/types";
 import type { LifeDirection, MentorPlan, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
 
@@ -117,7 +118,7 @@ function getSettingsSafe(): Mind365Settings {
 async function pushRemote(kind: Kind, payload: unknown): Promise<void> {
   if (typeof window === "undefined") return;
   const settings = getSettingsSafe();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getCachedAuthUserId());
   const client = createMind365SupabaseClient(settings);
   if (!config || !client) return;
   const updatedAt = new Date().toISOString();
@@ -158,7 +159,7 @@ interface RemoteRow {
 export async function refreshLifePathState(): Promise<void> {
   if (typeof window === "undefined") return;
   const settings = getSettingsSafe();
-  const config = getSupabaseConfig(settings);
+  const config = getActiveSyncConfig(settings, getCachedAuthUserId());
   const client = createMind365SupabaseClient(settings);
   if (!config || !client) return;
 

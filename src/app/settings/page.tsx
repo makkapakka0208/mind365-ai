@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, HardDrive, LogIn, LogOut, Pencil, Settings2, Shield, Smartphone, Target, Upload } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, HardDrive, LogIn, LogOut, MonitorSmartphone, Moon, Pencil, Settings2, Shield, Smartphone, Sun, Target, Upload } from "lucide-react";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -20,6 +20,7 @@ import {
 import type { CloudSyncStatus } from "@/lib/storage";
 import { useDailyLogsStore, useNotesStore, useQuotesStore } from "@/lib/storage-store";
 import { toggleTabMode, useTabMode } from "@/lib/tab-mode";
+import { getThemePreference, setThemePreference, type ThemePreference } from "@/lib/theme";
 
 const SERIF = '"Noto Serif SC", "Songti SC", serif';
 
@@ -54,6 +55,9 @@ export default function SettingsPage() {
   const [studyTarget, setStudyTarget] = useState(10);
   const [readingTarget, setReadingTarget] = useState(7);
   const [targetSaved, setTargetSaved] = useState(false);
+  // 挂载后读取，避免与 SSR 输出不一致
+  const [themePref, setThemePref] = useState<ThemePreference>("system");
+  useEffect(() => { setThemePref(getThemePreference()); }, []);
 
   useEffect(() => {
     const settings = getSettings();
@@ -266,6 +270,54 @@ export default function SettingsPage() {
         <Settings2 size={16} style={{ color: "var(--m-ink3)" }} />
         <h3 className="text-sm font-semibold tracking-[0.04em]" style={{ color: "var(--m-ink2)" }}>系统设置</h3>
       </div>
+
+      {/* ── 外观主题 ── */}
+      <StaggerItem index={0}>
+        <Panel className="p-6 sm:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 text-lg font-semibold" style={{ color: "var(--m-ink)" }}>
+                <Moon size={20} />
+                外观
+              </h3>
+              <p className="mt-1 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
+                夜间模式会把纸张调成温暖的深色，适合睡前书写。
+              </p>
+            </div>
+            <div
+              className="flex shrink-0 rounded-xl p-1"
+              style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
+            >
+              {([
+                { value: "light", label: "浅色", Icon: Sun },
+                { value: "dark", label: "深色", Icon: Moon },
+                { value: "system", label: "跟随系统", Icon: MonitorSmartphone },
+              ] as const).map(({ value, label, Icon }) => {
+                const active = themePref === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all"
+                    style={{
+                      background: active ? "var(--m-base-light)" : "transparent",
+                      color: active ? "var(--m-accent)" : "var(--m-ink3)",
+                      boxShadow: active ? "var(--m-shadow-out)" : "none",
+                    }}
+                    onClick={() => {
+                      setThemePreference(value);
+                      setThemePref(value);
+                    }}
+                  >
+                    <Icon size={13} />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Panel>
+      </StaggerItem>
 
       {/* ── 数据存储说明 ── */}
       <StaggerItem index={0}>

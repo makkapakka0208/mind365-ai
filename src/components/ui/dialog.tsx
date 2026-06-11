@@ -26,16 +26,12 @@ export function Dialog({ open, onClose, title, children }: DialogProps) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
-      style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(2px)" }}
+      style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)" }}
     >
       <div
-        className="w-full max-w-md rounded-2xl p-6 shadow-2xl"
+        className="liquid-glass-strong w-full max-w-md rounded-2xl p-6"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--m-base-light)",
-          border: "1px solid var(--m-rule)",
-          boxShadow: "var(--m-shadow-out)",
-        }}
+        style={{ color: "var(--m-ink)" }}
       >
         <div className="mb-5 flex items-center justify-between">
           <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
