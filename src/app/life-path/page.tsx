@@ -17,6 +17,7 @@ import { calculateGoalProgress } from "@/lib/life-path";
 import {
   currentWeekKey,
   deleteMentorPlan,
+  enrichAndSaveGoals,
   loadGoals,
   loadMentorPlans,
   refreshLifePathState,
@@ -58,6 +59,12 @@ async function callMentor(
     }),
   });
   return resp.json() as Promise<{ available: boolean; data: unknown; message?: string }>;
+}
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+function parseTags(value: string): string[] {
+  return value.split(/[,，、\s]+/).map((s) => s.trim()).filter(Boolean);
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -1398,22 +1405,24 @@ export default function LifePathPage() {
   const [draftTarget, setDraftTarget] = useState("");
   const [draftCurrent, setDraftCurrent] = useState("");
   const [draftDeadline, setDraftDeadline] = useState("");
+  const [draftPositive, setDraftPositive] = useState("");
+  const [draftNegative, setDraftNegative] = useState("");
+  const [enriching, setEnriching] = useState(false);
 
   // ── Update progress dialog ───────────────────────────────────────────────────
   const [editGoal, setEditGoal] = useState<UserGoal | null>(null);
   const [editCurrent, setEditCurrent] = useState("");
+  const [editPositive, setEditPositive] = useState("");
+  const [editNegative, setEditNegative] = useState("");
 
   useEffect(() => {
     setGoals(loadGoals());
     setMentorPlans(loadMentorPlans());
-    // Pull cloud state on mount so a freshly logged-in device backfills.
     void refreshLifePathState().then(() => {
       setGoals(loadGoals());
       setMentorPlans(loadMentorPlans());
     });
   }, []);
-
-  const persist = (next: UserGoal[]) => { setGoals(next); saveGoals(next); };
 
   const getMentorPlan = (goalId: string): MentorPlan =>
     mentorPlans[goalId] ?? emptyMentorPlan(goalId);
@@ -1425,6 +1434,7 @@ export default function LifePathPage() {
   // ── Add goal ─────────────────────────────────────────────────────────────────
   const openAdd = () => {
     setDraftTitle(""); setDraftTarget(""); setDraftCurrent(""); setDraftDeadline("");
+    setDraftPositive(""); setDraftNegative("");
     setAddOpen(true);
   };
 
@@ -1432,33 +1442,61 @@ export default function LifePathPage() {
     e.preventDefault();
     const target = Number(draftTarget);
     if (!draftTitle.trim() || !target) return;
-    persist([
-      ...goals,
-      {
-        id: crypto.randomUUID(),
-        title: draftTitle.trim(),
-        targetValue: target,
-        currentValue: Number(draftCurrent) || 0,
-        ...(draftDeadline ? { deadline: draftDeadline } : {}),
-      },
-    ]);
+    const newGoal: UserGoal = {
+      id: crypto.randomUUID(),
+      title: draftTitle.trim(),
+      targetValue: target,
+      currentValue: Number(draftCurrent) || 0,
+      ...(draftDeadline ? { deadline: draftDeadline } : {}),
+      ...(draftPositive.trim() ? { positiveActions: parseTags(draftPositive) } : {}),
+      ...(draftNegative.trim() ? { negativeActions: parseTags(draftNegative) } : {}),
+    };
+    const next = [...goals, newGoal];
+    setGoals(next);
     setAddOpen(false);
+    setEnriching(true);
+    void enrichAndSaveGoals(next).then((enriched) => {
+      setGoals(enriched);
+      setEnriching(false);
+    }).catch(() => { saveGoals(next); setEnriching(false); });
   };
 
   // ── Edit goal ─────────────────────────────────────────────────────────────────
-  const openEdit = (goal: UserGoal) => { setEditGoal(goal); setEditCurrent(String(goal.currentValue)); };
+  const openEdit = (goal: UserGoal) => {
+    setEditGoal(goal);
+    setEditCurrent(String(goal.currentValue));
+    setEditPositive((goal.positiveActions ?? []).join(", "));
+    setEditNegative((goal.negativeActions ?? []).join(", "));
+  };
 
   const submitEdit = (e: FormEvent) => {
     e.preventDefault();
     if (!editGoal) return;
-    persist(goals.map((g) => g.id === editGoal.id ? { ...g, currentValue: Math.max(0, Number(editCurrent) || 0) } : g));
+    const updated: UserGoal = {
+      ...editGoal,
+      currentValue: Math.max(0, Number(editCurrent) || 0),
+      positiveActions: editPositive.trim() ? parseTags(editPositive) : [],
+      negativeActions: editNegative.trim() ? parseTags(editNegative) : [],
+      // Clear AI enrichment so it re-runs with the new keywords
+      aiPositivePatterns: undefined,
+      aiNegativePatterns: undefined,
+      aiEnrichedAt: undefined,
+    };
+    const next = goals.map((g) => g.id === editGoal.id ? updated : g);
+    setGoals(next);
     setEditGoal(null);
+    setEnriching(true);
+    void enrichAndSaveGoals(next).then((enriched) => {
+      setGoals(enriched);
+      setEnriching(false);
+    }).catch(() => { saveGoals(next); setEnriching(false); });
   };
 
   // ── Delete goal ───────────────────────────────────────────────────────────────
   const deleteGoal = (id: string) => {
     if (!window.confirm("确认删除该目标？")) return;
-    persist(goals.filter((g) => g.id !== id));
+    const next = goals.filter((g) => g.id !== id);
+    setGoals(next); saveGoals(next);
     deleteMentorPlan(id);
     setMentorPlans((prev) => { const n = { ...prev }; delete n[id]; return n; });
   };
@@ -1516,6 +1554,13 @@ export default function LifePathPage() {
           <V5LifePathHeader />
 
           <V5HeroStat completed={completedCount} onAdd={openAdd} total={goals.length} />
+
+          {enriching && (
+            <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--v5-accent)" }}>
+              <Loader2 className="animate-spin" size={11} />
+              AI 正在扩展行为关键词，稍后日记对齐分会更精准…
+            </p>
+          )}
 
           {goals.length > 0 && <V5TimelineStrip goals={goals} />}
 
@@ -1692,6 +1737,34 @@ export default function LifePathPage() {
             截止日期（选填）
             <Input onChange={(e) => setDraftDeadline(e.target.value)} type="date" value={draftDeadline} />
           </label>
+          <div className="border-t pt-3" style={{ borderColor: "var(--m-rule)" }}>
+            <p className="mb-3 text-xs font-medium" style={{ color: "var(--m-ink2)" }}>
+              日记对齐行为（选填）· 填写后日记会自动计算与此目标的对齐分
+            </p>
+            <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+              推进目标的行为
+              <Input onChange={(e) => setDraftPositive(e.target.value)} placeholder="例：跑步, 健身, 早睡（逗号分隔）" value={draftPositive} />
+              {parseTags(draftPositive).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {parseTags(draftPositive).map((t) => (
+                    <span key={t} style={{ background: "rgba(74,155,111,0.10)", color: "#4a9b6f", borderRadius: 999, padding: "1px 8px", fontSize: 11 }}>{t}</span>
+                  ))}
+                </div>
+              )}
+            </label>
+            <label className="mt-3 grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+              阻碍目标的行为
+              <Input onChange={(e) => setDraftNegative(e.target.value)} placeholder="例：熬夜, 久坐, 拖延（逗号分隔）" value={draftNegative} />
+              {parseTags(draftNegative).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {parseTags(draftNegative).map((t) => (
+                    <span key={t} style={{ background: "rgba(192,57,43,0.08)", color: "#c0392b", borderRadius: 999, padding: "1px 8px", fontSize: 11 }}>{t}</span>
+                  ))}
+                </div>
+              )}
+            </label>
+            <p className="mt-2 text-xs" style={{ color: "var(--m-ink3)" }}>不填也能靠通用规则打分，AI 会自动扩展关键词变体。</p>
+          </div>
           <div className="flex justify-end gap-3 pt-1">
             <Button onClick={() => setAddOpen(false)} type="button" variant="ghost">取消</Button>
             <Button disabled={!draftTitle.trim() || !draftTarget} type="submit" variant="primary">确认添加</Button>
@@ -1699,8 +1772,8 @@ export default function LifePathPage() {
         </form>
       </Dialog>
 
-      {/* ── Update Progress Dialog ── */}
-      <Dialog onClose={() => setEditGoal(null)} open={editGoal !== null} title={editGoal ? `更新进度 — ${editGoal.title}` : "更新进度"}>
+      {/* ── Edit Goal Dialog ── */}
+      <Dialog onClose={() => setEditGoal(null)} open={editGoal !== null} title={editGoal ? `编辑目标 — ${editGoal.title}` : "编辑目标"}>
         {editGoal && (
           <form className="space-y-4" onSubmit={submitEdit}>
             <div className="rounded-xl p-3 text-sm" style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}>
@@ -1711,9 +1784,34 @@ export default function LifePathPage() {
               当前进度（绝对值）
               <Input autoFocus min="0" onChange={(e) => setEditCurrent(e.target.value)} placeholder={String(editGoal.currentValue)} type="number" value={editCurrent} />
             </label>
+            <div className="border-t pt-3" style={{ borderColor: "var(--m-rule)" }}>
+              <p className="mb-3 text-xs font-medium" style={{ color: "var(--m-ink2)" }}>日记对齐行为</p>
+              <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                推进目标的行为
+                <Input onChange={(e) => setEditPositive(e.target.value)} placeholder="例：跑步, 健身, 早睡" value={editPositive} />
+                {parseTags(editPositive).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {parseTags(editPositive).map((t) => (
+                      <span key={t} style={{ background: "rgba(74,155,111,0.10)", color: "#4a9b6f", borderRadius: 999, padding: "1px 8px", fontSize: 11 }}>{t}</span>
+                    ))}
+                  </div>
+                )}
+              </label>
+              <label className="mt-3 grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                阻碍目标的行为
+                <Input onChange={(e) => setEditNegative(e.target.value)} placeholder="例：熬夜, 久坐, 拖延" value={editNegative} />
+                {parseTags(editNegative).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {parseTags(editNegative).map((t) => (
+                      <span key={t} style={{ background: "rgba(192,57,43,0.08)", color: "#c0392b", borderRadius: 999, padding: "1px 8px", fontSize: 11 }}>{t}</span>
+                    ))}
+                  </div>
+                )}
+              </label>
+            </div>
             <div className="flex justify-end gap-3 pt-1">
               <Button onClick={() => setEditGoal(null)} type="button" variant="ghost">取消</Button>
-              <Button type="submit" variant="primary">保存进度</Button>
+              <Button type="submit" variant="primary">保存</Button>
             </div>
           </form>
         )}

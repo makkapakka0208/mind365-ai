@@ -37,10 +37,9 @@ export function shouldRunAI(
 ): boolean {
   if (options?.deepMode) return true;
   if (!content?.trim()) return false;
-  if (ruleActions.length === 0) return true;
-  // Heuristic threshold — long-form journals get an AI second pass.
-  if (content.length >= 80) return true;
-  return false;
+  // Only fall back to AI when rules found nothing AND content is substantial.
+  // Directions are pre-enriched with AI patterns so this path is rare.
+  return ruleActions.length === 0 && content.length >= 50;
 }
 
 // ── AI invocation (stub) ─────────────────────────────────────────────────────

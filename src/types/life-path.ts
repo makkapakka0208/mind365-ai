@@ -27,6 +27,28 @@ export interface UserGoal {
    * Omit when the goal has no time constraint.
    */
   deadline?: string;
+
+  /**
+   * Behaviors in daily logs that advance this goal.
+   * Used to compute the daily alignment score.
+   * e.g. ["跑步", "运动", "健身"] for a marathon goal.
+   */
+  positiveActions?: string[];
+
+  /**
+   * Behaviors in daily logs that work against this goal.
+   * e.g. ["久坐", "熬夜"] for a health goal.
+   */
+  negativeActions?: string[];
+
+  /** AI-expanded positive keyword variants (populated automatically on save). */
+  aiPositivePatterns?: string[];
+
+  /** AI-expanded negative keyword variants. */
+  aiNegativePatterns?: string[];
+
+  /** ISO datetime when AI enrichment was last run. */
+  aiEnrichedAt?: string;
 }
 
 // ── Life Direction ─────────────────────────────────────────────────────────────
@@ -53,6 +75,21 @@ export interface LifeDirection {
    * e.g. ["scrolling", "procrastinate", "binge"]
    */
   negativeActions: string[];
+
+  /**
+   * AI-generated extended keyword variants for positive behaviors.
+   * Populated once when the user saves/edits their life directions.
+   * Used alongside `positiveActions` in scoring to catch natural language variations.
+   */
+  aiPositivePatterns?: string[];
+
+  /**
+   * AI-generated extended keyword variants for negative behaviors.
+   */
+  aiNegativePatterns?: string[];
+
+  /** ISO datetime when AI enrichment was last run for this direction. */
+  aiEnrichedAt?: string;
 }
 
 // ── Daily Log (Life Path variant) ─────────────────────────────────────────────
