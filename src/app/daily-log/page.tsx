@@ -108,7 +108,7 @@ function RecentEntryButton({
       className="group w-full rounded-[18px] px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5"
       onClick={onClick}
       style={{
-        background: active ? "rgba(156, 98, 58, 0.16)" : "rgba(255, 251, 244, 0.56)",
+        background: active ? "rgba(156, 98, 58, 0.16)" : "var(--m-paper-soft)",
         border: `1px solid ${active ? "rgba(156, 98, 58, 0.28)" : "rgba(130, 89, 57, 0.10)"}`,
         boxShadow: active ? "0 14px 26px rgba(110, 72, 43, 0.10)" : "none",
       }}
@@ -330,7 +330,7 @@ function DailyLogInner() {
                         key={item.value}
                         onClick={() => setMood(item.value)}
                         style={{
-                          background: selected ? "#fff4df" : "rgba(255, 251, 244, 0.66)",
+                          background: selected ? "var(--m-paper-hi)" : "var(--m-paper-soft)",
                           borderColor: selected ? "rgba(214, 154, 84, 0.58)" : "rgba(139, 94, 60, 0.10)",
                           boxShadow: selected
                             ? "0 18px 38px rgba(196, 133, 70, 0.18)"
@@ -443,7 +443,7 @@ function DailyLogInner() {
                     type="text"
                     value={tags}
                     style={{
-                      background: "rgba(255,253,248,0.72)",
+                      background: "var(--m-paper-soft)",
                       borderRadius: 16,
                       borderColor: "rgba(139,94,60,0.10)",
                     }}

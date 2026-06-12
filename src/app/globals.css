@@ -61,6 +61,7 @@
   /* 大面积纸张渐变的两端 + 强调色上的文字色（暗色主题会重定义） */
   --m-paper-hi: rgba(255, 252, 246, 0.98);
   --m-paper-lo: rgba(247, 238, 223, 0.96);
+  --m-paper-soft: rgba(255, 251, 244, 0.62);
   --m-on-accent: #ffffff;
   --v5-nav-active-bg: rgba(244, 228, 200, 0.45);
   --v5-nav-active-shadow: inset 2.5px 2.5px 5px rgba(75, 51, 27, 0.11), inset -2px -2px 4px rgba(255, 255, 255, 0.85);
@@ -571,6 +572,7 @@ html[data-theme="dark"] {
   --m-danger: #d97f6d;
   --m-paper-hi: rgba(44, 34, 22, 0.98);
   --m-paper-lo: rgba(34, 26, 17, 0.96);
+  --m-paper-soft: rgba(46, 36, 24, 0.60);
   --m-on-accent: #1b140e;
   --v5-nav-active-bg: rgba(200, 154, 110, 0.14);
   --v5-nav-active-shadow: inset 2.5px 2.5px 5px rgba(0, 0, 0, 0.35), inset -2px -2px 4px rgba(255, 235, 200, 0.05);

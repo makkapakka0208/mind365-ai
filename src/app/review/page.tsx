@@ -312,7 +312,7 @@ export default function ReviewHubPage() {
         <section
           className="rounded-[32px] px-5 py-5 sm:px-7"
           style={{
-            background: "linear-gradient(180deg, rgba(253,246,235,0.98), rgba(240,230,211,0.96))",
+            background: "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo))",
             border: "1px solid var(--m-rule)",
             boxShadow: "var(--m-shadow-out)",
           }}
@@ -362,7 +362,7 @@ export default function ReviewHubPage() {
                   mode === item.key
                     ? {
                         background: "var(--m-accent)",
-                        color: "#fff7ee",
+                        color: "var(--m-on-accent)",
                         boxShadow: "0 10px 20px rgba(139,94,60,0.2)",
                       }
                     : {
@@ -397,7 +397,7 @@ export default function ReviewHubPage() {
                     className="rounded-[20px] px-3 py-4 text-center"
                     key={card.label}
                     style={{
-                      background: "rgba(255,248,238,0.88)",
+                      background: "var(--m-paper-soft)",
                       border: "1px solid rgba(139,94,60,0.08)",
                       boxShadow: "var(--m-shadow-out)",
                     }}
@@ -512,7 +512,7 @@ export default function ReviewHubPage() {
                 <div
                   className="mt-4 rounded-[22px] px-4 py-5 text-[15px] leading-8"
                   style={{
-                    background: "rgba(255,248,238,0.88)",
+                    background: "var(--m-paper-soft)",
                     border: "1px solid rgba(139,94,60,0.08)",
                     color: "var(--m-ink)",
                   }}
@@ -548,7 +548,7 @@ export default function ReviewHubPage() {
                       className="rounded-[20px] px-3 py-4 text-center"
                       key={card.label}
                       style={{
-                        background: "rgba(255,248,238,0.88)",
+                        background: "var(--m-paper-soft)",
                         border: "1px solid rgba(139,94,60,0.08)",
                         boxShadow: "var(--m-shadow-out)",
                       }}
@@ -570,7 +570,7 @@ export default function ReviewHubPage() {
                   <div
                     className="mt-4 rounded-[22px] px-4 py-4 text-[15px] leading-8"
                     style={{
-                      background: "rgba(255,248,238,0.88)",
+                      background: "var(--m-paper-soft)",
                       border: "1px solid rgba(139,94,60,0.08)",
                       color: "var(--m-ink)",
                     }}

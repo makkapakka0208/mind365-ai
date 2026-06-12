@@ -91,7 +91,7 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
               className="group relative aspect-[4/3] overflow-hidden rounded-[20px] p-1 transition duration-300 hover:-translate-y-1"
               key={i}
               style={{
-                background: "rgba(255,253,248,0.88)",
+                background: "var(--m-paper-hi)",
                 border: "1px solid rgba(139,94,60,0.10)",
                 boxShadow: "0 14px 30px rgba(122,79,43,0.10)",
               }}
@@ -125,10 +125,8 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
           onDrop={onDrop}
           style={{
             borderColor: isDragging ? "rgba(214,154,84,0.62)" : "rgba(139,94,60,0.18)",
-            background: isDragging
-              ? "rgba(255,244,226,0.78)"
-              : "linear-gradient(135deg, rgba(255,253,248,0.74), rgba(247,236,218,0.46))",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7), 0 14px 30px rgba(122,79,43,0.06)",
+            background: isDragging ? "var(--m-paper-lo)" : "var(--m-paper-soft)",
+            boxShadow: "var(--m-shadow-in)",
           }}
         >
           <span
