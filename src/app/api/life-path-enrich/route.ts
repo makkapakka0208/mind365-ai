@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { guardApiRequest } from "@/lib/server/api-guard";
+
 import type { LifeDirection } from "@/types/life-path";
 
 export const runtime = "nodejs";
@@ -50,6 +52,9 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 export async function POST(request: NextRequest) {
+  const guardError = await guardApiRequest(request);
+  if (guardError) return guardError;
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();

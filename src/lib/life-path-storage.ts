@@ -30,6 +30,7 @@
  * localStorage so a fresh device boots up with the cloud copy.
  */
 
+import { apiFetch } from "@/lib/api";
 import { getCachedAuthUserId } from "@/lib/auth";
 import { createMind365SupabaseClient, getActiveSyncConfig, normalizeMind365Settings } from "@/lib/supabase";
 import type { Mind365Settings } from "@/types";
@@ -245,7 +246,7 @@ export async function enrichAndSaveDirections(dirs: LifeDirection[]): Promise<Li
   saveDirections(dirs);
 
   try {
-    const resp = await fetch("/api/life-path-enrich", {
+    const resp = await apiFetch("/api/life-path-enrich", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ directions: dirs }),
