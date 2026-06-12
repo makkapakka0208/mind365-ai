@@ -1,6 +1,6 @@
 "use client";
 
-import { getAuthSupabaseClient, getCachedAuthUserId } from "@/lib/auth";
+import { getAuthSupabaseClient } from "@/lib/auth";
 import { getActiveSyncConfig } from "@/lib/supabase";
 import { getSettings } from "@/lib/storage";
 
@@ -34,12 +34,23 @@ function getStorageClient() {
 
 /**
  * Get user ID for the storage path. Storage RLS requires the top-level
- * folder to equal auth.uid(), so only an authenticated id is usable here
- * (manual self-hosted setups keep their settings-based id).
+ * folder to equal auth.uid(), so we read it from the **live session**
+ * right before upload（同步缓存可能尚未水合，会拿到过期/缺失的 ID，
+ * 导致路径与 auth.uid() 不一致而被 RLS 拒绝）。
  */
-function getStorageUserId(): string | null {
-  const settings = getSettings();
-  const config = getActiveSyncConfig(settings, getCachedAuthUserId());
+async function getStorageUserId(): Promise<string | null> {
+  const client = getStorageClient();
+  if (client) {
+    try {
+      const { data } = await client.auth.getSession();
+      const uid = data.session?.user?.id;
+      if (uid) return uid;
+    } catch {
+      // fall through to manual config
+    }
+  }
+  // 手动自建 Supabase（设置页显式开启）才允许用 settings 里的 ID
+  const config = getActiveSyncConfig(getSettings(), null);
   return config?.userId ?? null;
 }
 
@@ -52,22 +63,27 @@ export async function uploadImageToStorage(file: Blob, filename?: string): Promi
   const client = getStorageClient();
   if (!client) throw new Error("Supabase 未配置，无法上传图片。请检查环境变量配置。");
 
-  const userId = getStorageUserId();
-  if (!userId) throw new Error("用户 ID 未找到，无法上传图片。");
+  const userId = await getStorageUserId();
+  if (!userId) throw new Error("请先登录，再上传图片（图片需要存入你自己的云端空间）。");
 
   const ext = file.type === "image/png" ? "png" : "jpg";
   const name = filename || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const path = `${userId}/${name}`;
 
+  // 文件名含时间戳+随机串不会冲突；upsert 会触发 storage 的
+  // 先查后写流程，对 RLS 的要求更高，没必要用。
   const { error } = await client.storage
     .from(BUCKET_NAME)
     .upload(path, file, {
       contentType: file.type,
-      upsert: true,
+      upsert: false,
     });
 
   if (error) {
     console.error("[image-storage] Upload failed:", error.message);
+    if (/row-level security|violates|policy/i.test(error.message)) {
+      throw new Error("图片上传被拒绝：当前登录状态无效或已过期，请退出后重新登录再试。");
+    }
     throw new Error(`图片上传失败: ${error.message}`);
   }
 
