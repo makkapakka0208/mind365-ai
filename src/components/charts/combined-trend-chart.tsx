@@ -694,9 +694,9 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         <div
           className="flex flex-col justify-between rounded-[20px] p-5"
           style={{
-            background: "linear-gradient(145deg, rgba(255,250,240,0.95), rgba(245,235,218,0.85))",
+            background: "linear-gradient(145deg, var(--m-paper-hi), var(--m-paper-lo))",
             border: "1px solid var(--m-rule)",
-            boxShadow: "0 2px 8px rgba(139,94,60,0.04)",
+            boxShadow: "var(--m-shadow-out)",
           }}
         >
           <div>
