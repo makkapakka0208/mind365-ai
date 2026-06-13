@@ -9,21 +9,23 @@ import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/st
 
 // Tone variants — each maps to a pill background + eyebrow label + CTA color
 // so the card changes look based on getNextAction's `tone` field (warm / alert / info).
+// 色调以低饱和的方式叠在主题卡面上（color-mix），亮色/暗色都成立——
+// 不再写死亮色渐变，避免深色下整块发亮。
 const TONE_VARIANTS = {
   warm: {
-    bg: "linear-gradient(135deg, #f7e7c8 0%, #ead4ad 100%)",
+    bg: "linear-gradient(135deg, color-mix(in oklab, var(--v5-amber), var(--v5-card) 80%), var(--v5-card))",
     eyebrow: "下一步",
-    cta: "#8b5e3c",
+    cta: "var(--v5-accent)",
   },
   alert: {
-    bg: "linear-gradient(135deg, #f4d4c6 0%, #e0a892 100%)",
+    bg: "linear-gradient(135deg, color-mix(in oklab, var(--v5-rose), var(--v5-card) 78%), var(--v5-card))",
     eyebrow: "需要关注",
-    cta: "#a13a25",
+    cta: "var(--m-danger)",
   },
   info: {
-    bg: "linear-gradient(135deg, #efe6d4 0%, #d9c9a8 100%)",
+    bg: "linear-gradient(135deg, color-mix(in oklab, var(--v5-accent), var(--v5-card) 82%), var(--v5-card))",
     eyebrow: "本周节点",
-    cta: "#8b5e3c",
+    cta: "var(--v5-accent)",
   },
 } as const;
 
@@ -46,7 +48,8 @@ export function SmartActionCard() {
       href={action.ctaHref}
       style={{
         background: variant.bg,
-        color: "#211611",
+        color: "var(--v5-ink)",
+        border: "1px solid var(--v5-rule)",
         boxShadow: "var(--v5-sh-1)",
         transitionDuration: "var(--v5-dur)",
         transitionTimingFunction: "var(--v5-ease)",
@@ -66,7 +69,7 @@ export function SmartActionCard() {
           fontFamily: "var(--v5-sans)",
           fontSize: 11,
           letterSpacing: "0.04em",
-          color: "#5d4429",
+          color: "var(--v5-ink2)",
         }}
       >
         {variant.eyebrow}
@@ -77,7 +80,7 @@ export function SmartActionCard() {
           fontSize: 14.5,
           fontWeight: 500,
           lineHeight: 1.55,
-          color: "#211611",
+          color: "var(--v5-ink)",
         }}
       >
         {action.message}

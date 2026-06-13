@@ -561,8 +561,8 @@ function V5HeroStat({
             padding: "10px 20px",
             borderRadius: 999,
             border: 0,
-            background: "var(--v5-ink)",
-            color: "#fff",
+            background: "var(--v5-pill-bg)",
+            color: "var(--v5-pill-ink)",
             fontFamily: "var(--v5-sans)",
             fontSize: 13.5,
             fontWeight: 500,
@@ -572,11 +572,11 @@ function V5HeroStat({
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = "translateY(-1px)";
-            e.currentTarget.style.background = "var(--v5-accent)";
+            e.currentTarget.style.background = "var(--v5-pill-hover)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = "translateY(0)";
-            e.currentTarget.style.background = "var(--v5-ink)";
+            e.currentTarget.style.background = "var(--v5-pill-bg)";
           }}
         >
           <Plus size={14} />
@@ -1361,8 +1361,8 @@ function V5GoalDrawer({
               padding: "10px 18px",
               borderRadius: 999,
               border: 0,
-              background: "var(--v5-ink)",
-              color: "#fff",
+              background: "var(--v5-pill-bg)",
+              color: "var(--v5-pill-ink)",
               fontFamily: "var(--v5-sans)",
               fontSize: 13.5,
               fontWeight: 500,

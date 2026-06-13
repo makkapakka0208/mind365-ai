@@ -10,6 +10,9 @@
   --v5-card:         #fdf6e8;
   --v5-card-soft:    #f8efd9;
   --v5-card-grad:    #faecc8; /* 暖卡片渐变的高光端（暗色下转深暖，避免冲淡文字）*/
+  --v5-pill-bg:      #211611; /* 实心药丸按钮：亮色近黑底白字，暗色暖棕底深字 */
+  --v5-pill-ink:     #fff;
+  --v5-pill-hover:   #8b5e3c;
   --v5-rule:         rgba(75, 51, 27, 0.10);
   --v5-rule-strong:  rgba(75, 51, 27, 0.18);
 
@@ -540,6 +543,9 @@ html[data-theme="dark"] {
   --v5-card:         #221912;
   --v5-card-soft:    #281e15;
   --v5-card-grad:    #2b2012;
+  --v5-pill-bg:      #c89a6e;
+  --v5-pill-ink:     #1b140e;
+  --v5-pill-hover:   #d8ad82;
   --v5-rule:         rgba(235, 210, 180, 0.10);
   --v5-rule-strong:  rgba(235, 210, 180, 0.18);
 

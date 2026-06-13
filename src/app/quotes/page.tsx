@@ -1365,8 +1365,8 @@ function V5WeeklyInsight({
               padding: "10px 18px",
               borderRadius: 999,
               border: 0,
-              background: "var(--v5-ink)",
-              color: "#fff",
+              background: "var(--v5-pill-bg)",
+              color: "var(--v5-pill-ink)",
               fontFamily: "var(--v5-sans)",
               fontSize: 13.5,
               fontWeight: 500,
@@ -1378,11 +1378,11 @@ function V5WeeklyInsight({
             onMouseEnter={(e) => {
               if (weekByTheme.length === 0) return;
               e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.background = "var(--v5-accent)";
+              e.currentTarget.style.background = "var(--v5-pill-hover)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.background = "var(--v5-ink)";
+              e.currentTarget.style.background = "var(--v5-pill-bg)";
             }}
           >
             <Sparkles size={14} />
@@ -2163,8 +2163,8 @@ function V5TodaysPick({
               padding: "10px 18px",
               borderRadius: 999,
               border: 0,
-              background: "var(--v5-ink)",
-              color: "#fff",
+              background: "var(--v5-pill-bg)",
+              color: "var(--v5-pill-ink)",
               fontFamily: "var(--v5-sans)",
               fontSize: 13.5,
               fontWeight: 500,
@@ -2176,11 +2176,11 @@ function V5TodaysPick({
             onMouseEnter={(e) => {
               if (!quote) return;
               e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.background = "var(--v5-accent)";
+              e.currentTarget.style.background = "var(--v5-pill-hover)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.background = "var(--v5-ink)";
+              e.currentTarget.style.background = "var(--v5-pill-bg)";
             }}
           >
             <Bookmark size={14} />
@@ -2264,8 +2264,8 @@ function V5FilterBar({
           padding: "9px 18px",
           borderRadius: 999,
           border: 0,
-          background: "var(--v5-ink)",
-          color: "#fff",
+          background: "var(--v5-pill-bg)",
+          color: "var(--v5-pill-ink)",
           fontFamily: "var(--v5-sans)",
           fontSize: 13.5,
           fontWeight: 500,
@@ -2275,11 +2275,11 @@ function V5FilterBar({
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = "translateY(-1px)";
-          e.currentTarget.style.background = "var(--v5-accent)";
+          e.currentTarget.style.background = "var(--v5-pill-hover)";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = "translateY(0)";
-          e.currentTarget.style.background = "var(--v5-ink)";
+          e.currentTarget.style.background = "var(--v5-pill-bg)";
         }}
       >
         <Plus size={14} />
@@ -3011,8 +3011,8 @@ function V5AddQuoteModal({
               padding: "10px 18px",
               borderRadius: 999,
               border: 0,
-              background: "var(--v5-ink)",
-              color: "#fff",
+              background: "var(--v5-pill-bg)",
+              color: "var(--v5-pill-ink)",
               fontFamily: "var(--v5-sans)",
               fontSize: 13.5,
               fontWeight: 500,
