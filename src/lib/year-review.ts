@@ -318,7 +318,7 @@ function localFallback(
   const topWord = keywords[0]?.word ?? "";
 
   return {
-    opening: `${data.year} 年，你留下了 ${stats.entries} 条记录。AI 旁白此刻不可用，下面是数字自己说的话：${stats.totalStudyHours} 小时投入，${stats.totalWasteHours} 小时被你自己标记为消耗，净值 ${netHours > 0 ? "+" : ""}${netHours} 小时。`,
+    opening: `${data.year} 年，你留下了 ${stats.entries} 条记录。先听数字自己说话：${stats.totalStudyHours} 小时投入，${stats.totalWasteHours} 小时被你自己标记为消耗，净值 ${netHours > 0 ? "+" : ""}${netHours} 小时。剩下的，藏在那些字里行间。`,
     phases: active.length
       ? [
           ...(lowest
@@ -340,10 +340,10 @@ function localFallback(
         ]
       : [],
     keywords: keywords.slice(0, 6).map((k) => ({ ...k, meaning: "" })),
-    lifeInference: "数据不足以做出负责任的推测。配置 AI 后，这里会有一段基于全年素材的分析。",
+    lifeInference: "",
     rebuilding: stats.entries > 0
       ? `全年 ${stats.entries} 次坐下来记录，本身就是一种持续的自我修复。`
-      : "今年还没有记录。",
+      : "",
     yearKeyword: {
       word: topWord || String(data.year),
       reason: topWord ? `它在你的日记里出现了 ${keywords[0].count} 次，频率不会说谎。` : "",

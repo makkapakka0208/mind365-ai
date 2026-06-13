@@ -238,8 +238,9 @@ function getHeatTone(log: DailyLog | null) {
 
   return {
     background: "#d8c0a5",
+    // 热力格是固定色阶，文字也固定用深墨色（深色主题下 var(--m-ink) 是奶油色，会看不清）
     border: "1px solid #d8c0a5",
-    color: "var(--m-ink)",
+    color: "#2c1a0e",
   };
 }
 

@@ -17,9 +17,9 @@ function dueBadge(due: string): { label: string; color: string } | null {
   const diff = Math.round(
     (new Date(`${due}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) / 86400000,
   );
-  if (diff < 0) return { label: `逾期${-diff}天`, color: "#C0392B" };
+  if (diff < 0) return { label: `逾期${-diff}天`, color: "var(--m-danger)" };
   if (diff === 0) return { label: "今天", color: "var(--m-accent)" };
-  if (diff === 1) return { label: "明天", color: "#7e6046" };
+  if (diff === 1) return { label: "明天", color: "var(--m-ink2)" };
   const [, mm, dd] = due.split("-");
   return { label: `${Number(mm)}/${Number(dd)}`, color: "var(--m-ink3)" };
 }
@@ -44,9 +44,9 @@ export function HomeTodoCard({ className }: { className?: string }) {
       className={className}
       style={{
         borderRadius: 24,
-        background: "linear-gradient(180deg, rgba(255,250,242,0.96), rgba(240,230,211,0.85))",
-        border: "1px solid rgba(139,94,60,0.1)",
-        boxShadow: "0 8px 24px rgba(180,150,110,0.12)",
+        background: "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo))",
+        border: "1px solid var(--m-rule)",
+        boxShadow: "var(--m-shadow-out)",
         padding: 20,
       }}
     >
@@ -88,7 +88,7 @@ export function HomeTodoCard({ className }: { className?: string }) {
           disabled={!text.trim()}
           aria-label="添加待办"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-opacity disabled:opacity-40"
-          style={{ background: "var(--m-accent)", color: "#fffaf3" }}
+          style={{ background: "var(--m-accent)", color: "var(--m-on-accent)" }}
         >
           <Plus size={16} />
         </button>

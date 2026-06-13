@@ -571,7 +571,7 @@ function HomePendulumCard({ now }: { now: Date }) {
 
         {/* Pendulum clock */}
         <svg width="90" height="110" viewBox="0 0 90 110" style={{ flexShrink: 0 }} aria-hidden>
-          <circle cx="45" cy="45" r="38" fill="rgba(255,248,236,0.85)" stroke="rgba(139,94,60,0.16)" strokeWidth="1.5" />
+          <circle cx="45" cy="45" r="38" fill="var(--m-base)" stroke="rgba(139,94,60,0.16)" strokeWidth="1.5" />
           {Array.from({ length: 12 }).map((_, i) => {
             const a = ((i * 30 - 90) * Math.PI) / 180;
             const r1 = 31;
@@ -588,15 +588,18 @@ function HomePendulumCard({ now }: { now: Date }) {
           {[{ t: "XII", a: -90 }, { t: "III", a: 0 }, { t: "VI", a: 90 }, { t: "IX", a: 180 }].map(({ t, a }) => {
             const ra = (a * Math.PI) / 180;
             return (
-              <text key={t} x={45 + 19 * Math.cos(ra)} y={45 + 19 * Math.sin(ra) + 3.5} textAnchor="middle" fontFamily="serif" fontSize="6" fill="rgba(44,26,14,0.45)">{t}</text>
+              <text key={t} x={45 + 19 * Math.cos(ra)} y={45 + 19 * Math.sin(ra) + 3.5} textAnchor="middle" fontFamily="serif" fontSize="6" fill="var(--m-ink3)">{t}</text>
             );
           })}
           <line x1="45" y1="45" x2={45 + 16 * Math.cos(rad(hrAngle))} y2={45 + 16 * Math.sin(rad(hrAngle))} stroke="var(--m-ink)" strokeWidth="2.5" strokeLinecap="round" />
           <line x1="45" y1="45" x2={45 + 24 * Math.cos(rad(minAngle))} y2={45 + 24 * Math.sin(rad(minAngle))} stroke="var(--m-ink)" strokeWidth="1.5" strokeLinecap="round" />
           <circle cx="45" cy="45" r="2.5" fill="var(--m-accent)" />
-          <text x="45" y="62" textAnchor="middle" fontFamily="serif" fontSize="5.5" fill="rgba(44,26,14,0.35)">{yr} {pct}%</text>
-          <line x1="45" y1="83" x2="45" y2="100" stroke="rgba(139,94,60,0.45)" strokeWidth="1.2" />
-          <circle cx="45" cy="106" r="6" fill="var(--m-accent)" opacity="0.7" />
+          <text x="45" y="62" textAnchor="middle" fontFamily="serif" fontSize="5.5" fill="var(--m-ink3)">{yr} {pct}%</text>
+          {/* 摆锤组：绕表盘下沿 (45,83) 左右摆动，与桌面端一致 */}
+          <g style={{ transformOrigin: "45px 83px", animation: "v5-pendulum-swing 3.6s ease-in-out infinite" }}>
+            <line x1="45" y1="83" x2="45" y2="100" stroke="rgba(139,94,60,0.45)" strokeWidth="1.2" />
+            <circle cx="45" cy="106" r="6" fill="var(--m-accent)" opacity="0.7" />
+          </g>
         </svg>
       </div>
 

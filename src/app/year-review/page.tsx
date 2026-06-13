@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { GoalReviewCard } from "@/components/year-review/goal-review-card";
 import { TrendChart } from "@/components/year-review/trend-chart";
 import { PageTransition } from "@/components/ui/page-transition";
+import { ParticleField } from "@/components/ui/particle-field";
 import { useDailyLogsStore, useQuotesStore } from "@/lib/storage-store";
 import { computeYearStats, generateYearSummary, type YearReadingCard } from "@/lib/year-review";
 import { YEAR_REVIEW_MOCK, adaptFromDailyLogs } from "@/lib/year-review-mock";
@@ -109,6 +110,8 @@ function Cover({
             "radial-gradient(ellipse at 50% 0%, rgba(200,154,110,0.10), transparent 55%), radial-gradient(ellipse at 50% 120%, rgba(0,0,0,0.55), transparent 60%)",
         }}
       />
+      {/* 放映机里浮动的尘埃 */}
+      <ParticleField count={42} />
       <div className="relative">
         <div className="flex items-center gap-3">
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: "#b4584a" }} />
@@ -422,6 +425,7 @@ function EndingCredits({ ending, year, reason }: { ending: string; year: number;
         className="pointer-events-none absolute inset-0"
         style={{ background: "radial-gradient(ellipse at 50% 100%, rgba(200,154,110,0.08), transparent 55%)" }}
       />
+      <ParticleField count={30} speed={0.12} />
       <div className="relative mx-auto max-w-2xl">
         <motion.p
           initial={{ opacity: 0 }}
