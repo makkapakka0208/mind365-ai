@@ -1251,7 +1251,7 @@ function V5WeeklyInsight({
         gap: 32,
         borderRadius: 28,
         padding: "32px 36px",
-        background: "linear-gradient(135deg, var(--v5-card) 0%, #faecc8 100%)",
+        background: "linear-gradient(135deg, var(--v5-card) 0%, var(--v5-card-grad) 100%)",
         boxShadow: "var(--v5-sh-2)",
       }}
     >
@@ -2050,7 +2050,7 @@ function V5TodaysPick({
       style={{
         borderRadius: 28,
         padding: "clamp(20px, 2.6vw, 32px) clamp(24px, 3.6vw, 44px)",
-        background: "linear-gradient(135deg, var(--v5-card) 0%, #faecc8 100%)",
+        background: "linear-gradient(135deg, var(--v5-card) 0%, var(--v5-card-grad) 100%)",
         boxShadow: "var(--v5-sh-3)",
       }}
     >

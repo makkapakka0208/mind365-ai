@@ -9,6 +9,7 @@
   --v5-bg-warm:      #f4ecd9;
   --v5-card:         #fdf6e8;
   --v5-card-soft:    #f8efd9;
+  --v5-card-grad:    #faecc8; /* 暖卡片渐变的高光端（暗色下转深暖，避免冲淡文字）*/
   --v5-rule:         rgba(75, 51, 27, 0.10);
   --v5-rule-strong:  rgba(75, 51, 27, 0.18);
 
@@ -538,6 +539,7 @@ html[data-theme="dark"] {
   --v5-bg-warm:      #1b140e;
   --v5-card:         #221912;
   --v5-card-soft:    #281e15;
+  --v5-card-grad:    #2b2012;
   --v5-rule:         rgba(235, 210, 180, 0.10);
   --v5-rule-strong:  rgba(235, 210, 180, 0.18);
 

@@ -64,7 +64,7 @@ export function TimeHero({
       style={{
         borderRadius: 28,
         padding: "36px 44px",
-        background: "linear-gradient(135deg, var(--v5-card) 0%, #faecc8 100%)",
+        background: "linear-gradient(135deg, var(--v5-card) 0%, var(--v5-card-grad) 100%)",
         boxShadow: "var(--v5-sh-3)",
         display: "grid",
         gridTemplateColumns: "1.4fr 1fr",
