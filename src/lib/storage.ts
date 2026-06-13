@@ -1223,15 +1223,79 @@ export function getMind365BackupData(): Mind365BackupData {
   };
 }
 
-export function downloadMind365Backup(filename = "mind365-backup.json") {
+function triggerDownload(content: string, mime: string, filename: string) {
   if (typeof window === "undefined") return;
-  const json = JSON.stringify(getMind365BackupData(), null, 2);
-  const blob = new Blob([json], { type: "application/json" });
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url; link.download = filename;
   document.body.appendChild(link); link.click(); link.remove();
   URL.revokeObjectURL(url);
+}
+
+export function downloadMind365Backup(filename = "mind365-backup.json") {
+  triggerDownload(JSON.stringify(getMind365BackupData(), null, 2), "application/json", filename);
+}
+
+/**
+ * 把全部数据渲染成人类可读的 Markdown 并下载。
+ * 适合归档、打印、或导入到 Obsidian/Notion 等笔记工具——
+ * 注意 Markdown 是单向导出（不可再导入回 App，回灌请用 JSON）。
+ */
+export function buildMind365Markdown(): string {
+  const data = getMind365BackupData();
+  const out: string[] = [];
+  const today = new Date().toISOString().slice(0, 10);
+
+  out.push(`# Mind365 数据导出`, "", `> 导出于 ${today}`, "");
+
+  // 日记（按日期倒序，normalizeDailyLogs 已排好）
+  out.push(`## 日记 · ${data.daily_logs.length} 篇`, "");
+  for (const log of data.daily_logs) {
+    out.push(`### ${log.date}`, "");
+    const meta = [`情绪 ${log.mood}/10`];
+    if (log.studyHours) meta.push(`学习 ${log.studyHours}h`);
+    if (log.reading?.trim()) meta.push(`阅读 ${log.reading.trim()}`);
+    out.push(`*${meta.join(" · ")}*`, "");
+    if (log.thoughts?.trim()) out.push(log.thoughts.trim(), "");
+    if (log.tags.length) out.push(log.tags.map((t) => `#${t}`).join(" "), "");
+    for (const img of log.images ?? []) out.push(`![](${img})`);
+    if (log.images?.length) out.push("");
+    out.push("---", "");
+  }
+
+  // 金句
+  out.push(`## 金句 · ${data.quotes.length} 条`, "");
+  for (const q of data.quotes) {
+    out.push(`> ${q.text.trim()}`, "");
+    const src = [q.author, q.book ? `《${q.book}》` : ""].filter(Boolean).join(" · ");
+    if (src) out.push(`— ${src}`, "");
+    if (q.tags.length) out.push(q.tags.map((t) => `#${t}`).join(" "), "");
+    out.push("");
+  }
+
+  // 阅读笔记
+  out.push(`## 阅读笔记 · ${data.notes.length} 篇`, "");
+  for (const n of data.notes) {
+    out.push(`### ${n.title || "无题"}`, "");
+    if (n.content?.trim()) out.push(n.content.trim(), "");
+    if (n.tags.length) out.push(n.tags.map((t) => `#${t}`).join(" "), "");
+    out.push("");
+  }
+
+  // 复盘报告
+  out.push(`## 复盘报告 · ${data.review_reports.length} 份`, "");
+  for (const r of data.review_reports) {
+    out.push(`### ${r.title}（${r.rangeStart} ~ ${r.rangeEnd}）`, "");
+    if (r.notes?.trim()) out.push(r.notes.trim(), "");
+    out.push("");
+  }
+
+  return out.join("\n");
+}
+
+export function downloadMind365Markdown(filename = "mind365-export.md") {
+  triggerDownload(buildMind365Markdown(), "text/markdown;charset=utf-8", filename);
 }
 
 export function importMind365Backup(raw: string): BackupImportResult {

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, HardDrive, LogIn, LogOut, MonitorSmartphone, Moon, Pencil, Settings2, Shield, Smartphone, Sun, Target, Upload } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, FileText, HardDrive, LogIn, LogOut, MonitorSmartphone, Moon, Pencil, Settings2, Shield, Smartphone, Sun, Target, Upload } from "lucide-react";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { createDefaultSupabaseUserId } from "@/lib/supabase";
 import {
   downloadMind365Backup,
+  downloadMind365Markdown,
   getCloudSyncStatus,
   getSettings,
   importMind365Backup,
@@ -87,6 +88,17 @@ export default function SettingsPage() {
       setError("");
     } catch {
       setError("导出备份失败。");
+      setMessage("");
+    }
+  };
+
+  const onExportMarkdown = () => {
+    try {
+      downloadMind365Markdown();
+      setMessage("已导出为 mind365-export.md（Markdown，仅用于阅读归档，不可再导入）。");
+      setError("");
+    } catch {
+      setError("导出 Markdown 失败。");
       setMessage("");
     }
   };
@@ -280,9 +292,6 @@ export default function SettingsPage() {
                 <Moon size={20} />
                 外观
               </h3>
-              <p className="mt-1 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
-                夜间模式会把纸张调成温暖的深色，适合睡前书写。
-              </p>
             </div>
             <div
               className="flex shrink-0 rounded-xl p-1"
@@ -486,6 +495,11 @@ export default function SettingsPage() {
                 导入备份
               </Button>
             </div>
+
+            <Button className="w-full justify-center" onClick={onExportMarkdown} size="lg" type="button" variant="ghost">
+              <FileText className="mr-2" size={17} />
+              导出为 Markdown（仅阅读 / 归档）
+            </Button>
 
             <input
               accept="application/json,.json"

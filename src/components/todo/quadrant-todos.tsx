@@ -181,8 +181,8 @@ function QuadCard({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
   const Icon = meta.icon;
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-2xl"
-      style={{ background: "var(--m-base-light)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-out)", minHeight: 150 }}
+      className="flex flex-col overflow-hidden"
+      style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", borderRadius: 22, boxShadow: "var(--v5-sh-2)", minHeight: 150 }}
     >
       {/* top color bar */}
       <div style={{ height: 3, background: meta.color, opacity: 0.65 }} />
@@ -297,8 +297,8 @@ export function QuadrantTodos({ className }: { className?: string }) {
 
       {/* Add bar */}
       <div
-        className="mb-5 overflow-hidden rounded-2xl"
-        style={{ background: "var(--m-base-light)", border: "1px solid var(--m-rule)", boxShadow: "var(--m-shadow-out)" }}
+        className="mb-5 overflow-hidden"
+        style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", borderRadius: 22, boxShadow: "var(--v5-sh-2)" }}
       >
         <div className="flex items-center gap-2.5 px-4 py-3">
           <span className="h-[7px] w-[7px] shrink-0 rounded-full transition-colors" style={{ background: targetMeta.color }} />

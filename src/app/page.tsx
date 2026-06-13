@@ -1238,11 +1238,11 @@ export default function HomePage() {
                   <div style={{ fontSize: 17, fontWeight: 600, color: "var(--m-ink)" }}>
                     {todayLog ? "今天已落笔" : "今日还未记录"}
                   </div>
-                  <div className="mt-0.5" style={{ fontSize: 12.5, color: "var(--m-ink2)" }}>
-                    {todayLog
-                      ? `写于 ${formatClock(new Date(todayLog.createdAt))} · 情绪 ${todayLog.mood}/10 · ${todayLog.thoughts.trim().length} 字`
-                      : "记录一下今天的感受与想法。"}
-                  </div>
+                  {todayLog && (
+                    <div className="mt-0.5" style={{ fontSize: 12.5, color: "var(--m-ink2)" }}>
+                      {`写于 ${formatClock(new Date(todayLog.createdAt))} · 情绪 ${todayLog.mood}/10 · ${todayLog.thoughts.trim().length} 字`}
+                    </div>
+                  )}
                 </div>
                 {todayLog ? <span style={{ fontSize: 12, color: "var(--m-accent)" }}>翻阅 →</span> : null}
               </div>
