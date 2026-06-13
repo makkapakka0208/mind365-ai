@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { desktopNavItems } from "@/components/layout/nav-items";
+import { SidebarCompanion } from "@/components/layout/sidebar-companion";
 import { SmartActionCard } from "@/components/layout/smart-action-card";
 import { OnlineStatus } from "@/components/pwa/online-status";
 import { PWAInstallPrompt } from "@/components/pwa/install-prompt";
@@ -151,6 +152,9 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
 
           <div style={{ flex: 1 }} />
+
+          {/* 治愈系小猫伴侣 */}
+          <SidebarCompanion />
 
           {/* Login / register nudge when not signed in */}
           {authConfigured && !loading && !user && (
