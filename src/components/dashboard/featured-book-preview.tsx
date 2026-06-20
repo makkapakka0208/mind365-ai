@@ -718,10 +718,9 @@ export function DiaryBookModal({
   return (
     <motion.div
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 overflow-y-auto"
+      className="diary-modal-overlay fixed inset-0 z-50 overflow-y-auto"
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
-      style={{ background: "rgba(90,70,50,0.12)", backdropFilter: "blur(10px)" }}
       onClick={onClose}
       transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
     >
@@ -740,13 +739,7 @@ export function DiaryBookModal({
                 type="button"
                 aria-label="上一篇日记"
                 disabled={!canPrev}
-                className="fixed left-4 top-1/2 z-[60] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex lg:left-8"
-                style={{
-                  color: "#9B6B44",
-                  background: "rgba(251,248,243,0.92)",
-                  border: "1px solid #E8DDD2",
-                  boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
-                }}
+                className="diary-modal-nav-btn fixed left-4 top-1/2 z-[60] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex lg:left-8"
                 onClick={(e) => { e.stopPropagation(); goPrev(); }}
               >
                 <ChevronLeft size={20} />
@@ -755,13 +748,7 @@ export function DiaryBookModal({
                 type="button"
                 aria-label="下一篇日记"
                 disabled={!canNext}
-                className="fixed right-4 top-1/2 z-[60] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex lg:right-8"
-                style={{
-                  color: "#9B6B44",
-                  background: "rgba(251,248,243,0.92)",
-                  border: "1px solid #E8DDD2",
-                  boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
-                }}
+                className="diary-modal-nav-btn fixed right-4 top-1/2 z-[60] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-all hover:scale-105 disabled:pointer-events-none disabled:opacity-0 md:flex lg:right-8"
                 onClick={(e) => { e.stopPropagation(); goNext(); }}
               >
                 <ChevronRight size={20} />
@@ -772,16 +759,9 @@ export function DiaryBookModal({
           {/* The card */}
           <motion.div
             animate={{ opacity: 1, y: 0 }}
-            className="relative w-full overflow-hidden"
+            className="diary-modal-card relative w-full overflow-hidden"
             style={{
               borderRadius: 20,
-              background: "#FBF8F3",
-              border: "1px solid rgba(232,221,210,0.6)",
-              boxShadow: [
-                "0 1px 0 rgba(255,255,255,0.5) inset",
-                "0 24px 64px rgba(90,60,30,0.12)",
-                "0 8px 20px rgba(90,60,30,0.06)",
-              ].join(", "),
               userSelect: "none",
             }}
             exit={{ opacity: 0, y: 12 }}
@@ -793,8 +773,7 @@ export function DiaryBookModal({
           >
           {/* Close button */}
           <button
-            className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 hover:bg-[rgba(155,107,68,0.08)] hover:scale-105"
-            style={{ color: "#8C735D" }}
+            className="diary-modal-close-btn absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 hover:scale-105"
             type="button"
             onClick={(e) => { e.stopPropagation(); onClose(); }}
             aria-label="关闭"
@@ -809,13 +788,7 @@ export function DiaryBookModal({
                 type="button"
                 aria-label="上一篇日记"
                 disabled={!canPrev}
-                className="absolute left-3 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-all disabled:pointer-events-none disabled:opacity-0 md:hidden"
-                style={{
-                  color: "#9B6B44",
-                  background: "rgba(251,248,243,0.88)",
-                  border: "1px solid #E8DDD2",
-                  boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
-                }}
+                className="diary-modal-nav-btn absolute left-3 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-all disabled:pointer-events-none disabled:opacity-0 md:hidden"
                 onClick={(e) => { e.stopPropagation(); goPrev(); }}
               >
                 <ChevronLeft size={16} />
@@ -824,13 +797,7 @@ export function DiaryBookModal({
                 type="button"
                 aria-label="下一篇日记"
                 disabled={!canNext}
-                className="absolute right-3 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-all disabled:pointer-events-none disabled:opacity-0 md:hidden"
-                style={{
-                  color: "#9B6B44",
-                  background: "rgba(251,248,243,0.88)",
-                  border: "1px solid #E8DDD2",
-                  boxShadow: "0 2px 8px rgba(122,79,43,0.08)",
-                }}
+                className="diary-modal-nav-btn absolute right-3 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-all disabled:pointer-events-none disabled:opacity-0 md:hidden"
                 onClick={(e) => { e.stopPropagation(); goNext(); }}
               >
                 <ChevronRight size={16} />
@@ -853,11 +820,7 @@ export function DiaryBookModal({
 
                 {/* ── LEFT PANE ── */}
                 <div
-                  className="flex flex-col gap-6 p-7 md:p-8"
-                  style={{
-                    background: "linear-gradient(180deg, #F5EFE6 0%, #F0E8DC 100%)",
-                    borderRight: "1px solid rgba(232,221,210,0.5)",
-                  }}
+                  className="diary-modal-left flex flex-col gap-6 p-7 md:p-8"
                 >
                   {/* Date header */}
                   <div className="space-y-3">
@@ -866,7 +829,7 @@ export function DiaryBookModal({
                         style={{
                           fontSize: 11,
                           letterSpacing: "0.2em",
-                          color: "#8C735D",
+                          color: "var(--v5-ink3)",
                           fontFamily: "ui-sans-serif, system-ui, sans-serif",
                           textTransform: "uppercase",
                           marginBottom: 6,
@@ -878,7 +841,7 @@ export function DiaryBookModal({
                         style={{
                           fontSize: 28,
                           fontWeight: 300,
-                          color: "#3A2418",
+                          color: "var(--v5-ink)",
                           letterSpacing: "-0.01em",
                           lineHeight: 1.15,
                           fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
@@ -907,49 +870,41 @@ export function DiaryBookModal({
                   </div>
 
                   {/* Thin separator */}
-                  <div style={{ height: 1, background: "linear-gradient(90deg, rgba(155,107,68,0.12), transparent 80%)" }} />
+                  <div className="diary-modal-left-sep" style={{ height: 1 }} />
 
                   {/* Stats — elegant inline */}
                   <div className="grid grid-cols-2 gap-3">
                     <div
-                      className="flex flex-col gap-1.5 rounded-2xl px-4 py-3.5"
-                      style={{
-                        background: "rgba(251,248,243,0.7)",
-                        border: "1px solid rgba(232,221,210,0.4)",
-                      }}
+                      className="diary-modal-stat-card flex flex-col gap-1.5 rounded-2xl px-4 py-3.5"
                     >
-                      <BookOpen size={14} style={{ color: "#8C735D" }} />
+                      <BookOpen size={14} style={{ color: "var(--v5-ink3)" }} />
                       <div style={{
                         fontSize: 20,
                         fontWeight: 300,
-                        color: "#3A2418",
+                        color: "var(--v5-ink)",
                         lineHeight: 1.2,
                         marginTop: 2,
                         fontFamily: '"Noto Serif SC", "Songti SC", serif',
                       }}>
                         {readingHoursLabel}
                       </div>
-                      <div style={{ fontSize: 10, color: "#8C735D", letterSpacing: "0.06em" }}>阅读时长</div>
+                      <div style={{ fontSize: 10, color: "var(--v5-ink3)", letterSpacing: "0.06em" }}>阅读时长</div>
                     </div>
                     <div
-                      className="flex flex-col gap-1.5 rounded-2xl px-4 py-3.5"
-                      style={{
-                        background: "rgba(251,248,243,0.7)",
-                        border: "1px solid rgba(232,221,210,0.4)",
-                      }}
+                      className="diary-modal-stat-card flex flex-col gap-1.5 rounded-2xl px-4 py-3.5"
                     >
-                      <GraduationCap size={14} style={{ color: "#8C735D" }} />
+                      <GraduationCap size={14} style={{ color: "var(--v5-ink3)" }} />
                       <div style={{
                         fontSize: 20,
                         fontWeight: 300,
-                        color: "#3A2418",
+                        color: "var(--v5-ink)",
                         lineHeight: 1.2,
                         marginTop: 2,
                         fontFamily: '"Noto Serif SC", "Songti SC", serif',
                       }}>
                         {studyLabel}
                       </div>
-                      <div style={{ fontSize: 10, color: "#8C735D", letterSpacing: "0.06em" }}>学习时长</div>
+                      <div style={{ fontSize: 10, color: "var(--v5-ink3)", letterSpacing: "0.06em" }}>学习时长</div>
                     </div>
                   </div>
 
@@ -957,13 +912,10 @@ export function DiaryBookModal({
                   {userImage && (
                     <button
                       type="button"
-                      className="group/img relative overflow-hidden rounded-2xl text-left transition-transform duration-300 hover:-translate-y-0.5"
+                      className="diary-modal-image-card group/img relative overflow-hidden rounded-2xl text-left transition-transform duration-300 hover:-translate-y-0.5"
                       style={{
                         aspectRatio: "4/3",
-                        background: "#FBF8F3",
                         padding: 5,
-                        border: "1px solid rgba(232,221,210,0.5)",
-                        boxShadow: "0 4px 16px rgba(122,79,43,0.08), 0 1px 3px rgba(122,79,43,0.04)",
                       }}
                       onClick={() => setLightboxOpen(0)}
                     >
@@ -985,13 +937,8 @@ export function DiaryBookModal({
                       {/* Multi-image badge */}
                       {allImages.length > 1 && (
                         <div
-                          className="absolute bottom-3 right-3 rounded-full px-2.5 py-1 text-[10px] font-medium"
-                          style={{
-                            background: "rgba(251,248,243,0.85)",
-                            color: "#8C735D",
-                            backdropFilter: "blur(4px)",
-                            border: "1px solid rgba(232,221,210,0.5)",
-                          }}
+                          className="diary-modal-image-badge absolute bottom-3 right-3 rounded-full px-2.5 py-1 text-[10px] font-medium"
+                          style={{ backdropFilter: "blur(4px)" }}
                         >
                           1/{allImages.length}
                         </div>
@@ -1005,13 +952,8 @@ export function DiaryBookModal({
                       {entry.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full px-3 py-1 text-[11px]"
-                          style={{
-                            background: "rgba(155,107,68,0.06)",
-                            color: "#8C735D",
-                            border: "1px solid rgba(155,107,68,0.08)",
-                            letterSpacing: "0.02em",
-                          }}
+                          className="diary-modal-tag rounded-full px-3 py-1 text-[11px]"
+                          style={{ letterSpacing: "0.02em" }}
                         >
                           #{tag}
                         </span>
@@ -1053,8 +995,8 @@ export function DiaryBookModal({
                     {onDelete && !confirmDelete && (
                       <button
                         type="button"
-                        className="inline-flex items-center justify-center rounded-full transition-all duration-200 hover:bg-[rgba(176,117,106,0.08)]"
-                        style={{ color: "#B0917A", width: 36, height: 36, border: "1px solid rgba(176,145,122,0.2)" }}
+                        className="diary-modal-delete-btn inline-flex items-center justify-center rounded-full transition-all duration-200 hover:bg-[rgba(176,117,106,0.08)]"
+                        style={{ width: 36, height: 36 }}
                         onClick={() => setConfirmDelete(true)}
                       >
                         <Trash2 size={14} />
@@ -1074,7 +1016,7 @@ export function DiaryBookModal({
                         <button
                           type="button"
                           className="rounded-full px-3 py-2 text-[11px] font-medium transition-colors hover:bg-[rgba(155,107,68,0.06)]"
-                          style={{ color: "#8C735D" }}
+                          style={{ color: "var(--v5-ink3)" }}
                           onClick={() => setConfirmDelete(false)}
                         >
                           取消
@@ -1085,7 +1027,7 @@ export function DiaryBookModal({
                 </div>
 
                 {/* ── RIGHT PANE ── */}
-                <div className="flex min-h-0 flex-col" style={{ background: "#FBF8F3" }}>
+                <div className="diary-modal-right flex min-h-0 flex-col">
                   {/* Header */}
                   <div className="flex shrink-0 items-center justify-between px-8 pb-5 pt-7">
                     <div>
@@ -1093,7 +1035,7 @@ export function DiaryBookModal({
                         style={{
                           fontSize: 10,
                           letterSpacing: "0.22em",
-                          color: "#8C735D",
+                          color: "var(--v5-ink3)",
                           textTransform: "uppercase",
                           fontFamily: "ui-sans-serif, system-ui, sans-serif",
                           marginBottom: 4,
@@ -1105,7 +1047,7 @@ export function DiaryBookModal({
                         style={{
                           fontSize: 18,
                           fontWeight: 400,
-                          color: "#3A2418",
+                          color: "var(--v5-ink)",
                           fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
                           letterSpacing: "0.06em",
                         }}
@@ -1116,11 +1058,9 @@ export function DiaryBookModal({
                     {/* Counter */}
                     {entries.length > 1 && (
                       <span
-                        className="rounded-full px-3 py-1"
+                        className="diary-modal-counter rounded-full px-3 py-1"
                         style={{
                           fontSize: 11,
-                          color: "#8C735D",
-                          background: "rgba(155,107,68,0.06)",
                           fontFamily: "ui-sans-serif, system-ui, sans-serif",
                           letterSpacing: "0.04em",
                         }}
@@ -1131,14 +1071,12 @@ export function DiaryBookModal({
                   </div>
 
                   {/* Separator */}
-                  <div className="mx-8" style={{ height: 1, background: "linear-gradient(90deg, #E8DDD2, transparent 70%)" }} />
+                  <div className="diary-modal-right-sep mx-8" style={{ height: 1 }} />
 
                   {/* Scrollable content */}
                   <div
-                    className="flex-1 overflow-y-auto px-8 py-7"
+                    className="diary-modal-content flex-1 overflow-y-auto px-8 py-7"
                     style={{
-                      backgroundImage:
-                        "repeating-linear-gradient(180deg,transparent,transparent 38px,rgba(155,107,68,0.04) 38px,rgba(155,107,68,0.04) 39px)",
                       backgroundPositionY: "38px",
                       minHeight: 0,
                     }}
@@ -1149,7 +1087,7 @@ export function DiaryBookModal({
                         style={{
                           fontSize: 17,
                           lineHeight: "2.24",
-                          color: "#3A2418",
+                          color: "var(--v5-ink)",
                           fontFamily: '"Noto Serif SC", "Ma Shan Zheng", "STKaiti", "KaiTi", serif',
                           whiteSpace: "pre-wrap",
                           letterSpacing: "0.04em",
@@ -1160,7 +1098,7 @@ export function DiaryBookModal({
                     ) : (
                       <p style={{
                         fontSize: 15,
-                        color: "rgba(140,115,93,0.5)",
+                        color: "var(--v5-ink-mute)",
                         fontFamily: '"Noto Serif SC", "Ma Shan Zheng", serif',
                         lineHeight: 2.2,
                         fontStyle: "italic",
@@ -1172,14 +1110,14 @@ export function DiaryBookModal({
                     {/* 阅读书单 */}
                     {hasReadingList && (
                       <div className="mt-8">
-                        <div style={{ height: 1, background: "linear-gradient(90deg, rgba(155,107,68,0.1), transparent 60%)", marginBottom: 20 }} />
+                        <div className="diary-modal-section-sep" style={{ height: 1, marginBottom: 20 }} />
                         <p
                           className="mb-4 flex items-center gap-2"
                           style={{
                             fontSize: 10,
                             fontWeight: 500,
                             letterSpacing: "0.2em",
-                            color: "#8C735D",
+                            color: "var(--v5-ink3)",
                             textTransform: "uppercase",
                             fontFamily: "ui-sans-serif, system-ui, sans-serif",
                           }}
@@ -1190,10 +1128,10 @@ export function DiaryBookModal({
                         <ul className="space-y-2.5">
                           {legacyReading && (
                             <li className="flex items-start gap-3">
-                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#9B6B44", marginTop: 10, flexShrink: 0, opacity: 0.5 }} />
+                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--v5-accent)", marginTop: 10, flexShrink: 0, opacity: 0.5 }} />
                               <span style={{
                                 fontSize: 14,
-                                color: "rgba(58,36,24,0.78)",
+                                color: "var(--v5-ink2)",
                                 fontFamily: '"Noto Serif SC", "Ma Shan Zheng", serif',
                                 lineHeight: 1.9,
                               }}>
@@ -1203,10 +1141,10 @@ export function DiaryBookModal({
                           )}
                           {readingNotes.map((note, i) => (
                             <li key={i} className="flex items-start gap-3">
-                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#9B6B44", marginTop: 10, flexShrink: 0, opacity: 0.5 }} />
+                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--v5-accent)", marginTop: 10, flexShrink: 0, opacity: 0.5 }} />
                               <span style={{
                                 fontSize: 14,
-                                color: "rgba(58,36,24,0.78)",
+                                color: "var(--v5-ink2)",
                                 fontFamily: '"Noto Serif SC", "Ma Shan Zheng", serif',
                                 lineHeight: 1.9,
                               }}>
@@ -1221,14 +1159,14 @@ export function DiaryBookModal({
                     {/* 学习笔记 */}
                     {hasStudyNotes && (
                       <div className="mt-6">
-                        <div style={{ height: 1, background: "linear-gradient(90deg, rgba(155,107,68,0.08), transparent 50%)", marginBottom: 20 }} />
+                        <div className="diary-modal-section-sep" style={{ height: 1, marginBottom: 20 }} />
                         <p
                           className="mb-4 flex items-center gap-2"
                           style={{
                             fontSize: 10,
                             fontWeight: 500,
                             letterSpacing: "0.2em",
-                            color: "#8C735D",
+                            color: "var(--v5-ink3)",
                             textTransform: "uppercase",
                             fontFamily: "ui-sans-serif, system-ui, sans-serif",
                           }}
@@ -1239,10 +1177,10 @@ export function DiaryBookModal({
                         <ul className="space-y-2.5">
                           {studyNotes.map((note, i) => (
                             <li key={i} className="flex items-start gap-3">
-                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#9B6B44", marginTop: 10, flexShrink: 0, opacity: 0.4 }} />
+                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--v5-accent)", marginTop: 10, flexShrink: 0, opacity: 0.4 }} />
                               <span style={{
                                 fontSize: 14,
-                                color: "rgba(58,36,24,0.78)",
+                                color: "var(--v5-ink2)",
                                 fontFamily: '"Noto Serif SC", "Ma Shan Zheng", serif',
                                 lineHeight: 1.9,
                               }}>
@@ -1257,19 +1195,17 @@ export function DiaryBookModal({
 
                   {/* Bottom bar — minimal */}
                   <div
-                    className="flex shrink-0 items-center px-8 py-3.5"
-                    style={{ borderTop: "1px solid rgba(232,221,210,0.4)" }}
+                    className="diary-modal-footer flex shrink-0 items-center px-8 py-3.5"
                   >
                     {/* Swipe hint (mobile) */}
                     {entries.length > 1 && (
-                      <span className="text-[10px] tracking-wider md:hidden" style={{ color: "rgba(140,115,93,0.4)" }}>
+                      <span className="diary-modal-mute text-[10px] tracking-wider md:hidden">
                         ← 滑动切换 →
                       </span>
                     )}
                     <span
-                      className="ml-auto text-[10px] tracking-wider"
+                      className="diary-modal-brand ml-auto text-[10px] tracking-wider"
                       style={{
-                        color: "rgba(140,115,93,0.3)",
                         fontFamily: "ui-sans-serif, system-ui, sans-serif",
                         letterSpacing: "0.16em",
                       }}

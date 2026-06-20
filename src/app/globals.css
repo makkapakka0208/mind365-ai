@@ -689,3 +689,204 @@ html[data-theme="dark"] .daily-log-calendar-arrow:hover {
     background: var(--glass-bg-strong);
   }
 }
+
+/* ── 日记弹窗（DiaryBookModal）深色模式适配 ──────────────────────────
+   亮色值写在普通类里，深色通过 html[data-theme="dark"] 覆盖。 */
+
+.diary-modal-overlay {
+  background: rgba(90, 70, 50, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.diary-modal-card {
+  background: #fbf8f3;
+  border: 1px solid rgba(232, 221, 210, 0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 24px 64px rgba(90, 60, 30, 0.12),
+    0 8px 20px rgba(90, 60, 30, 0.06);
+}
+
+.diary-modal-left {
+  background: linear-gradient(180deg, #f5efe6 0%, #f0e8dc 100%);
+  border-right: 1px solid rgba(232, 221, 210, 0.5);
+}
+
+.diary-modal-right {
+  background: #fbf8f3;
+}
+
+.diary-modal-stat-card {
+  background: rgba(251, 248, 243, 0.7);
+  border: 1px solid rgba(232, 221, 210, 0.4);
+}
+
+.diary-modal-left-sep {
+  background: linear-gradient(90deg, rgba(155, 107, 68, 0.12), transparent 80%);
+}
+
+.diary-modal-right-sep {
+  background: linear-gradient(90deg, #e8ddd2, transparent 70%);
+}
+
+.diary-modal-section-sep {
+  background: linear-gradient(90deg, rgba(155, 107, 68, 0.1), transparent 60%);
+}
+
+.diary-modal-content {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent,
+    transparent 38px,
+    rgba(155, 107, 68, 0.04) 38px,
+    rgba(155, 107, 68, 0.04) 39px
+  );
+}
+
+.diary-modal-tag {
+  background: rgba(155, 107, 68, 0.06);
+  color: var(--v5-ink3);
+  border: 1px solid rgba(155, 107, 68, 0.08);
+}
+
+.diary-modal-nav-btn {
+  color: var(--v5-accent);
+  background: rgba(251, 248, 243, 0.92);
+  border: 1px solid #e8ddd2;
+  box-shadow: 0 2px 8px rgba(122, 79, 43, 0.08);
+}
+
+.diary-modal-close-btn {
+  color: var(--v5-ink3);
+}
+
+.diary-modal-close-btn:hover {
+  background: rgba(155, 107, 68, 0.08);
+}
+
+.diary-modal-counter {
+  color: var(--v5-ink3);
+  background: rgba(155, 107, 68, 0.06);
+}
+
+.diary-modal-image-card {
+  background: #fbf8f3;
+  border: 1px solid rgba(232, 221, 210, 0.5);
+  box-shadow: 0 4px 16px rgba(122, 79, 43, 0.08), 0 1px 3px rgba(122, 79, 43, 0.04);
+}
+
+.diary-modal-image-badge {
+  background: rgba(251, 248, 243, 0.85);
+  color: var(--v5-ink3);
+  border: 1px solid rgba(232, 221, 210, 0.5);
+}
+
+.diary-modal-delete-btn {
+  color: #b0917a;
+  border: 1px solid rgba(176, 145, 122, 0.2);
+}
+
+.diary-modal-footer {
+  border-top: 1px solid rgba(232, 221, 210, 0.4);
+}
+
+.diary-modal-mute {
+  color: rgba(140, 115, 93, 0.4);
+}
+
+.diary-modal-brand {
+  color: rgba(140, 115, 93, 0.3);
+}
+
+/* ── 深色模式覆盖 ── */
+html[data-theme="dark"] .diary-modal-overlay {
+  background: rgba(10, 7, 4, 0.45);
+}
+
+html[data-theme="dark"] .diary-modal-card {
+  background: #221912;
+  border-color: rgba(235, 210, 180, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 245, 220, 0.04),
+    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="dark"] .diary-modal-left {
+  background: linear-gradient(180deg, #1e1610 0%, #18120d 100%);
+  border-right-color: rgba(235, 210, 180, 0.08);
+}
+
+html[data-theme="dark"] .diary-modal-right {
+  background: #1c1510;
+}
+
+html[data-theme="dark"] .diary-modal-stat-card {
+  background: rgba(40, 30, 18, 0.70);
+  border-color: rgba(235, 210, 180, 0.08);
+}
+
+html[data-theme="dark"] .diary-modal-left-sep {
+  background: linear-gradient(90deg, rgba(235, 210, 180, 0.10), transparent 80%);
+}
+
+html[data-theme="dark"] .diary-modal-right-sep {
+  background: linear-gradient(90deg, rgba(235, 210, 180, 0.12), transparent 70%);
+}
+
+html[data-theme="dark"] .diary-modal-section-sep {
+  background: linear-gradient(90deg, rgba(235, 210, 180, 0.08), transparent 60%);
+}
+
+html[data-theme="dark"] .diary-modal-content {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent,
+    transparent 38px,
+    rgba(235, 210, 180, 0.04) 38px,
+    rgba(235, 210, 180, 0.04) 39px
+  );
+}
+
+html[data-theme="dark"] .diary-modal-tag {
+  background: rgba(200, 154, 110, 0.08);
+  border-color: rgba(200, 154, 110, 0.12);
+}
+
+html[data-theme="dark"] .diary-modal-nav-btn {
+  background: rgba(34, 26, 17, 0.92);
+  border-color: rgba(235, 210, 180, 0.14);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.40);
+}
+
+html[data-theme="dark"] .diary-modal-counter {
+  background: rgba(200, 154, 110, 0.10);
+}
+
+html[data-theme="dark"] .diary-modal-image-card {
+  background: #281e15;
+  border-color: rgba(235, 210, 180, 0.10);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+html[data-theme="dark"] .diary-modal-image-badge {
+  background: rgba(34, 26, 17, 0.85);
+  border-color: rgba(235, 210, 180, 0.12);
+}
+
+html[data-theme="dark"] .diary-modal-delete-btn {
+  color: #c9ae8e;
+  border-color: rgba(235, 210, 180, 0.14);
+}
+
+html[data-theme="dark"] .diary-modal-footer {
+  border-top-color: rgba(235, 210, 180, 0.08);
+}
+
+html[data-theme="dark"] .diary-modal-mute {
+  color: rgba(200, 170, 130, 0.35);
+}
+
+html[data-theme="dark"] .diary-modal-brand {
+  color: rgba(200, 170, 130, 0.25);
+}
