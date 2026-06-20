@@ -86,6 +86,8 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -153,6 +155,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await client.auth.signOut();
   }, [authConfigured]);
 
+  const resetPassword = useCallback(async (email: string) => {
+    if (!authConfigured) {
+      return { error: "当前未配置 Supabase 登录，无法重置密码。" };
+    }
+    const client = getOrCreateAuthClient();
+    const redirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/reset-password`
+        : undefined;
+    const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+    return { error: error?.message ?? null };
+  }, [authConfigured]);
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    if (!authConfigured) {
+      return { error: "当前未配置 Supabase 登录。" };
+    }
+    const client = getOrCreateAuthClient();
+    const { error } = await client.auth.updateUser({ password: newPassword });
+    return { error: error?.message ?? null };
+  }, [authConfigured]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -163,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        resetPassword,
+        updatePassword,
       }}
     >
       {children}
