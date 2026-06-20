@@ -124,6 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = client.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      // When Supabase processes a recovery token (from password-reset email),
+      // redirect to the reset-password page regardless of which page Supabase
+      // sent the user to (in case the redirectTo URL wasn't whitelisted).
+      if (
+        _event === "PASSWORD_RECOVERY" &&
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/reset-password")
+      ) {
+        window.location.replace("/reset-password");
+      }
     });
 
     return () => {
