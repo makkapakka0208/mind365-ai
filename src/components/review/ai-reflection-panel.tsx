@@ -59,7 +59,19 @@ function parseReflectionSections(text: string): ParsedSection[] {
     }];
   }
 
-  return matches.map((match, i) => {
+  const result: ParsedSection[] = [];
+
+  // Capture preamble (概要) — text before the first numbered section
+  const preamble = text.slice(0, matches[0].index!).trim();
+  if (preamble) {
+    const body = preamble.replace(/^(?:#{1,3}\s*)?概要\s*\n?/, "").trim();
+    if (body) {
+      result.push({ id: "preamble", number: "概要", title: "概要", bullets: [], raw: body });
+    }
+  }
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
     const startIdx = match.index! + match[0].length;
     const endIdx = i < matches.length - 1 ? matches[i + 1].index! : text.length;
     const body = text.slice(startIdx, endIdx).trim();
@@ -71,19 +83,18 @@ function parseReflectionSections(text: string): ParsedSection[] {
       .filter((l) => l.startsWith("- ") || l.startsWith("· ") || l.startsWith("* "))
       .map((l) => l.replace(/^[-·*]\s+/, ""));
 
-    return {
-      id: String(i),
-      number: match[1],
-      title: match[2].trim(),
-      bullets,
-      raw: body,
-    };
-  });
+    result.push({ id: String(i), number: match[1], title: match[2].trim(), bullets, raw: body });
+  }
+
+  return result;
 }
 
 /** Extract first bold sentence or first meaningful paragraph as key insight. */
 function extractKeyInsight(sections: ParsedSection[]): string {
   if (sections.length === 0) return "";
+  // 概要 section is the intended summary — use it as the key insight
+  const preamble = sections.find((s) => s.number === "概要");
+  if (preamble?.raw) return preamble.raw.replace(/\*\*/g, "").trim();
   const first = sections[0];
   // Look for bold text in bullets
   for (const b of first.bullets) {
@@ -598,9 +609,9 @@ export function AiReflectionPanel({
             />
           </div>
 
-          {/* Section cards */}
+          {/* Section cards — 概要 is shown in the insight block above, skip it here */}
           <div className="space-y-3">
-            {sections.map((section, i) => (
+            {sections.filter((s) => s.number !== "概要").map((section, i) => (
               <SectionCard
                 key={section.id}
                 defaultOpen={i === 0}
