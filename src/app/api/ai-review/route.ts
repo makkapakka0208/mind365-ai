@@ -27,6 +27,10 @@ interface ReviewPayload {
     totalReadingHours: number;
     totalStudyHours: number;
   };
+  goals?: {
+    weeklyStudyTarget: number;
+    weeklyReadingTarget: number;
+  };
 }
 
 /* ─────────────────────────────────────────────
@@ -100,6 +104,10 @@ function buildWeeklyPrompt(payload: ReviewPayload): string {
     "",
     "二、计划完成得怎么样",
     "工作交付了什么、还差什么；这周的生活状态、家庭氛围怎样；看了什么书、学到什么。无对应记录的，如实写无。",
+    "如果 payload 中有 goals 字段，在这一段末尾加目标完成情况：",
+    "- 学习时长（goals.weeklyStudyTarget > 0 才做）：用 summary.totalStudyHours 对比 goals.weeklyStudyTarget，达到或超过目标用一句真诚但不夸张的话肯定；未达到直接说差了多少小时，给一条下周具体可行的调整建议，语气诚实不沉重。",
+    "- 阅读时长（goals.weeklyReadingTarget > 0 才做）：同上逻辑。",
+    "- 最后附一句与本周整体状态或目标主题契合的名言，用中文，来自真实人物，格式：「……」—— 姓名。",
     "",
     "三、本周反思",
     "做成的事，有没有更省力的做法；没做成的，卡在哪、下次怎么办。就事论事，别上价值。",

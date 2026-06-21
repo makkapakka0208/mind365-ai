@@ -146,13 +146,19 @@ export function saveReview(period: ReviewPeriod, reflection: string, reference: 
   return key;
 }
 
+export interface WeeklyGoals {
+  weeklyStudyTarget: number;
+  weeklyReadingTarget: number;
+}
+
 export function buildReviewPayload(
   period: ReviewPeriod,
   logs: DailyLog[],
   range: { end: Date; start: Date },
   summary: ReviewSummary,
+  goals?: WeeklyGoals,
 ) {
-  return {
+  const payload: Record<string, unknown> = {
     entries: logs.map((log) => ({
       date: log.date,
       emotionScore: log.mood,
@@ -167,6 +173,10 @@ export function buildReviewPayload(
     },
     summary,
   };
+  if (goals && (goals.weeklyStudyTarget > 0 || goals.weeklyReadingTarget > 0)) {
+    payload.goals = goals;
+  }
+  return payload;
 }
 
 /**
@@ -180,13 +190,14 @@ export async function requestAiReflection(
   range: { end: Date; start: Date },
   summary: ReviewSummary,
   onDelta?: (fullText: string) => void,
+  goals?: WeeklyGoals,
 ): Promise<ReviewResponse> {
   const response = await apiFetch("/api/ai-review", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(buildReviewPayload(period, logs, range, summary)),
+    body: JSON.stringify(buildReviewPayload(period, logs, range, summary, goals)),
   });
 
   const contentType = response.headers.get("content-type") ?? "";

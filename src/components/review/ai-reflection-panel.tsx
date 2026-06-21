@@ -28,6 +28,7 @@ import {
   saveReview,
   type ReviewPeriod,
   type ReviewSummary,
+  type WeeklyGoals,
 } from "@/lib/review-reflection";
 import { saveReviewReport } from "@/lib/storage";
 import type { DailyLog, ReviewReport } from "@/types";
@@ -388,6 +389,7 @@ function MetricCard({
 
 interface AiReflectionPanelProps {
   emptyMessage: string;
+  goals?: WeeklyGoals;
   logs: DailyLog[];
   period: ReviewPeriod;
   range: { end: Date; start: Date };
@@ -397,6 +399,7 @@ interface AiReflectionPanelProps {
 
 export function AiReflectionPanel({
   emptyMessage,
+  goals,
   logs,
   period,
   range,
@@ -443,7 +446,7 @@ export function AiReflectionPanel({
       // 流式生成：每收到一段就更新正文，报告区边生成边展开
       const data = await requestAiReflection(period, logs, range, summary, (partial) => {
         setReflection(partial);
-      });
+      }, goals);
       if (!data.reflection) {
         setReflection("");
         setHasSavedReflection(false);
