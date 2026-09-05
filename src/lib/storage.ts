@@ -1,3 +1,4 @@
+import { accountStorage, captureStorageScope, getStorageScope, getGuestDocument } from "@/lib/account-storage";
 ﻿import {
   createDefaultSupabaseUserId,
   createMind365SupabaseClient,
@@ -7,8 +8,10 @@
   normalizeMind365Settings,
 } from "@/lib/supabase";
 import { getCachedAuthUserId } from "@/lib/auth";
+import { isJournalDraft, JOURNAL_DRAFTS_KEY } from "@/lib/journal-draft";
 import {
   getLifePathBackupData,
+  refreshLifePathState,
   importLifePathBackupData,
   type LifePathBackupData,
 } from "@/lib/life-path-storage";
@@ -40,7 +43,7 @@ type TombstoneKind = keyof typeof DELETED_IDS_KEYS;
 function getDeletedIds(kind: TombstoneKind): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
-    const raw = window.localStorage.getItem(DELETED_IDS_KEYS[kind]);
+    const raw = accountStorage.getItem(DELETED_IDS_KEYS[kind]);
     const arr = raw ? (JSON.parse(raw) as unknown) : [];
     return new Set(Array.isArray(arr) ? (arr as string[]).filter((v) => typeof v === "string") : []);
   } catch {
@@ -50,19 +53,9 @@ function getDeletedIds(kind: TombstoneKind): Set<string> {
 
 function addDeletedId(kind: TombstoneKind, id: string) {
   if (typeof window === "undefined") return;
-  try {
-    const ids = getDeletedIds(kind);
-    ids.add(id);
-    window.localStorage.setItem(DELETED_IDS_KEYS[kind], JSON.stringify([...ids]));
-  } catch {}
-}
-
-/** Called after a successful import — clears tombstones so imported records can be restored. */
-function clearAllDeletedIds() {
-  if (typeof window === "undefined") return;
-  for (const key of Object.values(DELETED_IDS_KEYS)) {
-    try { window.localStorage.removeItem(key); } catch {}
-  }
+  const ids = getDeletedIds(kind);
+  ids.add(id);
+  accountStorage.setItem(DELETED_IDS_KEYS[kind], JSON.stringify([...ids]));
 }
 
 export const STORAGE_CHANGE_EVENT = "mind365:storage";
@@ -78,6 +71,11 @@ interface SupabaseDiaryRow {
 }
 
 export interface Mind365BackupData {
+  version: number;
+  scope: string;
+  exportedAt: string;
+  todos: TodoItem[];
+  extras: Record<string, unknown>;
   daily_logs: DailyLog[];
   quotes: Quote[];
   notes: Note[];
@@ -88,6 +86,7 @@ export interface Mind365BackupData {
 }
 
 export interface BackupImportResult {
+  todos: number;
   dailyLogs: number;
   directions: number;
   goals: number;
@@ -113,18 +112,11 @@ export interface CloudSyncStatus {
 
 /** 给 Promise 加上超时，避免网络慢时无限等待 */
 function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
   return Promise.race([
     Promise.resolve(promise),
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
-}
-
-let refreshPromise: Promise<DailyLog[]> | null = null;
-let refreshSignature = "";
-
-function dispatchStorageChange() {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new Event(STORAGE_CHANGE_EVENT));
+    new Promise<T>((resolve) => { timer = setTimeout(() => resolve(fallback), ms); }),
+  ]).finally(() => clearTimeout(timer));
 }
 
 function createId() {
@@ -165,13 +157,14 @@ function parseDailyLog(value: unknown): DailyLog | null {
   return {
     id: typeof value.id === "string" && value.id.trim().length > 0 ? value.id : createId(),
     createdAt,
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : createdAt,
     date: value.date,
     mood: value.mood,
     thoughts: value.thoughts,
     reading: value.reading,
     studyHours: value.studyHours,
     tags: value.tags,
-    images: isStringArray(value.images) ? value.images.filter((s) => !s.startsWith("data:")) : [],
+    images: isStringArray(value.images) ? value.images : [],
   };
 }
 
@@ -325,7 +318,7 @@ function normalizeCollection<T>(values: unknown, guard: (value: unknown) => valu
 
 function readCollection<T>(key: StorageKey, guard: (value: unknown) => value is T): T[] {
   if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(key);
+  const raw = accountStorage.getItem(key);
   if (!raw) return [];
   try {
     return normalizeCollection(JSON.parse(raw) as unknown, guard);
@@ -336,7 +329,7 @@ function readCollection<T>(key: StorageKey, guard: (value: unknown) => value is 
 
 function readDailyLogs(): DailyLog[] {
   if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(STORAGE_KEYS.dailyLogs);
+  const raw = accountStorage.getItem(STORAGE_KEYS.dailyLogs);
   if (!raw) return [];
   try {
     return normalizeDailyLogs(JSON.parse(raw) as unknown);
@@ -348,8 +341,7 @@ function readDailyLogs(): DailyLog[] {
 function writeCollection<T>(key: StorageKey, data: T[]) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(key, JSON.stringify(data));
-    dispatchStorageChange();
+    accountStorage.setItem(key, JSON.stringify(data));
   } catch (err) {
     // localStorage 容量超限（手机端通常 5-10MB）：抛出友好错误供调用方处理
     if (err instanceof DOMException && (err.name === "QuotaExceededError" || err.code === 22)) {
@@ -361,15 +353,14 @@ function writeCollection<T>(key: StorageKey, data: T[]) {
 
 function readSettingsValue(): unknown {
   if (typeof window === "undefined") return { ...DEFAULT_SETTINGS };
-  const raw = window.localStorage.getItem(STORAGE_KEYS.settings);
+  const raw = accountStorage.getItem(STORAGE_KEYS.settings);
   if (raw === null) return { ...DEFAULT_SETTINGS };
   try { return JSON.parse(raw) as unknown; } catch { return { ...DEFAULT_SETTINGS }; }
 }
 
 function writeSettings(settings: Mind365Settings) {
   if (typeof window === "undefined") return settings;
-  window.localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
-  dispatchStorageChange();
+  accountStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
   return settings;
 }
 
@@ -380,17 +371,11 @@ function ensureSettingsUserId(settings: Mind365Settings): Mind365Settings {
   return nextSettings;
 }
 
-/** Filter out base64 images before persisting — only keep URL strings */
-function stripBase64Images(images: string[] | undefined): string[] {
-  if (!images) return [];
-  return images.filter((img) => !img.startsWith("data:"));
-}
-
 function serializeDailyLog(log: DailyLog): string {
   return JSON.stringify({
-    createdAt: log.createdAt, date: log.date, mood: log.mood,
+    createdAt: log.createdAt, updatedAt: log.updatedAt ?? log.createdAt, date: log.date, mood: log.mood,
     reading: log.reading, studyHours: log.studyHours, tags: log.tags,
-    thoughts: log.thoughts, images: stripBase64Images(log.images), version: 2,
+    thoughts: log.thoughts, images: log.images ?? [], version: 2,
   });
 }
 
@@ -411,23 +396,12 @@ function parseDiaryRow(row: SupabaseDiaryRow): DailyLog | null {
   return parseDailyLog({ id: row.id, createdAt: row.created_at, date: fallbackDate, mood: 5, thoughts: row.content, reading: "", studyHours: 0, tags: [] });
 }
 
-function mergeDailyLogs(localLogs: DailyLog[], remoteLogs: DailyLog[]): DailyLog[] {
-  const merged = new Map<string, DailyLog>();
-  for (const log of remoteLogs) merged.set(log.id, log);
-  for (const log of localLogs) merged.set(log.id, log);
-  return normalizeDailyLogs([...merged.values()]);
-}
-
-function areDailyLogsEqual(left: DailyLog[], right: DailyLog[]): boolean {
-  return JSON.stringify(normalizeDailyLogs(left)) === JSON.stringify(normalizeDailyLogs(right));
-}
-
 async function fetchRemoteDailyLogs(
   settings: Mind365Settings,
-): Promise<{ logs: DailyLog[]; deletedIds: Set<string> }> {
+): Promise<{ logs: DailyLog[]; deletedIds: Set<string>; contents: Map<string, string> }> {
   const client = createMind365SupabaseClient(settings);
   const config = getActiveSyncConfig(settings, getAuthUserId());
-  if (!client || !config) return { logs: [], deletedIds: new Set() };
+  if (!client || !config) return { logs: [], deletedIds: new Set(), contents: new Map() };
   const { data, error } = await client.from("diaries").select("id, user_id, content, ai_analysis, created_at, deleted").eq("user_id", config.userId).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   const rows = Array.isArray(data) ? (data as Array<SupabaseDiaryRow & { deleted?: boolean }>) : [];
@@ -436,6 +410,7 @@ async function fetchRemoteDailyLogs(
   return {
     logs: normalizeDailyLogs(live.map(parseDiaryRow).filter((log): log is DailyLog => log !== null)),
     deletedIds,
+    contents: new Map(rows.map(r => [r.id, r.content])),
   };
 }
 
@@ -444,12 +419,14 @@ async function markRemoteDeleted(
   table: "diaries" | "notes" | "quotes" | "review_reports",
   ids: string[],
   settings: Mind365Settings,
-): Promise<void> {
-  if (ids.length === 0) return;
+): Promise<boolean> {
+  if (ids.length === 0) return true;
   const client = createMind365SupabaseClient(settings);
   const config = getActiveSyncConfig(settings, getAuthUserId());
-  if (!client || !config) return;
-  await client.from(table).update({ deleted: true }).in("id", ids).eq("user_id", config.userId);
+  if (!client || !config) return false;
+  const { error } = await client.from(table).update({ deleted: true }).in("id", ids).eq("user_id", config.userId);
+  if (error) throw new Error(error.message);
+  return true;
 }
 
 async function fetchRemoteQuotes(
@@ -536,16 +513,6 @@ async function fetchRemoteReviewReports(
     })
     .filter((r): r is ReviewReport => r !== null);
   return { reports, deletedIds };
-}
-
-async function upsertRemoteDailyLogs(logs: DailyLog[], settings: Mind365Settings): Promise<boolean> {
-  const client = createMind365SupabaseClient(settings);
-  const config = getActiveSyncConfig(settings, getAuthUserId());
-  if (!client || !config || logs.length === 0) return false;
-  const payload = logs.map((log) => ({ ai_analysis: null, content: serializeDailyLog(log), created_at: log.createdAt, id: log.id, user_id: config.userId, deleted: false }));
-  const { error } = await client.from("diaries").upsert(payload, { onConflict: "id" });
-  if (error) throw new Error(error.message);
-  return true;
 }
 
 async function upsertRemoteQuotes(quotes: Quote[], settings: Mind365Settings) {
@@ -672,37 +639,130 @@ export function getCloudSyncStatus(): CloudSyncStatus {
 export function getDailyLogs(): DailyLog[] { return readDailyLogs(); }
 export function setDailyLogs(logs: DailyLog[]) { writeCollection(STORAGE_KEYS.dailyLogs, normalizeDailyLogs(logs)); }
 
-export async function refreshDailyLogs(options?: { force?: boolean }): Promise<DailyLog[]> {
+interface PendingDiary { log: DailyLog; base: DailyLog | null; }
+const DIARY_PENDING = "diary_pending";
+const DIARY_BASE = "diary_synced";
+const DIARY_STATUS = "diary_sync_status";
+const diarySyncs = new Map<string, Promise<DailyLog[]>>();
+
+function readMap<T>(key: string): Record<string, T> {
+  return JSON.parse(accountStorage.getItem(key) ?? "{}") as Record<string, T>;
+}
+
+export function getDiarySyncState(): { pending: number; message: string } {
+  return {
+    pending: Object.keys(readMap(DIARY_PENDING)).length + getDeletedIds("dailyLogs").size,
+    message: accountStorage.getItem(DIARY_STATUS) ?? "",
+  };
+}
+
+function queueDiary(log: DailyLog, previous: DailyLog | null) {
+  const pending = readMap<PendingDiary>(DIARY_PENDING);
+  pending[log.id] = {
+    log,
+    base: pending[log.id] ? pending[log.id].base : previous ?? readMap<DailyLog>(DIARY_BASE)[log.id] ?? null,
+  };
+  accountStorage.setItem(DIARY_PENDING, JSON.stringify(pending));
+}
+
+// Serialize per account, including across tabs. CAS also protects other devices.
+export async function refreshDailyLogs(_options?: { force?: boolean }): Promise<DailyLog[]> {
+  void _options; // All refreshes reconcile durable pending operations.
+  const scope = getStorageScope();
+  const active = captureStorageScope();
+  if (diarySyncs.has(scope)) return diarySyncs.get(scope)!;
+  const run = () => active() ? syncDiaries() : Promise.resolve([]);
+  const task = (async () => await (typeof navigator !== "undefined" && navigator.locks
+    ? navigator.locks.request(`mind365:diaries:${scope}`, run)
+    : run()))().finally(() => { diarySyncs.delete(scope); });
+  diarySyncs.set(scope, task);
+  return task;
+}
+
+async function syncDiaries(): Promise<DailyLog[]> {
   if (typeof window === "undefined") return [];
+  const active = captureStorageScope();
   const settings = getSettingsForSync();
   const config = getActiveSyncConfig(settings, getAuthUserId());
-  if (!config) return readDailyLogs();
-  const signature = `${config.url}::${config.userId}`;
-  if (!options?.force && refreshPromise && refreshSignature === signature) return refreshPromise;
-  refreshSignature = signature;
-  refreshPromise = (async () => {
-    const localLogs = readDailyLogs();
-    try {
-      const { logs: remoteLogs, deletedIds: remoteDeleted } = await fetchRemoteDailyLogs(settings);
-      const localTombstones = getDeletedIds("dailyLogs");
-      // 远端墓碑清掉本地副本；本地墓碑（离线删除）过滤远端并回写远端
-      const localLive = localLogs.filter((l) => !remoteDeleted.has(l.id) && !localTombstones.has(l.id));
-      const remoteLive = remoteLogs.filter((l) => !localTombstones.has(l.id));
-      const offlineDeleted = remoteLogs.filter((l) => localTombstones.has(l.id)).map((l) => l.id);
-      if (offlineDeleted.length > 0) {
-        void markRemoteDeleted("diaries", offlineDeleted, settings).catch(() => undefined);
+  const client = createMind365SupabaseClient(settings);
+  if (!config || !client) return getDailyLogs();
+  try {
+    const remote = await fetchRemoteDailyLogs(settings);
+    if (!active()) return [];
+    const remoteMap = new Map(remote.logs.map(log => [log.id, log]));
+    const deleted = getDeletedIds("dailyLogs");
+    if (deleted.size) {
+      await markRemoteDeleted("diaries", [...deleted], settings);
+      if (!active()) return [];
+      const remaining = getDeletedIds("dailyLogs");
+      for (const id of deleted) { remaining.delete(id); remoteMap.delete(id); }
+      accountStorage.setItem(DELETED_IDS_KEYS.dailyLogs, JSON.stringify([...remaining]));
+    }
+    // Cached remote records are never uploaded just because local is older.
+    for (const log of getDailyLogs()) {
+      if (!remoteMap.has(log.id) && !remote.deletedIds.has(log.id) && !deleted.has(log.id) &&
+          !readMap<PendingDiary>(DIARY_PENDING)[log.id]) queueDiary(log, null);
+    }
+    let conflicts = 0;
+    for (const [id, operation] of Object.entries(readMap<PendingDiary>(DIARY_PENDING))) {
+      if (!active()) return [];
+      if (getDeletedIds("dailyLogs").has(id) || deleted.has(id)) continue;
+      const current = remoteMap.get(id);
+      const identical = current && serializeDailyLog(current) === serializeDailyLog(operation.log);
+      const conflict = !identical && (remote.deletedIds.has(id) || (current &&
+        (!operation.base || serializeDailyLog(current) !== serializeDailyLog(operation.base))));
+      if (conflict) {
+        const copy: DailyLog = { ...operation.log, id: createId(), createdAt: new Date().toISOString(), tags: [...new Set([...operation.log.tags, "同步冲突副本"])] };
+        accountStorage.transaction(() => {
+          const pending = readMap<PendingDiary>(DIARY_PENDING);
+          if (JSON.stringify(pending[id]) !== JSON.stringify(operation)) return;
+          delete pending[id];
+          pending[copy.id] = { log: copy, base: null };
+          accountStorage.setItem(DIARY_PENDING, JSON.stringify(pending));
+          setDailyLogs([...getDailyLogs().filter(l => l.id !== id), ...(current ? [current] : []), copy]);
+        });
+        conflicts++;
+        continue;
       }
-      const mergedLogs = mergeDailyLogs(localLive, remoteLive);
-      if (!areDailyLogsEqual(localLogs, mergedLogs)) writeCollection(STORAGE_KEYS.dailyLogs, mergedLogs);
-      if (!areDailyLogsEqual(remoteLive, mergedLogs)) await upsertRemoteDailyLogs(mergedLogs, settings);
-      return mergedLogs;
-    } catch { return localLogs; }
-    finally { refreshPromise = null; }
-  })();
-  return refreshPromise;
+      if (!identical) {
+        const row = { id, user_id: config.userId, content: serializeDailyLog(operation.log), created_at: operation.log.createdAt, ai_analysis: null, deleted: false };
+        const result = current
+          ? await client.from("diaries").update(row).eq("id", id).eq("user_id", config.userId)
+              .eq("content", remote.contents.get(id)!).eq("deleted", false).select("id")
+          : await client.from("diaries").insert(row).select("id");
+        if (!active()) return [];
+        if (result.error) throw new Error(result.error.message);
+        if (!result.data?.length) throw new Error("另一台设备刚刚修改了日记，修改已保留，等待重试。");
+      }
+      remoteMap.set(id, operation.log);
+      accountStorage.transaction(() => {
+        const pending = readMap<PendingDiary>(DIARY_PENDING);
+        if (JSON.stringify(pending[id]) === JSON.stringify(operation)) delete pending[id];
+        else if (pending[id]) pending[id].base = operation.log;
+        accountStorage.setItem(DIARY_PENDING, JSON.stringify(pending));
+      });
+    }
+    if (!active()) return [];
+    accountStorage.transaction(() => {
+      accountStorage.setItem(DIARY_BASE, JSON.stringify(Object.fromEntries(remoteMap)));
+      const result = new Map(remoteMap);
+      for (const p of Object.values(readMap<PendingDiary>(DIARY_PENDING))) result.set(p.log.id, p.log);
+      for (const id of getDeletedIds("dailyLogs")) result.delete(id);
+      setDailyLogs([...result.values()]);
+      accountStorage.setItem(DIARY_STATUS, conflicts
+        ? `发现 ${conflicts} 处冲突，双方内容已保留，副本标记为“同步冲突副本”。`
+        : Object.keys(readMap(DIARY_PENDING)).length ? "仍有本地修改等待同步。" : "日记已同步。");
+    });
+    return getDailyLogs();
+  } catch (error) {
+    if (!active()) return [];
+    accountStorage.setItem(DIARY_STATUS, `同步未完成，修改保留在本地。${error instanceof Error ? error.message : "请重试。"}`);
+    return getDailyLogs();
+  }
 }
 
 export async function refreshQuotes(): Promise<Quote[]> {
+  const active = captureStorageScope();
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
   const config = getActiveSyncConfig(settings, getAuthUserId());
@@ -710,6 +770,7 @@ export async function refreshQuotes(): Promise<Quote[]> {
   const local = getQuotes();
   try {
     const { quotes: remote, deletedIds: remoteDeleted } = await fetchRemoteQuotes(settings);
+    if (!active()) return [];
     const localTombstones = getDeletedIds("quotes");
     const merged = new Map<string, Quote>();
     // Remote goes in first; local overwrites. Tombstoned IDs (local or remote)
@@ -734,6 +795,7 @@ export async function refreshQuotes(): Promise<Quote[]> {
 }
 
 export async function refreshNotes(): Promise<Note[]> {
+  const active = captureStorageScope();
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
   const config = getActiveSyncConfig(settings, getAuthUserId());
@@ -741,6 +803,7 @@ export async function refreshNotes(): Promise<Note[]> {
   const local = getNotes();
   try {
     const { notes: remote, deletedIds: remoteDeleted } = await fetchRemoteNotes(settings);
+    if (!active()) return [];
     const localTombstones = getDeletedIds("notes");
     const merged = new Map<string, Note>();
     for (const n of remote) {
@@ -763,6 +826,7 @@ export async function refreshNotes(): Promise<Note[]> {
 }
 
 export async function refreshReviewReports(): Promise<ReviewReport[]> {
+  const active = captureStorageScope();
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
   const config = getActiveSyncConfig(settings, getAuthUserId());
@@ -770,6 +834,7 @@ export async function refreshReviewReports(): Promise<ReviewReport[]> {
   const local = getReviewReports();
   try {
     const { reports: remote, deletedIds: remoteDeleted } = await fetchRemoteReviewReports(settings);
+    if (!active()) return [];
     const localTombstones = getDeletedIds("reviewReports");
     const merged = new Map<string, ReviewReport>();
     for (const r of remote) {
@@ -792,6 +857,7 @@ export async function refreshReviewReports(): Promise<ReviewReport[]> {
 }
 
 export async function refreshTimeEntries(): Promise<TimeEntry[]> {
+  const active = captureStorageScope();
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
   const config = getActiveSyncConfig(settings, getAuthUserId());
@@ -799,6 +865,7 @@ export async function refreshTimeEntries(): Promise<TimeEntry[]> {
   const local = getTimeEntries();
   try {
     const remote = await fetchRemoteTimeEntries(settings);
+    if (!active()) return [];
     const merged = new Map<string, TimeEntry>();
     for (const e of remote) merged.set(e.id, e);
     for (const e of local) merged.set(e.id, e);
@@ -812,42 +879,44 @@ export async function refreshTimeEntries(): Promise<TimeEntry[]> {
 }
 
 export async function saveDailyLog(log: DailyLog): Promise<DailyLogMutationResult> {
+  const active = captureStorageScope();
   const logs = getDailyLogs();
-  const normalized: DailyLog = { ...log, id: log.id || createId(), createdAt: log.createdAt || new Date().toISOString() };
+  const normalized: DailyLog = { ...log, id: log.id || createId(), createdAt: log.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
   const updated = normalizeDailyLogs([normalized, ...logs]);
-  setDailyLogs(updated);
-  try {
-    const synced = await withTimeout(upsertRemoteDailyLogs([normalized], getSettingsForSync()), 8000, false);
-    return { logs: updated, synced };
-  } catch { return { logs: updated, synced: false }; }
+  accountStorage.transaction(() => { queueDiary(normalized, null); setDailyLogs(updated); });
+  await withTimeout(refreshDailyLogs(), 8000, updated);
+  return { logs: active() ? getDailyLogs() : [], synced: active() && !readMap<PendingDiary>(DIARY_PENDING)[normalized.id] && getDiarySyncState().pending === 0 };
 }
 
-export async function updateDailyLog(nextLog: DailyLog): Promise<DailyLogMutationResult> {
+export async function updateDailyLog(nextLog: DailyLog, expectedBase?: DailyLog | null): Promise<DailyLogMutationResult> {
+  const active = captureStorageScope();
   const logs = getDailyLogs();
-  const updatedLog: DailyLog = { ...nextLog, id: nextLog.id || createId(), createdAt: nextLog.createdAt || new Date().toISOString() };
+  const updatedLog: DailyLog = { ...nextLog, id: nextLog.id || createId(), createdAt: nextLog.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() };
+  const previous = logs.find(log => log.id === updatedLog.id);
+  if (!previous) throw new Error("日记已被删除，请将内容另存为新日记。");
   const updated = normalizeDailyLogs(logs.map((log) => (log.id === updatedLog.id ? updatedLog : log)));
-  setDailyLogs(updated);
-  try {
-    const synced = await withTimeout(upsertRemoteDailyLogs([updatedLog], getSettingsForSync()), 8000, false);
-    return { logs: updated, synced };
-  } catch { return { logs: updated, synced: false }; }
+  accountStorage.transaction(() => { queueDiary(updatedLog, expectedBase ?? previous); setDailyLogs(updated); });
+  await withTimeout(refreshDailyLogs(), 8000, updated);
+  return { logs: active() ? getDailyLogs() : [], synced: active() && getDiarySyncState().pending === 0 };
 }
 
 export async function deleteDailyLog(id: string): Promise<DailyLogMutationResult> {
+  const active = captureStorageScope();
   const logs = getDailyLogs().filter((log) => log.id !== id);
-  setDailyLogs(logs);
-  // 软删除：远端留墓碑行，其他设备的本地副本才不会把它复活
-  addDeletedId("dailyLogs", id);
-  try {
-    const settings = getSettingsForSync();
-    await withTimeout(markRemoteDeleted("diaries", [id], settings), 8000, undefined);
-    return { logs, synced: true };
-  } catch { return { logs, synced: false }; }
+  accountStorage.transaction(() => {
+    addDeletedId("dailyLogs", id);
+    const pending = readMap<PendingDiary>(DIARY_PENDING);
+    delete pending[id];
+    accountStorage.setItem(DIARY_PENDING, JSON.stringify(pending));
+    setDailyLogs(logs);
+  });
+  await withTimeout(refreshDailyLogs(), 8000, logs);
+  return { logs, synced: active() && !getDeletedIds("dailyLogs").has(id) };
 }
 
 export function getQuotes(): Quote[] {
   if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(STORAGE_KEYS.quotes);
+  const raw = accountStorage.getItem(STORAGE_KEYS.quotes);
   if (!raw) return [];
   try {
     return normalizeQuotes(JSON.parse(raw) as unknown);
@@ -1005,9 +1074,12 @@ async function fetchRemoteTodos(
 
 /** Fire-and-forget remote push for a single mutation. */
 function pushTodoRemote(item: TodoItem, deleted = false) {
-  void (async () => {
-    try { await upsertRemoteTodos([{ ...item, deleted }], getSettingsForSync()); } catch {}
-  })();
+  if (deleted) {
+    const tombstones = readMap<TodoItem>("todo_deleted");
+    tombstones[item.id] = item;
+    accountStorage.setItem("todo_deleted", JSON.stringify(tombstones));
+  }
+  void refreshTodos();
 }
 
 /**
@@ -1016,14 +1088,17 @@ function pushTodoRemote(item: TodoItem, deleted = false) {
  * device propagate to others.
  */
 export async function refreshTodos(): Promise<TodoItem[]> {
+  const active = captureStorageScope();
   if (typeof window === "undefined") return [];
   const settings = getSettingsForSync();
   const config = getActiveSyncConfig(settings, getAuthUserId());
   if (!config) return getTodos();
-  const local = getTodos();
   const ts = (s: string) => Date.parse(s) || 0;
   try {
     const remote = await fetchRemoteTodos(settings);
+    if (!active()) return [];
+    const local = getTodos();
+    const tombstones = readMap<TodoItem>("todo_deleted");
     const remoteMap = new Map<string, { item: TodoItem; deleted: boolean }>();
     for (const r of remote) remoteMap.set(r.item.id, r);
     const localMap = new Map<string, TodoItem>();
@@ -1034,6 +1109,7 @@ export async function refreshTodos(): Promise<TodoItem[]> {
     const toUpload: TodoItem[] = [];
 
     for (const id of allIds) {
+      if (tombstones[id]) continue;
       const r = remoteMap.get(id);
       const l = localMap.get(id);
       if (r && l) {
@@ -1055,12 +1131,17 @@ export async function refreshTodos(): Promise<TodoItem[]> {
     }
 
     setTodos(resolved);
-    if (toUpload.length > 0) {
-      try { await upsertRemoteTodos(toUpload, settings); } catch {}
+    const payload = [...toUpload, ...Object.values(tombstones).map(item => ({ ...item, deleted: true }))];
+    if (payload.length > 0) {
+      await upsertRemoteTodos(payload, settings);
     }
+    if (!active()) return [];
+    accountStorage.setItem("todo_sync_status", "待办已同步。");
     return getTodos();
   } catch {
-    return local;
+    if (!active()) return [];
+    accountStorage.setItem("todo_sync_status", "待办同步未完成，离线修改及删除已保留，等待重试。");
+    return getTodos();
   }
 }
 
@@ -1143,16 +1224,28 @@ export function updateTodoText(id: string, text: string): TodoItem[] {
 
 export function deleteTodo(id: string): TodoItem[] {
   const target = getTodos().find((t) => t.id === id);
-  setTodos(getTodos().filter((t) => t.id !== id));
-  if (target) pushTodoRemote({ ...target, updatedAt: new Date().toISOString() }, true);
+  accountStorage.transaction(() => {
+    if (target) {
+      const tombstones = readMap<TodoItem>("todo_deleted");
+      tombstones[id] = { ...target, updatedAt: new Date().toISOString() };
+      accountStorage.setItem("todo_deleted", JSON.stringify(tombstones));
+    }
+    setTodos(getTodos().filter((t) => t.id !== id));
+  });
+  void refreshTodos();
   return getTodos();
 }
 
 export function clearCompletedTodos(): TodoItem[] {
   const now = new Date().toISOString();
   const done = getTodos().filter((t) => t.done);
-  setTodos(getTodos().filter((t) => !t.done));
-  for (const t of done) pushTodoRemote({ ...t, updatedAt: now }, true);
+  accountStorage.transaction(() => {
+    const tombstones = readMap<TodoItem>("todo_deleted");
+    for (const t of done) tombstones[t.id] = { ...t, updatedAt: now };
+    accountStorage.setItem("todo_deleted", JSON.stringify(tombstones));
+    setTodos(getTodos().filter((t) => !t.done));
+  });
+  void refreshTodos();
   return getTodos();
 }
 
@@ -1161,7 +1254,7 @@ export function setReviewReports(reports: ReviewReport[]) { writeCollection(STOR
 
 export function getTimeEntries(): TimeEntry[] {
   if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(STORAGE_KEYS.timeEntries);
+  const raw = accountStorage.getItem(STORAGE_KEYS.timeEntries);
   if (!raw) return [];
   try {
     return normalizeTimeEntries(JSON.parse(raw) as unknown);
@@ -1213,10 +1306,15 @@ export async function deleteReviewReport(id: string): Promise<ReviewReport[]> {
 
 export function getMind365BackupData(): Mind365BackupData {
   return {
+    version: 3,
+    scope: getStorageScope(),
+    exportedAt: new Date().toISOString(),
+    todos: getTodos(),
+    extras: Object.fromEntries(BACKUP_EXTRA_KEYS.map(key => [key, JSON.parse(accountStorage.getItem(key) ?? "null")])),
     daily_logs: getDailyLogs(),
     notes: getNotes(),
     quotes: getQuotes(),
-    settings: getSettings(),
+    settings: { ...DEFAULT_SETTINGS, weeklyStudyTarget: getSettings().weeklyStudyTarget, weeklyReadingTarget: getSettings().weeklyReadingTarget },
     review_reports: getReviewReports(),
     time_entries: getTimeEntries(),
     life_path: getLifePathBackupData(),
@@ -1233,8 +1331,40 @@ function triggerDownload(content: string, mime: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function downloadMind365Backup(filename = "mind365-backup.json") {
-  triggerDownload(JSON.stringify(getMind365BackupData(), null, 2), "application/json", filename);
+export async function downloadMind365Backup(filename = "mind365-backup.json") {
+  const data = await embedBackupImages(getMind365BackupData());
+  triggerDownload(JSON.stringify(data, null, 2), "application/json", filename);
+}
+
+async function embedBackupImages<T>(data: T): Promise<T> {
+  const images = new Map<string, string>();
+  const visit = async (value: unknown): Promise<unknown> => {
+    if (Array.isArray(value)) return Promise.all(value.map(visit));
+    if (!isRecord(value)) return value;
+    const result: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(value)) {
+      if (key === "images" && isStringArray(child)) {
+        result[key] = await Promise.all(child.map(async url => {
+          if (url.startsWith("data:")) return url;
+          if (images.has(url)) return images.get(url)!;
+          const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+          if (!response.ok) throw new Error("图片下载失败，完整备份未生成。请联网后重试。");
+          const blob = await response.blob();
+          if (!blob.type.startsWith("image/")) throw new Error("备份图片格式无效。");
+          const encoded = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(new Error("图片备份失败。"));
+            reader.readAsDataURL(blob);
+          });
+          images.set(url, encoded);
+          return encoded;
+        }));
+      } else result[key] = await visit(child);
+    }
+    return result;
+  };
+  return await visit(data) as T;
 }
 
 /**
@@ -1298,48 +1428,136 @@ export function downloadMind365Markdown(filename = "mind365-export.md") {
   triggerDownload(buildMind365Markdown(), "text/markdown;charset=utf-8", filename);
 }
 
+const BACKUP_EXTRA_KEYS = ["reviews", "mind365_custom_themes", "mind365_hidden_themes", JOURNAL_DRAFTS_KEY] as const;
+
+export async function downloadGuestBackup() {
+  const doc = getGuestDocument();
+  const read = (key: string, fallback: unknown) => JSON.parse(doc[key] ?? JSON.stringify(fallback));
+  const data = await embedBackupImages({
+    version: 3, scope: "guest", exportedAt: new Date().toISOString(),
+    daily_logs: read("daily_logs", []), quotes: read("quotes", []), notes: read("notes", []),
+    review_reports: read("review_reports", []), time_entries: read("time_entries", []), todos: read("todos", []),
+    settings: { ...DEFAULT_SETTINGS, weeklyStudyTarget: read("settings", {}).weeklyStudyTarget ?? 10, weeklyReadingTarget: read("settings", {}).weeklyReadingTarget ?? 7 },
+    life_path: { directions: read("mind365_life_directions", []), goals: read("mind365_life_goals", []), mentor_plans: read("mind365_mentor_plans", {}), week_plans: read("mind365_week_plans", {}) },
+    extras: Object.fromEntries(BACKUP_EXTRA_KEYS.map(k => [k, read(k, null)])),
+  });
+  triggerDownload(JSON.stringify(data, null, 2), "application/json", "mind365-guest-backup.json");
+}
+
+function mergeById<T extends { id: string }>(local: T[], incoming: T[]): T[] {
+  return [...new Map([...local, ...incoming].map(v => [v.id, v])).values()];
+}
+
 export function importMind365Backup(raw: string): BackupImportResult {
   if (typeof window === "undefined") throw new Error("Import is only available in browser.");
   let parsed: unknown;
-  try { parsed = JSON.parse(raw) as unknown; } catch { throw new Error("Invalid JSON file."); }
-  if (!isRecord(parsed)) throw new Error("Invalid backup format.");
+  try { parsed = JSON.parse(raw); } catch { throw new Error("备份不是有效的 JSON 文件。"); }
+  if (!isRecord(parsed) || !Array.isArray(parsed.daily_logs) || !Array.isArray(parsed.quotes) || !Array.isArray(parsed.notes)) {
+    throw new Error("备份格式无效，当前数据未更改。");
+  }
+  if (parsed.version !== undefined && (![1, 2, 3].includes(parsed.version as number))) throw new Error("不支持此备份版本。");
 
-  const dailyLogs = normalizeDailyLogs(parsed.daily_logs);
-  const quotes = normalizeQuotes(parsed.quotes);
-  const notes = normalizeCollection(parsed.notes, isNote);
-  const settings = normalizeMind365Settings(parsed.settings);
-  const reviewReports = normalizeCollection(parsed.review_reports, isReviewReport);
-  const timeEntries = normalizeTimeEntries(parsed.time_entries);
-  const lifePath = Object.prototype.hasOwnProperty.call(parsed, "life_path")
-    ? importLifePathBackupData(parsed.life_path)
-    : { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0 };
-
-  // Clear tombstones so records in the imported backup can be restored.
-  clearAllDeletedIds();
-  window.localStorage.setItem(STORAGE_KEYS.dailyLogs, JSON.stringify(dailyLogs));
-  window.localStorage.setItem(STORAGE_KEYS.quotes, JSON.stringify(quotes));
-  window.localStorage.setItem(STORAGE_KEYS.notes, JSON.stringify(notes));
-  window.localStorage.setItem(STORAGE_KEYS.reviewReports, JSON.stringify(reviewReports));
-  window.localStorage.setItem(STORAGE_KEYS.timeEntries, JSON.stringify(timeEntries));
-  window.localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({ ...settings, supabaseUserId: settings.supabaseUserId || createDefaultSupabaseUserId() }));
-
-  dispatchStorageChange();
-  const syncSettings = getSettingsForSync();
-  void upsertRemoteDailyLogs(dailyLogs, syncSettings).catch(() => undefined);
-  void upsertRemoteQuotes(quotes, syncSettings).catch(() => undefined);
-  void upsertRemoteNotes(notes, syncSettings).catch(() => undefined);
-  void upsertRemoteReviewReports(reviewReports, syncSettings).catch(() => undefined);
-  void upsertRemoteTimeEntries(timeEntries, syncSettings).catch(() => undefined);
-
-  return {
-    dailyLogs: dailyLogs.length,
-    directions: lifePath.directions,
-    goals: lifePath.goals,
-    mentorPlans: lifePath.mentorPlans,
-    notes: notes.length,
-    quotes: quotes.length,
-    reviewReports: reviewReports.length,
-    timeEntries: timeEntries.length,
-    weekPlans: lifePath.weekPlans,
+  // Portable imports receive fresh IDs, including Life Path references. Never
+  // reuse another account's remote primary keys or connection credentials.
+  if (parsed.scope !== getStorageScope()) {
+    const ids = new Map<string, string>();
+    const collect = (value: unknown) => {
+      if (Array.isArray(value)) value.forEach(collect);
+      else if (isRecord(value)) {
+        if (typeof value.id === "string") ids.set(value.id, ids.get(value.id) ?? createId());
+        Object.values(value).forEach(collect);
+      }
+    };
+    collect(parsed);
+    const remap = (value: unknown, field = ""): unknown => {
+      if (typeof value === "string") return ["id", "goalId", "directionId"].includes(field) ? ids.get(value) ?? value : value;
+      if (Array.isArray(value)) return value.map(v => remap(v, field));
+      if (isRecord(value)) return Object.fromEntries(Object.entries(value).map(([k, v]) => [ids.get(k) ?? k, remap(v, k)]));
+      return value;
+    };
+    parsed = remap(parsed);
+  }
+  const data = parsed as Record<string, unknown>;
+  const checked = <T,>(key: string, parse: (v: unknown) => T[]): T[] => {
+    if (data[key] === undefined) return [];
+    if (!Array.isArray(data[key])) throw new Error(`备份字段 ${key} 无效。`);
+    const items = parse(data[key]);
+    if (items.length !== data[key].length) throw new Error(`备份字段 ${key} 含有损坏记录。`);
+    return items;
   };
+  const dailyLogs = checked("daily_logs", normalizeDailyLogs);
+  const quotes = checked("quotes", normalizeQuotes);
+  const notes = checked("notes", v => normalizeCollection(v, isNote));
+  const reports = checked("review_reports", v => normalizeCollection(v, isReviewReport));
+  const times = checked("time_entries", normalizeTimeEntries);
+  const todos = checked("todos", v => normalizeCollection(v, isTodo)).map(t => ({ ...t, quadrant: normalizeQuadrant(t.quadrant), updatedAt: t.updatedAt ?? t.createdAt }));
+  const life = data.life_path;
+  if (life !== undefined) {
+    if (!isRecord(life) || !Array.isArray(life.directions) || !Array.isArray(life.goals) ||
+        !isRecord(life.mentor_plans) || !isRecord(life.week_plans) ||
+        !life.directions.every(d => isRecord(d) && typeof d.id === "string" && typeof d.name === "string" && isStringArray(d.positiveActions) && isStringArray(d.negativeActions)) ||
+        !life.goals.every(g => isRecord(g) && typeof g.id === "string" && typeof g.title === "string" && typeof g.targetValue === "number" && typeof g.currentValue === "number") ||
+        !Object.values(life.week_plans).every(p => isRecord(p) && typeof p.weekKey === "string" && Array.isArray(p.tasks)) ||
+        !Object.values(life.mentor_plans).every(p => isRecord(p) && typeof p.goalId === "string")) throw new Error("人生主线备份格式无效。");
+  }
+  const extras = data.extras === undefined ? {} : data.extras;
+  if (!isRecord(extras)) throw new Error("扩展备份格式无效。");
+  for (const key of BACKUP_EXTRA_KEYS) {
+    const value = extras[key];
+    if (value == null) continue;
+    if (key === JOURNAL_DRAFTS_KEY && (!isRecord(value) || !Object.entries(value).every(([date, d]) => /^\d{4}-\d{2}-\d{2}$/.test(date) && isJournalDraft(d)))) throw new Error("草稿备份格式无效。");
+    if (key.includes("themes") && !isStringArray(value)) throw new Error("主题备份格式无效。");
+    if (key === "reviews" && (!isRecord(value) || !Object.values(value).every(bucket => isRecord(bucket) && Object.values(bucket).every(v => typeof v === "string")))) throw new Error("复盘备份格式无效。");
+  }
+
+  let lifeResult = { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0 };
+  accountStorage.transaction(() => {
+    for (const log of dailyLogs) {
+      // Restore a deleted diary as a new record; its old tombstone stays valid.
+      if (getDeletedIds("dailyLogs").has(log.id)) log.id = createId();
+      queueDiary(log, getDailyLogs().find(l => l.id === log.id) ?? null);
+    }
+    setDailyLogs(mergeById(getDailyLogs(), dailyLogs));
+    for (const [kind, items] of [["quotes", quotes], ["notes", notes], ["reviewReports", reports]] as const) {
+      for (const item of items) if (getDeletedIds(kind).has(item.id)) item.id = createId();
+    }
+    setQuotes(mergeById(getQuotes(), quotes));
+    setNotes(mergeById(getNotes(), notes));
+    setReviewReports(mergeById(getReviewReports(), reports));
+    setTimeEntries(mergeById(getTimeEntries(), times));
+    for (const todo of todos) {
+      if (readMap<TodoItem>("todo_deleted")[todo.id]) todo.id = createId();
+      todo.updatedAt = new Date().toISOString();
+    }
+    setTodos(mergeById(getTodos(), todos));
+    if (life !== undefined) {
+      const incoming = life as unknown as LifePathBackupData;
+      const current = getLifePathBackupData();
+      lifeResult = importLifePathBackupData({
+        directions: mergeById(current.directions, incoming.directions),
+        goals: mergeById(current.goals, incoming.goals),
+        mentor_plans: { ...current.mentor_plans, ...incoming.mentor_plans },
+        week_plans: { ...current.week_plans, ...incoming.week_plans },
+      }, false);
+    }
+    const importedSettings = normalizeMind365Settings(data.settings);
+    writeSettings({ ...getSettings(), weeklyStudyTarget: importedSettings.weeklyStudyTarget, weeklyReadingTarget: importedSettings.weeklyReadingTarget });
+    for (const key of BACKUP_EXTRA_KEYS) {
+      const value = extras[key];
+      if (value == null) continue;
+      const current = JSON.parse(accountStorage.getItem(key) ?? (key.includes("themes") ? "[]" : "{}"));
+      const merged = Array.isArray(value) ? [...new Set([...current, ...value])] : { ...current, ...value };
+      accountStorage.setItem(key, JSON.stringify(merged));
+    }
+  });
+  // Only start network work after the entire local transaction committed.
+  const settings = getSettingsForSync();
+  void refreshDailyLogs();
+  void refreshTodos();
+  void upsertRemoteQuotes(quotes, settings).catch(() => undefined);
+  void upsertRemoteNotes(notes, settings).catch(() => undefined);
+  void upsertRemoteReviewReports(reports, settings).catch(() => undefined);
+  void upsertRemoteTimeEntries(times, settings).catch(() => undefined);
+  void refreshLifePathState();
+  return { dailyLogs: dailyLogs.length, notes: notes.length, quotes: quotes.length, reviewReports: reports.length, timeEntries: times.length, todos: todos.length, ...lifeResult };
 }

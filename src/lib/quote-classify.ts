@@ -1,3 +1,4 @@
+import { accountStorage } from "@/lib/account-storage";
 /**
  * quote-classify.ts
  *
@@ -94,7 +95,7 @@ const CUSTOM_THEMES_KEY = "mind365_custom_themes";
 export function loadCustomThemes(): string[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(CUSTOM_THEMES_KEY);
+    const raw = accountStorage.getItem(CUSTOM_THEMES_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((t: unknown): t is string => typeof t === "string" && !!t.trim()) : [];
@@ -106,7 +107,7 @@ export function loadCustomThemes(): string[] {
 export function saveCustomThemes(themes: string[]): void {
   if (typeof window === "undefined") return;
   const cleaned = [...new Set(themes.map((t) => t.trim()).filter(Boolean))];
-  localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(cleaned));
+  accountStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(cleaned));
 }
 
 export function addCustomTheme(theme: string): void {
@@ -128,7 +129,7 @@ const HIDDEN_THEMES_KEY = "mind365_hidden_themes";
 function loadHiddenThemes(): string[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(HIDDEN_THEMES_KEY);
+    const raw = accountStorage.getItem(HIDDEN_THEMES_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((t: unknown): t is string => typeof t === "string" && !!t.trim()) : [];
@@ -139,7 +140,7 @@ function loadHiddenThemes(): string[] {
 
 function saveHiddenThemes(themes: string[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(HIDDEN_THEMES_KEY, JSON.stringify([...new Set(themes)]));
+  accountStorage.setItem(HIDDEN_THEMES_KEY, JSON.stringify([...new Set(themes)]));
 }
 
 function unhideTheme(theme: string): void {

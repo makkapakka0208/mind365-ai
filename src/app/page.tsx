@@ -18,7 +18,9 @@ import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboar
 import { HomeTodoCard } from "@/components/dashboard/home-todo-card";
 import { TimeHero } from "@/components/dashboard/time-hero";
 import { Button } from "@/components/ui/button";
+import { CountUp } from "@/components/ui/count-up";
 import { Dialog } from "@/components/ui/dialog";
+import { ParticleField } from "@/components/ui/particle-field";
 import { Input } from "@/components/ui/input";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -558,12 +560,12 @@ function HomePendulumCard({ now }: { now: Date }) {
           </div>
           <div className="mt-3.5 flex items-center gap-4">
             <div>
-              <span className="block font-bold leading-none" style={{ fontSize: 26, color: "var(--m-accent)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)" }}>{daysPassed}</span>
+              <CountUp value={String(daysPassed)} className="block font-bold leading-none" style={{ fontSize: 26, color: "var(--m-accent)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)" }} />
               <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>天已过</span>
             </div>
             <div className="h-[26px] w-px" style={{ background: "rgba(139,94,60,0.14)" }} />
             <div>
-              <span className="block font-normal leading-none" style={{ fontSize: 26, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)" }}>{daysLeft}</span>
+              <CountUp value={String(daysLeft)} className="block font-normal leading-none" style={{ fontSize: 26, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)" }} />
               <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>天未至</span>
             </div>
           </div>
@@ -717,16 +719,15 @@ function V5KpiCard({ eyebrow, title, value, unit, icon: Icon, description, foote
       </div>
 
       <div className="flex items-baseline" style={{ gap: 6 }}>
-        <span
+        <CountUp
+          value={value}
           className="v5-numeral"
           style={{
             fontSize: 48,
             fontVariationSettings: '"opsz" 144, "wght" 400',
             color: "var(--v5-ink)",
           }}
-        >
-          {value}
-        </span>
+        />
         {unit && (
           <span
             style={{
@@ -850,6 +851,9 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
           </circle>
         </svg>
       </div>
+
+      {/* 暖色飘尘氛围层 */}
+      <ParticleField count={20} speed={0.12} color="200, 150, 96" />
 
       <div
         className="relative grid items-center"

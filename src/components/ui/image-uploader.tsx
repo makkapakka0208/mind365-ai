@@ -2,7 +2,8 @@
 
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { DragEvent, useRef, useState } from "react";
-import { compressAndUpload, deleteImageFromStorage } from "@/lib/image-storage";
+import { compressAndUpload } from "@/lib/image-storage";
+import { captureStorageScope } from "@/lib/account-storage";
 
 interface ImageUploaderProps {
   images: string[];
@@ -16,6 +17,7 @@ async function processFiles(
   current: string[],
   onProgress?: (done: number, total: number) => void,
 ): Promise<{ next: string[]; errors: string[] }> {
+  const active = captureStorageScope();
   const remaining = maxImages - current.length;
   if (remaining <= 0) return { next: current, errors: [] };
   const accepted = Array.from(files)
@@ -24,6 +26,7 @@ async function processFiles(
   const errors: string[] = [];
   const uploaded: string[] = [];
   for (let i = 0; i < accepted.length; i++) {
+    if (!active()) break;
     onProgress?.(i, accepted.length);
     try {
       uploaded.push(await compressAndUpload(accepted[i]));
@@ -43,6 +46,7 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
   const [errorMsg, setErrorMsg] = useState("");
 
   const handleFiles = async (files: FileList | File[]) => {
+    const active = captureStorageScope();
     setIsProcessing(true);
     setErrorMsg("");
     setProgress("准备上传...");
@@ -50,6 +54,7 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
       const { next, errors } = await processFiles(files, maxImages, images, (done, total) => {
         setProgress(`正在上传 ${done + 1}/${total}...`);
       });
+      if (!active()) return;
       onChange(next);
       if (errors.length > 0) setErrorMsg(errors.join("；"));
     } catch (e) {
@@ -74,10 +79,8 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
   };
 
   const removeImage = (index: number) => {
-    const removed = images[index];
     onChange(images.filter((_, i) => i !== index));
-    // Clean up from storage in background (best-effort)
-    void deleteImageFromStorage(removed);
+    // Draft edits must not delete assets still referenced by the saved diary.
   };
 
   const canAdd = images.length < maxImages;

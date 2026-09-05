@@ -100,8 +100,8 @@ export function getSupabaseConfig(settings: Mind365Settings): SupabaseConfig | n
  * 数据库 RLS 是 `user_id = auth.uid()`：env 自动同步模式下，未登录发出的
  * 请求全部注定失败，所以直接返回 null 跳过网络调用；已登录时强制使用
  * auth 用户 ID（settings 里的随机 UUID 永远过不了 RLS）。
- * 用户在设置里手动配置并启用了自己的 Supabase（可能没有这套 RLS）时，
- * 保留原行为放行。
+ * 游客数据只保存在本机。手动配置也必须登录后才能同步，避免旧的随机
+ * userId 把未归属数据上传到云端。
  */
 export function getActiveSyncConfig(
   settings: Mind365Settings,
@@ -110,9 +110,6 @@ export function getActiveSyncConfig(
   const config = getSupabaseConfig(settings);
   if (!config) return null;
   if (authUserId) return { ...config, userId: authUserId };
-  if (settings.enableSupabaseSync && settings.supabaseUrl && settings.supabaseAnonKey) {
-    return config;
-  }
   return null;
 }
 

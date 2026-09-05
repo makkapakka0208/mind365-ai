@@ -1,6 +1,7 @@
 "use client";
 
 import { getAuthSupabaseClient } from "@/lib/auth";
+import { captureStorageScope } from "@/lib/account-storage";
 
 /**
  * Base URL for the Next.js API routes.
@@ -28,8 +29,10 @@ async function getAccessToken(): Promise<string | null> {
  * - 自动附带 Supabase 登录 token（服务端用于鉴权）
  */
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const active = captureStorageScope();
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
   const token = await getAccessToken();
+  if (!active()) throw new Error("Account changed during request.");
   const headers = new Headers(init?.headers);
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);

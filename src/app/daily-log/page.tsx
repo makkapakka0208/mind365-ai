@@ -26,6 +26,8 @@ import { loadGoals } from "@/lib/life-path-storage";
 import { saveDailyLog, updateDailyLog } from "@/lib/storage";
 import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import { useImageMigration } from "@/lib/use-image-migration";
+import { useJournalDraft } from "@/lib/use-journal-draft";
+import { captureStorageScope } from "@/lib/account-storage";
 import type { DailyLog } from "@/types";
 import type { AlignmentResult, UserGoal } from "@/types/life-path";
 
@@ -168,10 +170,6 @@ function DailyLogInner() {
 
   const [viewingDate, setViewingDate] = useState(initialDate);
   const [diaryModalId, setDiaryModalId] = useState<string | null>(null);
-  const [mood, setMood] = useState(6);
-  const [thoughts, setThoughts] = useState("");
-  const [tags, setTags] = useState("");
-  const [images, setImages] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [alignmentResult, setAlignmentResult] = useState<AlignmentResult | null>(null);
@@ -188,6 +186,16 @@ function DailyLogInner() {
     () => allLogs.find((log) => log.date === viewingDate) ?? null,
     [allLogs, viewingDate],
   );
+  const { draft, status: draftStatus, change, markSaved, canSwitch } = useJournalDraft(viewingDate, existingLog);
+  const { mood, thoughts, tags, images } = draft;
+  const setMood = (value: number) => change("mood", value);
+  const setThoughts = (value: string) => change("thoughts", value);
+  const setTags = (value: string) => change("tags", value);
+  const setImages = (value: string[]) => change("images", value);
+  const pickDate = (date: string) => {
+    if (date === viewingDate || (isSaving || !canSwitch())) return;
+    setViewingDate(date);
+  };
   const isFuture = viewingDate > todayIso;
   const tagList = useMemo(() => getTagList(tags), [tags]);
   const activeMood = MOODS.reduce((nearest, item) => (
@@ -198,19 +206,7 @@ function DailyLogInner() {
     setMessage("");
     setAlignmentResult(null);
     setShowBreakdown(false);
-    if (existingLog) {
-      setMood(existingLog.mood);
-      setThoughts(existingLog.thoughts);
-      setTags(existingLog.tags.join(" "));
-      setImages(existingLog.images ?? []);
-      return;
-    }
-
-    setMood(6);
-    setThoughts("");
-    setTags("");
-    setImages([]);
-  }, [existingLog, viewingDate]);
+  }, [viewingDate]);
 
   useEffect(() => {
     if (!existingLog) return;
@@ -222,7 +218,6 @@ function DailyLogInner() {
       const { urls, changed } = await migrateBase64Images(existingLog.images ?? []);
       if (cancelled || !changed) return;
       await updateDailyLog({ ...existingLog, images: urls });
-      setImages(urls);
     })();
     return () => {
       cancelled = true;
@@ -232,6 +227,7 @@ function DailyLogInner() {
   const onSubmit = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isFuture || isSaving) return;
+    const active = captureStorageScope();
 
     setIsSaving(true);
     setMessage("");
@@ -248,14 +244,16 @@ function DailyLogInner() {
       };
 
       const result = existingLog
-        ? await updateDailyLog({ ...existingLog, ...baseFields })
+        ? await updateDailyLog({ ...existingLog, ...baseFields }, draft.base)
         : await saveDailyLog({
             id: createId(),
             createdAt: new Date().toISOString(),
             ...baseFields,
           });
 
-      setMessage(result.synced ? "已保存，并同步到 Supabase。" : "已保存到本地缓存。");
+      if (!active()) return;
+      markSaved(draft, result.logs.find(log => log.date === viewingDate && log.thoughts === thoughts.trim()));
+      setMessage(result.synced ? "已保存，并同步到 Supabase。" : "已保存到本地，等待云端同步。");
       const freshGoals = loadGoals();
       setGoals(freshGoals);
       setAlignmentResult(computeAlignment(thoughts.trim(), freshGoals));
@@ -265,7 +263,7 @@ function DailyLogInner() {
     } finally {
       setIsSaving(false);
     }
-  }, [existingLog, images, isFuture, isSaving, mood, tagList, thoughts, viewingDate]);
+  }, [existingLog, images, isFuture, isSaving, mood, tagList, thoughts, viewingDate, draft, markSaved]);
 
   return (
     <>
@@ -293,6 +291,7 @@ function DailyLogInner() {
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_540px]">
           <StaggerItem index={0}>
             <form className="daily-log-paper" id="journal-form" onSubmit={onSubmit}>
+              {draftStatus && <p className="mb-3 text-sm" role="status">{draftStatus}</p>}
               <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="v5-eyebrow">WRITING SPACE</p>
@@ -478,7 +477,7 @@ function DailyLogInner() {
           <StaggerItem index={1}>
             <aside className="space-y-5 xl:sticky xl:top-6">
               <div className="daily-log-side-card">
-                <MonthCalendarThumb logs={allLogs} onPick={setViewingDate} viewingDate={viewingDate} />
+                <MonthCalendarThumb logs={allLogs} onPick={pickDate} viewingDate={viewingDate} />
               </div>
 
               <div className="daily-log-side-card daily-log-archive">
@@ -526,7 +525,7 @@ function DailyLogInner() {
         timeEntries={timeEntries}
         onClose={() => setDiaryModalId(null)}
         onEdit={(entry) => {
-          setViewingDate(entry.date);
+          pickDate(entry.date);
           setDiaryModalId(null);
           setTimeout(() => {
             document.getElementById("journal-form")?.scrollIntoView({ behavior: "smooth", block: "start" });

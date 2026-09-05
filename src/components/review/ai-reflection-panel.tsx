@@ -1,4 +1,5 @@
 "use client";
+import { captureStorageScope } from "@/lib/account-storage";
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -425,6 +426,7 @@ export function AiReflectionPanel({
       return;
     }
 
+    const active = captureStorageScope();
     setIsGenerating(true);
     setMessage("");
 
@@ -433,6 +435,7 @@ export function AiReflectionPanel({
       const data = await requestAiReflection(period, logs, range, summary, (partial) => {
         setReflection(partial);
       });
+      if (!active()) return;
       if (!data.reflection) {
         setReflection("");
         setHasSavedReflection(false);

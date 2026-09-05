@@ -1,3 +1,4 @@
+import { accountStorage, captureStorageScope } from "@/lib/account-storage";
 /**
  * life-path-storage.ts
  *
@@ -63,7 +64,7 @@ export interface LifePathBackupImportResult {
 function tryParse<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
-    const raw = localStorage.getItem(key);
+    const raw = accountStorage.getItem(key);
     if (!raw) return fallback;
     return JSON.parse(raw) as T;
   } catch {
@@ -74,7 +75,7 @@ function tryParse<T>(key: string, fallback: T): T {
 function getMeta(kind: Kind): { updatedAt: string } {
   if (typeof window === "undefined") return { updatedAt: "" };
   try {
-    const raw = localStorage.getItem(`${metaKeyFor(kind)}`);
+    const raw = accountStorage.getItem(`${metaKeyFor(kind)}`);
     if (!raw) return { updatedAt: "" };
     const parsed = JSON.parse(raw) as { updatedAt?: string };
     return { updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : "" };
@@ -89,7 +90,7 @@ function metaKeyFor(kind: Kind): string {
 
 function setMeta(kind: Kind, updatedAt: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(metaKeyFor(kind), JSON.stringify({ updatedAt }));
+  accountStorage.setItem(metaKeyFor(kind), JSON.stringify({ updatedAt }));
 }
 
 function localKeyFor(kind: Kind): string {
@@ -107,7 +108,7 @@ function getSettingsSafe(): Mind365Settings {
     return normalizeMind365Settings({});
   }
   try {
-    const raw = localStorage.getItem("settings");
+    const raw = accountStorage.getItem("settings");
     return normalizeMind365Settings(raw ? (JSON.parse(raw) as unknown) : {});
   } catch {
     return normalizeMind365Settings({});
@@ -158,6 +159,7 @@ interface RemoteRow {
  * Safe to call repeatedly. No-op when Supabase isn't configured.
  */
 export async function refreshLifePathState(): Promise<void> {
+  const active = captureStorageScope();
   if (typeof window === "undefined") return;
   const settings = getSettingsSafe();
   const config = getActiveSyncConfig(settings, getCachedAuthUserId());
@@ -170,6 +172,7 @@ export async function refreshLifePathState(): Promise<void> {
       .from(REMOTE_TABLE)
       .select("kind, content, updated_at")
       .eq("user_id", config.userId);
+    if (!active()) return;
     if (error) return;
     rows = Array.isArray(data) ? (data as RemoteRow[]) : [];
   } catch {
@@ -190,12 +193,13 @@ export async function refreshLifePathState(): Promise<void> {
 
   const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans"];
   for (const kind of kinds) {
+    if (!active()) return;
     const remote = remoteByKind.get(kind);
     const localUpdatedAt = getMeta(kind).updatedAt;
 
     if (!remote) {
       // Nothing in cloud yet — push local up if we have anything.
-      const localRaw = localStorage.getItem(localKeyFor(kind));
+      const localRaw = accountStorage.getItem(localKeyFor(kind));
       if (localRaw) {
         try { await pushRemote(kind, JSON.parse(localRaw) as unknown); } catch {}
       }
@@ -206,14 +210,14 @@ export async function refreshLifePathState(): Promise<void> {
     if (!localUpdatedAt || remote.updated_at > localUpdatedAt) {
       try {
         const parsed = JSON.parse(remote.content);
-        localStorage.setItem(localKeyFor(kind), JSON.stringify(parsed));
+        accountStorage.setItem(localKeyFor(kind), JSON.stringify(parsed));
         setMeta(kind, remote.updated_at);
       } catch {
         // Corrupt remote payload — skip.
       }
     } else if (localUpdatedAt > remote.updated_at) {
       // Local is newer — push back up.
-      const localRaw = localStorage.getItem(localKeyFor(kind));
+      const localRaw = accountStorage.getItem(localKeyFor(kind));
       if (localRaw) {
         try { await pushRemote(kind, JSON.parse(localRaw) as unknown); } catch {}
       }
@@ -229,7 +233,7 @@ export function loadDirections(): LifeDirection[] {
 
 export function saveDirections(dirs: LifeDirection[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(DIRECTIONS_KEY, JSON.stringify(dirs));
+  accountStorage.setItem(DIRECTIONS_KEY, JSON.stringify(dirs));
   pushAsync("directions", dirs);
 }
 
@@ -243,6 +247,7 @@ export function saveDirections(dirs: LifeDirection[]): void {
  * proceed without waiting.
  */
 export async function enrichAndSaveDirections(dirs: LifeDirection[]): Promise<LifeDirection[]> {
+  const active = captureStorageScope();
   saveDirections(dirs);
 
   try {
@@ -277,7 +282,7 @@ export async function enrichAndSaveDirections(dirs: LifeDirection[]): Promise<Li
       };
     });
 
-    saveDirections(enriched);
+    if (active()) saveDirections(enriched);
     return enriched;
   } catch {
     return dirs;
@@ -292,7 +297,7 @@ export function loadGoals(): UserGoal[] {
 
 export function saveGoals(goals: UserGoal[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
+  accountStorage.setItem(GOALS_KEY, JSON.stringify(goals));
   pushAsync("goals", goals);
 }
 
@@ -304,6 +309,7 @@ export function saveGoals(goals: UserGoal[]): void {
  * Reuses /api/life-path-enrich by mapping goals to the direction payload shape.
  */
 export async function enrichAndSaveGoals(goals: UserGoal[]): Promise<UserGoal[]> {
+  const active = captureStorageScope();
   saveGoals(goals);
 
   const toEnrich = goals.filter(
@@ -350,7 +356,7 @@ export async function enrichAndSaveGoals(goals: UserGoal[]): Promise<UserGoal[]>
       };
     });
 
-    saveGoals(enriched);
+    if (active()) saveGoals(enriched);
     return enriched;
   } catch {
     return goals;
@@ -367,7 +373,7 @@ export function saveMentorPlan(plan: MentorPlan): void {
   if (typeof window === "undefined") return;
   const all = loadMentorPlans();
   all[plan.goalId] = plan;
-  localStorage.setItem(MENTOR_KEY, JSON.stringify(all));
+  accountStorage.setItem(MENTOR_KEY, JSON.stringify(all));
   pushAsync("mentor_plans", all);
 }
 
@@ -375,7 +381,7 @@ export function deleteMentorPlan(goalId: string): void {
   if (typeof window === "undefined") return;
   const all = loadMentorPlans();
   delete all[goalId];
-  localStorage.setItem(MENTOR_KEY, JSON.stringify(all));
+  accountStorage.setItem(MENTOR_KEY, JSON.stringify(all));
   pushAsync("mentor_plans", all);
 }
 
@@ -459,7 +465,7 @@ export function saveWeekPlan(plan: WeekPlan): void {
   if (typeof window === "undefined") return;
   const all = loadWeekPlans();
   all[plan.weekKey] = plan;
-  localStorage.setItem(WEEK_PLANS_KEY, JSON.stringify(all));
+  accountStorage.setItem(WEEK_PLANS_KEY, JSON.stringify(all));
   pushAsync("week_plans", all);
 }
 
@@ -500,9 +506,11 @@ export function ensureWeekPlan(weekKey: string): WeekPlan {
  * Use this to recover from situations where previous pushes silently failed.
  */
 export async function forceUploadAllLifePathData(): Promise<void> {
+  const active = captureStorageScope();
   const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans"];
   for (const kind of kinds) {
-    const localRaw = typeof window !== "undefined" ? localStorage.getItem(localKeyFor(kind)) : null;
+    if (!active()) return;
+    const localRaw = typeof window !== "undefined" ? accountStorage.getItem(localKeyFor(kind)) : null;
     if (localRaw) {
       try { await pushRemote(kind, JSON.parse(localRaw) as unknown); } catch {}
     }
@@ -518,7 +526,7 @@ export function getLifePathBackupData(): LifePathBackupData {
   };
 }
 
-export function importLifePathBackupData(value: unknown): LifePathBackupImportResult {
+export function importLifePathBackupData(value: unknown, sync = true): LifePathBackupImportResult {
   if (typeof window === "undefined") {
     return { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0 };
   }
@@ -536,20 +544,22 @@ export function importLifePathBackupData(value: unknown): LifePathBackupImportRe
       : {};
 
   const now = new Date().toISOString();
-  localStorage.setItem(DIRECTIONS_KEY, JSON.stringify(directions));
-  localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
-  localStorage.setItem(MENTOR_KEY, JSON.stringify(mentorPlans));
-  localStorage.setItem(WEEK_PLANS_KEY, JSON.stringify(weekPlans));
+  accountStorage.setItem(DIRECTIONS_KEY, JSON.stringify(directions));
+  accountStorage.setItem(GOALS_KEY, JSON.stringify(goals));
+  accountStorage.setItem(MENTOR_KEY, JSON.stringify(mentorPlans));
+  accountStorage.setItem(WEEK_PLANS_KEY, JSON.stringify(weekPlans));
 
   setMeta("directions", now);
   setMeta("goals", now);
   setMeta("mentor_plans", now);
   setMeta("week_plans", now);
 
-  pushAsync("directions", directions);
-  pushAsync("goals", goals);
-  pushAsync("mentor_plans", mentorPlans);
-  pushAsync("week_plans", weekPlans);
+  if (sync) {
+    pushAsync("directions", directions);
+    pushAsync("goals", goals);
+    pushAsync("mentor_plans", mentorPlans);
+    pushAsync("week_plans", weekPlans);
+  }
 
   return {
     directions: directions.length,
