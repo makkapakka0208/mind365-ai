@@ -3,6 +3,7 @@
 import { getAuthSupabaseClient } from "@/lib/auth";
 import { getActiveSyncConfig } from "@/lib/supabase";
 import { getSettings } from "@/lib/storage";
+import { captureStorageScope } from "@/lib/account-storage";
 
 const BUCKET_NAME = "diary-images";
 
@@ -60,10 +61,12 @@ async function getStorageUserId(): Promise<string | null> {
  * Throws on failure — caller must handle the error.
  */
 export async function uploadImageToStorage(file: Blob, filename?: string): Promise<string> {
+  const active = captureStorageScope();
   const client = getStorageClient();
   if (!client) throw new Error("Supabase 未配置，无法上传图片。请检查环境变量配置。");
 
   const userId = await getStorageUserId();
+  if (!active()) throw new Error("账号已切换，请重新选择图片。");
   if (!userId) throw new Error("请先登录，再上传图片（图片需要存入你自己的云端空间）。");
 
   const ext = file.type === "image/png" ? "png" : "jpg";
@@ -109,6 +112,7 @@ export async function uploadBase64ToStorage(dataUrl: string): Promise<string> {
  * Does NOT fall back to base64 — throws on failure so the user sees the actual error.
  */
 export async function compressAndUpload(file: File): Promise<string> {
+  const active = captureStorageScope();
   const MAX_DIMENSION = 1600;
   const JPEG_QUALITY = 0.78;
 
@@ -146,6 +150,7 @@ export async function compressAndUpload(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 
+  if (!active()) throw new Error("账号已切换，请重新选择图片。");
   return await uploadImageToStorage(blob);
 }
 

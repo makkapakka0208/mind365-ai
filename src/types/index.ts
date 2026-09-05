@@ -8,6 +8,7 @@
   studyHours: number;
   tags: string[];
   images?: string[];
+  updatedAt?: string;
 }
 
 export interface Quote {

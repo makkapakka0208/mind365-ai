@@ -86,6 +86,18 @@ Notes:
 
 ## Data Storage
 
+### Account Isolation and Recovery
+
+- Personal data is stored in an atomic LocalStorage document per signed-in user (`mind365:data:user:<id>`). Guest data uses `mind365:data:guest` and never syncs automatically.
+- On upgrade, unowned legacy keys remain available as guest data. The original keys are retained as a recovery copy. From Settings, export the guest/legacy backup and explicitly import it into the intended account.
+- Switching accounts invalidates in-flight storage refreshes and remounts account-dependent views.
+- Diary writes use a durable local queue. Sync compares the remote content before updating it; concurrent edits produce a separate diary tagged `同步冲突副本`, preserving both versions. Online/focus events and a 30-second visible-page retry reconcile pending changes. Settings shows status and provides manual retry.
+- Offline todo deletions have persistent local tombstones and are replayed on reconnection.
+- Version 3 JSON backups include todos, drafts, saved reflections, custom themes, Life Path state, and embedded diary images. Export requires network access for cloud images. Connection credentials are excluded. Import validates first and commits atomically; quota failures leave current data untouched. Imports merge with existing records, and old backups do not clear absent collections. Imports from a different/unknown owner receive new IDs.
+- Diary drafts are saved locally on input, separately for each account and date. Reloading restores drafts; saving clears the submitted draft. Unsaved navigation prompts protect editing, and storage failures are shown explicitly.
+
+Verification: `npm test` runs storage regression tests against an isolated in-memory cloud fixture. `node tests/browser-smoke.cjs` checks drafts and backups in a running local app; it requires Playwright (`PLAYWRIGHT_MODULE` can specify an installed module path), optionally `BROWSER_EXE`, and defaults to `http://localhost:3001` (`TEST_BASE_URL` overrides it).
+
 LocalStorage keys:
 - `daily_logs`
 - `quotes`

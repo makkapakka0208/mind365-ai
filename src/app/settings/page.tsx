@@ -9,9 +9,15 @@ import { Input } from "@/components/ui/input";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import { useAuth } from "@/lib/auth";
+import { accountStorage, captureStorageScope } from "@/lib/account-storage";
 import { createDefaultSupabaseUserId } from "@/lib/supabase";
 import {
   downloadMind365Backup,
+  downloadGuestBackup,
+  getDiarySyncState,
+  refreshDailyLogs,
+  refreshTodos,
+  STORAGE_CHANGE_EVENT,
   downloadMind365Markdown,
   getCloudSyncStatus,
   getSettings,
@@ -56,6 +62,18 @@ export default function SettingsPage() {
   const [studyTarget, setStudyTarget] = useState(10);
   const [readingTarget, setReadingTarget] = useState(7);
   const [targetSaved, setTargetSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+  useEffect(() => {
+    const update = () => {
+      const state = getDiarySyncState();
+      setSyncMessage([state.message, state.pending ? `${state.pending} 项日记修改待同步` : "", accountStorage.getItem("todo_sync_status")].filter(Boolean).join(" "));
+    };
+    update();
+    window.addEventListener(STORAGE_CHANGE_EVENT, update);
+    return () => window.removeEventListener(STORAGE_CHANGE_EVENT, update);
+  }, []);
   // 挂载后读取，避免与 SSR 输出不一致
   const [themePref, setThemePref] = useState<ThemePreference>("system");
   useEffect(() => { setThemePref(getThemePreference()); }, []);
@@ -81,15 +99,17 @@ export default function SettingsPage() {
     setTimeout(() => setTargetSaved(false), 2000);
   };
 
-  const onExport = () => {
+  const onExport = async (guest = false) => {
+    setExporting(true);
     try {
-      downloadMind365Backup();
-      setMessage("备份已导出为 mind365-backup.json。");
+      if (guest) await downloadGuestBackup();
+      else await downloadMind365Backup();
+      setMessage(guest ? "游客备份已导出。导入到当前账号前，请确认内容属于你。" : "完整备份已导出，包含待办、草稿和图片。");
       setError("");
-    } catch {
-      setError("导出备份失败。");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "导出备份失败。");
       setMessage("");
-    }
+    } finally { setExporting(false); }
   };
 
   const onExportMarkdown = () => {
@@ -114,7 +134,8 @@ export default function SettingsPage() {
       return;
     }
 
-    const confirmed = window.confirm("导入会覆盖当前的日记、金句、笔记、复盘、Life Path 数据和设置，是否继续？");
+    const active = captureStorageScope();
+    const confirmed = window.confirm("确认备份属于你，并导入当前账号？将合并日记、待办、草稿等数据；相同记录采用备份内容，其他记录保留。建议先导出当前备份。");
 
     if (!confirmed) {
       event.target.value = "";
@@ -123,9 +144,10 @@ export default function SettingsPage() {
 
     try {
       const raw = await file.text();
+      if (!active()) return;
       const result = importMind365Backup(raw);
       setStatus(getCloudSyncStatus());
-      setMessage(`导入完成：恢复 ${result.dailyLogs} 条日记、${result.quotes} 条金句、${result.notes} 条笔记、${result.reviewReports} 份复盘、${result.goals} 个目标、${result.weekPlans} 份周计划。`);
+      setMessage(`导入完成：恢复 ${result.dailyLogs} 条日记、${result.todos} 条待办、${result.quotes} 条金句、${result.notes} 条笔记、${result.reviewReports} 份复盘。云端同步失败时，本地数据仍保留。`);
       setError("");
     } catch (importError) {
       const text = importError instanceof Error ? importError.message : "导入备份失败。";
@@ -349,7 +371,7 @@ export default function SettingsPage() {
                 <div>
                   <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>本机缓存</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
-                    数据会先保存在浏览器本地，保证离线也能正常使用。清除浏览器缓存后本地数据会丢失，但云端仍有备份。
+                    数据先保存在本机。清除浏览器数据会删除本地记录和草稿；只有已成功上传的记录才能从云端恢复。
                   </p>
                   <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: "var(--m-success)" }}>
                     <CheckCircle2 size={12} />
@@ -370,18 +392,24 @@ export default function SettingsPage() {
                   <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>云端同步</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
                     {syncConfigured
-                      ? "数据已自动同步到云端，换设备或清缓存后会自动恢复。"
+                      ? "已启用云同步。请确认待同步修改已上传后，再清除本机数据。"
                       : "未连接云端，数据仅保存在本地。建议定期导出 JSON 备份。"}
                   </p>
                   <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: syncConfigured ? "var(--m-success)" : "var(--m-ink3)" }}>
                     {syncConfigured ? <><CheckCircle2 size={12} /> 自动同步中</> : <><CloudOff size={12} /> 未连接</>}
                   </p>
+                  {user && syncMessage && <p role="status" className="mt-2 text-xs leading-5">{syncMessage}</p>}
+                  {user && <Button className="mt-2" size="sm" type="button" disabled={syncing} onClick={async () => {
+                    setSyncing(true);
+                    try { await Promise.all([refreshDailyLogs(), refreshTodos()]); }
+                    finally { setSyncing(false); }
+                  }}><Cloud size={14} className="mr-2" />{syncing ? "同步中" : "重新同步"}</Button>}
                   {user ? (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className="text-xs" style={{ color: "var(--m-ink3)" }}>{user.email}</span>
                       <button
                         type="button"
-                        onClick={() => void signOut()}
+                        onClick={() => { void signOut().catch(() => setError("退出登录失败，请重试。")); }}
                         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
                         style={{ background: "rgba(192,57,43,0.08)", color: "#c0392b", border: "1px solid rgba(192,57,43,0.2)" }}
                       >
@@ -480,14 +508,14 @@ export default function SettingsPage() {
                 数据备份
               </h3>
               <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                导出为 JSON 文件保存到电脑或网盘，是最安全的备份方式。文件包含你所有的日记、金句、笔记和复盘报告，不受云端存储限制。
+                完整备份包含日记、待办、草稿、书库、复盘、人生主线和图片。云端图片需联网下载；恢复后的数据保存在当前账号。
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <Button className="justify-center" onClick={onExport} size="lg" type="button" variant="primary">
+              <Button className="justify-center" disabled={exporting} onClick={() => void onExport()} size="lg" type="button" variant="primary">
                 <Download className="mr-2" size={17} />
-                导出备份
+                {exporting ? "正在生成备份" : "导出备份"}
               </Button>
 
               <Button className="justify-center" onClick={onImportTrigger} size="lg" type="button" variant="secondary">
@@ -496,6 +524,9 @@ export default function SettingsPage() {
               </Button>
             </div>
 
+            {user && <Button className="w-full justify-center" disabled={exporting} onClick={() => void onExport(true)} type="button" variant="secondary">
+              <Download size={17} className="mr-2" />导出游客 / 旧版本地数据
+            </Button>}
             <Button className="w-full justify-center" onClick={onExportMarkdown} size="lg" type="button" variant="ghost">
               <FileText className="mr-2" size={17} />
               导出为 Markdown（仅阅读 / 归档）
@@ -510,7 +541,7 @@ export default function SettingsPage() {
             />
 
             <div className="rounded-xl p-3 text-xs leading-5" style={{ background: "rgba(180,150,110,0.08)", border: "1px solid var(--m-rule)", color: "var(--m-ink3)" }}>
-              💡 建议每周导出一次备份，保存到网盘或电脑上。JSON 文件无大小限制，比云端更可靠。导入会覆盖当前数据，请谨慎操作。
+              导入采用合并恢复，旧版备份缺失的待办和草稿会保留。请保管好备份文件，其中包含私人记录。图片较多时恢复可能受浏览器存储容量限制。
             </div>
 
             {message ? <p className="text-sm" style={{ color: "var(--m-success)" }}>{message}</p> : null}

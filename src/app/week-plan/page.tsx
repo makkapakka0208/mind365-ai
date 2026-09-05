@@ -1,4 +1,5 @@
 "use client";
+import { captureStorageScope } from "@/lib/account-storage";
 
 import {
   AlertTriangle,
@@ -529,10 +530,12 @@ export default function WeekPlanPage() {
   // then hydrate from localStorage (which refresh just updated).
   useEffect(() => {
     const wk = currentWeekKey();
+    const active = captureStorageScope();
     setWeekKey(wk);
     setGoals(loadGoals());
     setMentorPlans(loadMentorPlans());
     void refreshLifePathState().then(() => {
+      if (!active()) return;
       setGoals(loadGoals());
       setMentorPlans(loadMentorPlans());
       setPlan(ensureWeekPlan(wk));
@@ -626,6 +629,7 @@ export default function WeekPlanPage() {
 
   // AI generation
   const generateForGoal = async (goalId: string) => {
+    const active = captureStorageScope();
     const goal = goals.find((g) => g.id === goalId);
     if (!goal || !plan) return;
 
@@ -634,6 +638,7 @@ export default function WeekPlanPage() {
 
     try {
       const res = await generateWeeklyForGoal(goal);
+      if (!active()) return;
       if (!res.available) {
         setError(res.message ?? "AI 功能未配置。");
         return;
@@ -679,6 +684,7 @@ export default function WeekPlanPage() {
   };
 
   const generateForAll = async () => {
+    const active = captureStorageScope();
     if (goals.length === 0) return;
     setGenerating("all");
     setError("");
@@ -695,7 +701,7 @@ export default function WeekPlanPage() {
         }),
       );
 
-      if (!plan) return;
+      if (!plan || !active()) return;
       let working: WeekPlan = { ...plan };
       let focusCandidate = working.focus;
       let trapCandidate = working.trap;

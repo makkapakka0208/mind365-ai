@@ -1,4 +1,7 @@
-﻿"use client";
+"use client";
+
+import { accountStorage } from "@/lib/account-storage";
+import { refreshLifePathState } from "@/lib/life-path-storage";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
@@ -54,14 +57,24 @@ let todosSnapshot: TodoItem[] = EMPTY_TODOS;
 // 登录/登出后重新拉一次全量同步：初始同步可能发生在会话恢复之前，
 // 没有这一步的话登录后要等下次手动刷新才能看到云端数据。
 if (typeof window !== "undefined") {
-  window.addEventListener(AUTH_CHANGE_EVENT, () => {
+  const sync = () => {
     void refreshDailyLogs({ force: true });
     void refreshQuotes();
     void refreshNotes();
     void refreshReviewReports();
     void refreshTimeEntries();
     void refreshTodos();
-  });
+    void refreshLifePathState();
+  };
+  window.addEventListener(AUTH_CHANGE_EVENT, sync);
+  window.addEventListener("online", sync);
+  window.addEventListener("focus", sync);
+  window.setInterval(() => {
+    if (navigator.onLine && document.visibilityState === "visible") {
+      void refreshDailyLogs();
+      void refreshTodos();
+    }
+  }, 30_000);
 }
 
 function subscribe(callback: StoreCallback) {
@@ -77,7 +90,7 @@ function subscribe(callback: StoreCallback) {
 
 function getDailyLogsSnapshot() {
   if (typeof window === "undefined") return EMPTY_DAILY_LOGS;
-  const raw = window.localStorage.getItem(STORAGE_KEYS.dailyLogs);
+  const raw = accountStorage.getItem(STORAGE_KEYS.dailyLogs);
   if (raw === dailyLogsRawCache) return dailyLogsSnapshot;
   dailyLogsRawCache = raw;
   dailyLogsSnapshot = raw ? getDailyLogs() : EMPTY_DAILY_LOGS;
@@ -86,7 +99,7 @@ function getDailyLogsSnapshot() {
 
 function getQuotesSnapshot() {
   if (typeof window === "undefined") return EMPTY_QUOTES;
-  const raw = window.localStorage.getItem(STORAGE_KEYS.quotes);
+  const raw = accountStorage.getItem(STORAGE_KEYS.quotes);
   if (raw === quotesRawCache) return quotesSnapshot;
   quotesRawCache = raw;
   quotesSnapshot = raw ? getQuotes() : EMPTY_QUOTES;
@@ -95,7 +108,7 @@ function getQuotesSnapshot() {
 
 function getNotesSnapshot() {
   if (typeof window === "undefined") return EMPTY_NOTES;
-  const raw = window.localStorage.getItem(STORAGE_KEYS.notes);
+  const raw = accountStorage.getItem(STORAGE_KEYS.notes);
   if (raw === notesRawCache) return notesSnapshot;
   notesRawCache = raw;
   notesSnapshot = raw ? getNotes() : EMPTY_NOTES;
@@ -104,7 +117,7 @@ function getNotesSnapshot() {
 
 function getReviewReportsSnapshot() {
   if (typeof window === "undefined") return EMPTY_REVIEW_REPORTS;
-  const raw = window.localStorage.getItem(STORAGE_KEYS.reviewReports);
+  const raw = accountStorage.getItem(STORAGE_KEYS.reviewReports);
   if (raw === reviewReportsRawCache) return reviewReportsSnapshot;
   reviewReportsRawCache = raw;
   reviewReportsSnapshot = raw ? getReviewReports() : EMPTY_REVIEW_REPORTS;
@@ -113,7 +126,7 @@ function getReviewReportsSnapshot() {
 
 function getTimeEntriesSnapshot() {
   if (typeof window === "undefined") return EMPTY_TIME_ENTRIES;
-  const raw = window.localStorage.getItem(STORAGE_KEYS.timeEntries);
+  const raw = accountStorage.getItem(STORAGE_KEYS.timeEntries);
   if (raw === timeEntriesRawCache) return timeEntriesSnapshot;
   timeEntriesRawCache = raw;
   timeEntriesSnapshot = raw ? getTimeEntries() : EMPTY_TIME_ENTRIES;
@@ -122,7 +135,7 @@ function getTimeEntriesSnapshot() {
 
 function getTodosSnapshot() {
   if (typeof window === "undefined") return EMPTY_TODOS;
-  const raw = window.localStorage.getItem(STORAGE_KEYS.todos);
+  const raw = accountStorage.getItem(STORAGE_KEYS.todos);
   if (raw === todosRawCache) return todosSnapshot;
   todosRawCache = raw;
   todosSnapshot = raw ? getTodos() : EMPTY_TODOS;

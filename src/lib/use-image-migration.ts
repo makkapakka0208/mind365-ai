@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { captureStorageScope, getStorageScope } from "@/lib/account-storage";
 import { isBase64DataUrl, migrateBase64Images } from "@/lib/image-storage";
 import { getDailyLogs, updateDailyLog } from "@/lib/storage";
-import type { DailyLog } from "@/types";
 
 const MIGRATION_KEY = "mind365:image-migration-done";
 
@@ -19,7 +19,9 @@ export function useImageMigration() {
     if (typeof window === "undefined") return;
 
     // Skip if already migrated this session
-    if (sessionStorage.getItem(MIGRATION_KEY)) return;
+    const key = `${MIGRATION_KEY}:${getStorageScope()}`;
+    const active = captureStorageScope();
+    if (sessionStorage.getItem(key)) return;
 
     running.current = true;
 
@@ -31,7 +33,7 @@ export function useImageMigration() {
         );
 
         if (logsWithBase64.length === 0) {
-          sessionStorage.setItem(MIGRATION_KEY, "1");
+          sessionStorage.setItem(key, "1");
           return;
         }
 
@@ -40,6 +42,7 @@ export function useImageMigration() {
         for (const log of logsWithBase64) {
           try {
             const { urls, changed } = await migrateBase64Images(log.images ?? []);
+            if (!active()) return;
             if (changed) {
               await updateDailyLog({ ...log, images: urls });
               console.log(`[image-migration] Migrated images for ${log.date}`);
@@ -49,7 +52,7 @@ export function useImageMigration() {
           }
         }
 
-        sessionStorage.setItem(MIGRATION_KEY, "1");
+        if (active()) sessionStorage.setItem(key, "1");
         console.log("[image-migration] Done.");
       } catch (err) {
         console.warn("[image-migration] Migration failed:", err);

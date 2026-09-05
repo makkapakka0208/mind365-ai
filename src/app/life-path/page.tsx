@@ -1,4 +1,5 @@
 "use client";
+import { captureStorageScope } from "@/lib/account-storage";
 
 import { Bot, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Compass, Flame, Loader2, Map, Pencil, Plus, RefreshCw, Sparkles, Target, Trash2, X, Zap } from "lucide-react";
 import Link from "next/link";
@@ -166,10 +167,12 @@ function MentorSection({
   const dailyStale  = plan.dailyGeneratedAt !== today;
 
   const act = async (action: MentorAction, context?: string) => {
+    const active = captureStorageScope();
     setLoading(action);
     setError("");
     try {
       const res = await callMentor(action, goal, context);
+      if (!active()) return;
       if (!res.available) { setError(res.message ?? "AI 功能未配置。"); return; }
       if (!res.data)       { setError(res.message ?? "AI 返回为空，请重试。"); return; }
 
@@ -1511,8 +1514,10 @@ export default function LifePathPage() {
   // v5 drawer → call existing AI mentor; reuse the same persistence path as MentorSection.
   const runMentorForDrawer = useCallback(
     async (action: MentorAction) => {
+      const active = captureStorageScope();
       if (!drawerGoal) return;
       const res = await callMentor(action, drawerGoal);
+      if (!active()) return;
       if (!res.available) throw new Error(res.message ?? "AI 功能未配置。");
       if (!res.data) throw new Error(res.message ?? "AI 返回为空，请重试。");
       const d = res.data as Record<string, unknown>;

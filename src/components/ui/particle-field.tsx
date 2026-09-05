@@ -86,16 +86,39 @@ export function ParticleField({
       raf = requestAnimationFrame(tick);
     };
 
-    resize();
-    if (reduced) {
-      draw();
-    } else {
+    // 仅在「可见 + 页面在前台」时跑动画，离开视口或切后台即暂停，省电省 CPU。
+    let onScreen = true;
+    let running = false;
+    const start = () => {
+      if (running || reduced) return;
+      running = true;
       raf = requestAnimationFrame(tick);
-    }
-
-    window.addEventListener("resize", resize);
-    return () => {
+    };
+    const stop = () => {
+      running = false;
       cancelAnimationFrame(raf);
+    };
+    const sync = () => {
+      if (onScreen && document.visibilityState === "visible") start();
+      else stop();
+    };
+
+    resize();
+    draw();
+
+    const io = new IntersectionObserver(
+      (entries) => { onScreen = entries.some((e) => e.isIntersecting); sync(); },
+      { threshold: 0 },
+    );
+    io.observe(canvas);
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("resize", resize);
+    sync();
+
+    return () => {
+      stop();
+      io.disconnect();
+      document.removeEventListener("visibilitychange", sync);
       window.removeEventListener("resize", resize);
     };
   }, [color, count, speed]);

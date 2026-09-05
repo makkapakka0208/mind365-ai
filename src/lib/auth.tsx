@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import { setStorageUser } from "@/lib/account-storage";
 
 // ── Auth-aware Supabase singleton ──────────────────────────────────────────
 
@@ -39,14 +40,13 @@ function getOrCreateAuthClient(): SupabaseClient {
   const updateCachedUserId = (userId: string | null) => {
     const changed = cachedAuthUserId !== userId;
     cachedAuthUserId = userId;
+    setStorageUser(userId);
     // 登录/登出后通知存储层重新同步（初始同步可能发生在会话恢复之前）
     if (changed && typeof window !== "undefined") {
-      window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+      // Supabase auth callbacks run under a lock; start sync after it releases.
+      window.setTimeout(() => window.dispatchEvent(new Event(AUTH_CHANGE_EVENT)), 0);
     }
   };
-  authClient.auth.getSession().then(({ data: { session } }) => {
-    updateCachedUserId(session?.user?.id ?? null);
-  });
   authClient.auth.onAuthStateChange((_event, session) => {
     updateCachedUserId(session?.user?.id ?? null);
   });
@@ -101,27 +101,18 @@ function hasSupabaseAuthConfig() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const authConfigured = hasSupabaseAuthConfig();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(authConfigured);
 
   useEffect(() => {
-    if (!authConfigured) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
+    if (!authConfigured) return;
 
     const client = getOrCreateAuthClient();
 
-    // Get initial session
-    client.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
+    // INITIAL_SESSION and subsequent changes use the same ordered event stream.
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((_event, session) => {
+      setStorageUser(session?.user?.id ?? null);
       setUser(session?.user ?? null);
       setLoading(false);
       // When Supabase processes a recovery token (from password-reset email),
@@ -162,7 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (!authConfigured) return;
     const client = getOrCreateAuthClient();
-    await client.auth.signOut();
+    const { error } = await client.auth.signOut();
+    if (error) throw error;
   }, [authConfigured]);
 
   const resetPassword = useCallback(async (email: string) => {
@@ -189,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
+      key={user?.id ?? "guest"}
       value={{
         authConfigured,
         localMode: !authConfigured,

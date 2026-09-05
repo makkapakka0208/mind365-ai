@@ -1,3 +1,4 @@
+import { accountStorage } from "@/lib/account-storage";
 ﻿import { apiFetch } from "@/lib/api";
 import { parseReadingHours } from "@/lib/analytics";
 import { toISODate } from "@/lib/date";
@@ -73,7 +74,7 @@ function readStoredReviews(): ReviewBucketMap {
     return createEmptyReviews();
   }
 
-  const raw = window.localStorage.getItem(REVIEW_STORAGE_KEY);
+  const raw = accountStorage.getItem(REVIEW_STORAGE_KEY);
 
   if (!raw) {
     return createEmptyReviews();
@@ -91,7 +92,7 @@ function writeStoredReviews(reviews: ReviewBucketMap) {
     return;
   }
 
-  window.localStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(reviews));
+  accountStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(reviews));
 }
 
 export function getCurrentWeekKey(reference: Date = new Date()): string {
