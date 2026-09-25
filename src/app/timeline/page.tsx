@@ -20,7 +20,9 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { DiaryBookModalPortal } from "@/components/dashboard/featured-book-preview";
 import { TimeHero } from "@/components/dashboard/time-hero";
+import { LifeTimeline } from "@/components/timeline/life-timeline";
 import { TimePendulum } from "@/components/dashboard/time-pendulum";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -30,7 +32,8 @@ import {
   type MemoryCard,
   type MemoryTriggerType,
 } from "@/lib/memory-triggers";
-import { useDailyLogsStore } from "@/lib/storage-store";
+import { refreshLifePathState } from "@/lib/life-path-storage";
+import { useDailyLogsStore, useTimeEntriesStore } from "@/lib/storage-store";
 
 const SERIF = '"Noto Serif SC", "Songti SC", serif';
 
@@ -792,6 +795,13 @@ function V5MemoryCard({
 
 export default function TimelinePage() {
   const logs = useDailyLogsStore();
+  const timeEntries = useTimeEntriesStore();
+  const [diaryModalId, setDiaryModalId] = useState<string | null>(null);
+
+  // 拉取云端最新的人生主线数据（含里程碑）
+  useEffect(() => {
+    void refreshLifePathState();
+  }, []);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const cards = useMemo(
@@ -820,6 +830,7 @@ export default function TimelinePage() {
       <section className="hidden md:block">
         <div className="grid" style={{ gap: 32 }}>
           <V5TimelineHeader />
+          <LifeTimeline logs={logs} onOpenLog={setDiaryModalId} />
           <TimeHero summaryHref="/year-review" />
 
           <div>
@@ -997,6 +1008,16 @@ export default function TimelinePage() {
 
         </Panel>
       </div>
+      <DiaryBookModalPortal
+        entries={logs}
+        entryId={diaryModalId}
+        timeEntries={timeEntries}
+        onClose={() => setDiaryModalId(null)}
+        onEdit={(entry) => {
+          setDiaryModalId(null);
+          window.location.href = `/daily-log?date=${entry.date}`;
+        }}
+      />
     </PageTransition>
   );
 }

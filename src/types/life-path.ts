@@ -385,3 +385,19 @@ export interface GoalProgress {
    */
   daysLeft: number | null;
 }
+
+/**
+ * 人生里程碑：用户手动标记的人生事件（如「搬到深圳」「开始新工作」），
+ * 显示在生命时间线上。
+ */
+export interface Milestone {
+  id: string;
+  /** yyyy-MM-dd */
+  date: string;
+  title: string;
+  /** 图标键，见 src/lib/milestones.ts 的 MILESTONE_ICONS */
+  icon: string;
+  /** 可选：一句补充说明 */
+  note?: string;
+  createdAt: string;
+}
