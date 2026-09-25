@@ -19,8 +19,8 @@ const variants: Record<ButtonVariant, string> = {
 
 const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
   primary: {
-    background: "var(--m-accent)",
-    color: "var(--m-on-accent)",
+    background: "var(--v5-accent-fill)",
+    color: "var(--v5-accent-fill-ink)",
     boxShadow: "var(--m-shadow-out)",
   },
   secondary: {

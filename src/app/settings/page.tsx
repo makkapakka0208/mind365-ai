@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, FileText, HardDrive, LogIn, LogOut, MonitorSmartphone, Moon, Pencil, Settings2, Shield, Smartphone, Sun, Target, Upload } from "lucide-react";
+import { BookOpen, Camera, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, FileText, HardDrive, MonitorSmartphone, Moon, Pencil, Settings2, Sun, Target, Upload } from "lucide-react";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -27,7 +27,8 @@ import {
 import type { CloudSyncStatus } from "@/lib/storage";
 import { useDailyLogsStore, useNotesStore, useQuotesStore } from "@/lib/storage-store";
 import { toggleTabMode, useTabMode } from "@/lib/tab-mode";
-import { getThemePreference, setThemePreference, type ThemePreference } from "@/lib/theme";
+import { fileToAvatarDataUrl, saveProfile, useProfile } from "@/lib/profile";
+import { DEFAULT_THEME, getThemePreference, setThemePreference, type ThemePreference } from "@/lib/theme";
 
 const SERIF = '"Noto Serif SC", "Songti SC", serif';
 
@@ -40,6 +41,25 @@ const EMPTY_STATUS: CloudSyncStatus = {
   userId: "",
 };
 
+/** 质感主题的小色块，和 lucide 图标同样接收 size，放进同一个分段控件里。 */
+function Swatch(base: string, accent: string) {
+  function SwatchIcon({ size = 13 }: { size?: number }) {
+    return (
+      <span
+        aria-hidden
+        className="inline-block rounded-full"
+        style={{
+          width: size,
+          height: size,
+          background: `linear-gradient(135deg, ${base} 0 55%, ${accent} 55% 100%)`,
+          boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.15)",
+        }}
+      />
+    );
+  }
+  return SwatchIcon;
+}
+
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const logs = useDailyLogsStore();
@@ -47,6 +67,8 @@ export default function SettingsPage() {
   const notes = useNotesStore();
   const tabMode = useTabMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const profile = useProfile();
 
   const displayName = user?.email ? user.email.split("@")[0] : "我的记录";
   const avatarLetter = (displayName.trim()[0] || "M").toUpperCase();
@@ -75,7 +97,7 @@ export default function SettingsPage() {
     return () => window.removeEventListener(STORAGE_CHANGE_EVENT, update);
   }, []);
   // 挂载后读取，避免与 SSR 输出不一致
-  const [themePref, setThemePref] = useState<ThemePreference>("system");
+  const [themePref, setThemePref] = useState<ThemePreference>(DEFAULT_THEME);
   useEffect(() => { setThemePref(getThemePreference()); }, []);
 
   useEffect(() => {
@@ -169,32 +191,100 @@ export default function SettingsPage() {
         </p>
         <Panel className="p-[22px]">
           <div className="flex items-center gap-3.5">
-            <div
-              className="flex shrink-0 items-center justify-center rounded-full"
-              style={{
-                width: 64,
-                height: 64,
-                background: "linear-gradient(135deg, #c8893a 0%, #8B5E3C 100%)",
-                color: "#fff",
-                fontFamily: SERIF,
-                fontWeight: 700,
-                fontSize: 26,
-                boxShadow: "0 4px 14px rgba(139,94,60,0.28)",
-              }}
+            <button
+              type="button"
+              aria-label="更换头像"
+              title="更换头像"
+              className="group relative shrink-0 rounded-full"
+              style={{ width: 64, height: 64 }}
+              onClick={() => avatarInputRef.current?.click()}
             >
-              {avatarLetter}
-            </div>
+              {profile.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element -- 本地 data URL，无需 next/image 优化
+                <img
+                  src={profile.avatar}
+                  alt="我的头像"
+                  className="h-full w-full rounded-full object-cover"
+                  style={{ boxShadow: "0 4px 14px rgba(var(--v5-shadow-rgb),0.22), 0 0 0 1px var(--v5-rule-strong)" }}
+                />
+              ) : (
+                <span
+                  className="flex h-full w-full items-center justify-center rounded-full"
+                  style={{
+                    background: "linear-gradient(135deg, var(--v5-amber) 0%, var(--v5-accent) 100%)",
+                    color: "var(--m-on-accent)",
+                    fontFamily: SERIF,
+                    fontWeight: 700,
+                    fontSize: 26,
+                    boxShadow: "0 4px 14px rgba(var(--v5-accent-rgb),0.28)",
+                  }}
+                >
+                  {avatarLetter}
+                </span>
+              )}
+              {/* 悬停遮罩 + 常驻相机角标，提示可更换 */}
+              <span
+                aria-hidden
+                className="absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+                style={{ background: "rgba(0,0,0,0.32)", color: "#fff" }}
+              >
+                <Camera size={18} />
+              </span>
+              <span
+                aria-hidden
+                className="absolute -bottom-0.5 -right-0.5 flex items-center justify-center rounded-full"
+                style={{
+                  width: 22,
+                  height: 22,
+                  background: "var(--v5-surface)",
+                  border: "1px solid var(--v5-rule-strong)",
+                  color: "var(--v5-accent)",
+                  boxShadow: "0 2px 6px rgba(var(--v5-shadow-rgb),0.18)",
+                }}
+              >
+                <Camera size={11} />
+              </span>
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                try {
+                  saveProfile({ avatar: await fileToAvatarDataUrl(file) });
+                  setError("");
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "头像设置失败");
+                }
+              }}
+            />
             <div className="min-w-0 flex-1">
               <div className="truncate text-[19px] font-semibold" style={{ color: "var(--m-ink)", fontFamily: SERIF, letterSpacing: "-0.01em" }}>
                 {displayName}
               </div>
-              <div className="mt-1 text-xs" style={{ color: "var(--m-ink3)" }}>{sinceLabel}</div>
+              <div className="mt-1 text-xs" style={{ color: "var(--m-ink3)" }}>
+                {sinceLabel}
+                {profile.avatar ? (
+                  <button
+                    type="button"
+                    className="ml-2 underline-offset-2 hover:underline"
+                    style={{ color: "var(--m-accent)" }}
+                    onClick={() => saveProfile({ avatar: undefined })}
+                  >
+                    恢复默认头像
+                  </button>
+                ) : null}
+              </div>
             </div>
             <Link
               href="/daily-log"
               aria-label="去记录"
               className="flex shrink-0 items-center justify-center rounded-[10px]"
-              style={{ width: 34, height: 34, border: "1px solid rgba(139,94,60,0.14)", background: "rgba(255,248,236,0.8)", boxShadow: "var(--m-shadow-out)" }}
+              style={{ width: 34, height: 34, border: "1px solid rgba(var(--v5-accent-rgb),0.14)", background: "var(--m-base-light)", boxShadow: "var(--m-shadow-out)" }}
             >
               <Pencil size={14} style={{ color: "var(--m-ink3)" }} />
             </Link>
@@ -310,19 +400,21 @@ export default function SettingsPage() {
         <Panel className="p-6 sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="flex items-center gap-2 text-lg font-semibold" style={{ color: "var(--m-ink)" }}>
+              <h3 className="flex items-center gap-2 whitespace-nowrap text-lg font-semibold" style={{ color: "var(--m-ink)" }}>
                 <Moon size={20} />
                 外观
               </h3>
             </div>
             <div
-              className="flex shrink-0 rounded-xl p-1"
+              className="flex shrink-0 flex-wrap rounded-xl p-1"
               style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
             >
               {([
                 { value: "light", label: "浅色", Icon: Sun },
                 { value: "dark", label: "深色", Icon: Moon },
                 { value: "system", label: "跟随系统", Icon: MonitorSmartphone },
+                { value: "plaster", label: "灰泥", Icon: Swatch("#ece8df", "#8a6630") },
+                { value: "patina", label: "铜绿", Icon: Swatch("#3d5b5c", "#d0a867") },
               ] as const).map(({ value, label, Icon }) => {
                 const active = themePref === value;
                 return (
@@ -350,94 +442,59 @@ export default function SettingsPage() {
         </Panel>
       </StaggerItem>
 
-      {/* ── 数据存储说明 ── */}
+      {/* ── 云同步（一行状态 + 操作）── */}
       <StaggerItem index={0}>
-        <Panel className="p-6 sm:p-8">
-          <div className="space-y-5">
-            <h3 className="flex items-center gap-2 text-lg font-semibold" style={{ color: "var(--m-ink)" }}>
-              <Shield size={20} />
-              你的数据安全
-            </h3>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* 本地存储 */}
-              <div
-                className="flex gap-3 rounded-2xl p-4"
-                style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(139,94,60,0.1)" }}>
-                  <Smartphone size={20} style={{ color: "var(--m-accent)" }} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>本机缓存</p>
-                  <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
-                    数据先保存在本机。清除浏览器数据会删除本地记录和草稿；只有已成功上传的记录才能从云端恢复。
-                  </p>
-                  <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: "var(--m-success)" }}>
-                    <CheckCircle2 size={12} />
-                    已启用
-                  </p>
-                </div>
-              </div>
-
-              {/* 云同步 */}
-              <div
-                className="flex gap-3 rounded-2xl p-4"
-                style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: syncConfigured ? "rgba(90,138,60,0.1)" : "rgba(139,94,60,0.06)" }}>
-                  {syncConfigured ? <Cloud size={20} style={{ color: "var(--m-success)" }} /> : <CloudOff size={20} style={{ color: "var(--m-ink3)" }} />}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--m-ink)" }}>云端同步</p>
-                  <p className="mt-1 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
-                    {syncConfigured
-                      ? "已启用云同步。请确认待同步修改已上传后，再清除本机数据。"
-                      : "未连接云端，数据仅保存在本地。建议定期导出 JSON 备份。"}
-                  </p>
-                  <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium" style={{ color: syncConfigured ? "var(--m-success)" : "var(--m-ink3)" }}>
-                    {syncConfigured ? <><CheckCircle2 size={12} /> 自动同步中</> : <><CloudOff size={12} /> 未连接</>}
-                  </p>
-                  {user && syncMessage && <p role="status" className="mt-2 text-xs leading-5">{syncMessage}</p>}
-                  {user && <Button className="mt-2" size="sm" type="button" disabled={syncing} onClick={async () => {
+        <Panel className="px-5 py-4 sm:px-6">
+          <div className="flex items-center gap-3.5">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: "rgba(var(--v5-accent-rgb),0.08)" }}
+            >
+              {syncConfigured && user
+                ? <Cloud size={18} style={{ color: "var(--m-accent)" }} />
+                : <CloudOff size={18} style={{ color: "var(--m-ink3)" }} />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold" style={{ color: "var(--m-ink)" }}>云同步</p>
+              <p role="status" className="mt-0.5 truncate text-xs" style={{ color: "var(--m-ink3)" }}>
+                {user
+                  ? (syncMessage || `${user.email} · ${syncConfigured ? "自动同步中" : "未开启同步"}`)
+                  : "登录后可在多台设备间同步"}
+              </p>
+            </div>
+            {user ? (
+              <div className="flex shrink-0 items-center gap-3 text-xs">
+                <button
+                  type="button"
+                  disabled={syncing}
+                  className="transition-opacity hover:opacity-75 disabled:opacity-50"
+                  style={{ color: "var(--m-accent)" }}
+                  onClick={async () => {
                     setSyncing(true);
                     try { await Promise.all([refreshDailyLogs(), refreshTodos()]); }
                     finally { setSyncing(false); }
-                  }}><Cloud size={14} className="mr-2" />{syncing ? "同步中" : "重新同步"}</Button>}
-                  {user ? (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="text-xs" style={{ color: "var(--m-ink3)" }}>{user.email}</span>
-                      <button
-                        type="button"
-                        onClick={() => { void signOut().catch(() => setError("退出登录失败，请重试。")); }}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
-                        style={{ background: "rgba(192,57,43,0.08)", color: "#c0392b", border: "1px solid rgba(192,57,43,0.2)" }}
-                      >
-                        <LogOut size={12} />
-                        退出登录
-                      </button>
-                    </div>
-                  ) : (
-                    <Link
-                      href="/login"
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80"
-                      style={{ background: "var(--m-accent)", color: "#fff" }}
-                    >
-                      <LogIn size={12} />
-                      登录 / 注册开启云同步
-                    </Link>
-                  )}
-                </div>
+                  }}
+                >
+                  {syncing ? "同步中…" : "立即同步"}
+                </button>
+                <button
+                  type="button"
+                  className="transition-opacity hover:opacity-75"
+                  style={{ color: "var(--m-ink3)" }}
+                  onClick={() => { void signOut().catch(() => setError("退出登录失败，请重试。")); }}
+                >
+                  退出登录
+                </button>
               </div>
-            </div>
-
-            <div className="rounded-xl p-3 text-xs leading-5" style={{ background: "rgba(211,153,60,0.08)", border: "1px solid rgba(211,153,60,0.18)", color: "var(--m-ink2)" }}>
-              <p className="font-medium" style={{ color: "var(--m-accent)" }}>⚠️ 重要提醒</p>
-              <p className="mt-1">
-                云端数据库存储空间有限，日记中的图片会占用较多空间。
-                <strong>建议定期使用下方的「导出备份」功能，将数据保存为 JSON 文件到电脑或网盘</strong>，这是最可靠的备份方式。
-              </p>
-            </div>
+            ) : (
+              <Link
+                href="/login"
+                className="shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-opacity hover:opacity-85"
+                style={{ background: "var(--v5-accent-fill)", color: "var(--v5-accent-fill-ink)" }}
+              >
+                登录
+              </Link>
+            )}
           </div>
         </Panel>
       </StaggerItem>
@@ -508,7 +565,7 @@ export default function SettingsPage() {
                 数据备份
               </h3>
               <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                完整备份包含日记、待办、草稿、书库、复盘、人生主线和图片。云端图片需联网下载；恢复后的数据保存在当前账号。
+                导出全部记录为 JSON 文件，或从备份文件恢复。
               </p>
             </div>
 

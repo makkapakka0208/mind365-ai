@@ -10,7 +10,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
@@ -51,29 +50,9 @@ function getWeekdayShort(value: string) {
     .toUpperCase();
 }
 
-function formatTimestamp(date: string, createdAt: string) {
-  const source = Number.isFinite(Date.parse(createdAt))
-    ? new Date(createdAt)
-    : parseISODate(date);
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(source);
-}
-
 function getExcerpt(text: string) {
   const clean = text.trim().replace(/\s+/g, " ");
   return clean || "今天还没有写下完整的思绪，先让这一页停在安静的留白里。";
-}
-
-function getBookmarkText(entry: DailyLog) {
-  return entry.tags[0] ? `#${entry.tags[0]}` : "今日书签";
-}
-function getBookmarkSubline(entry: DailyLog) {
-  return entry.tags[1] ? `#${entry.tags[1]}` : "留住这一页的心境与线索";
 }
 
 // ── Modal-only helpers ────────────────────────────────────────────────────────
@@ -298,172 +277,161 @@ function BookStat({ reading }: { reading: string }) {
   );
 }
 
-// ── Left page (homepage card) ─────────────────────────────────────────────────
+// ── Homepage card：编辑部式摘录（左：日期 / 心情 / 标签，右：摘录正文）────────────
 
-function LeftPage({ entry, userImage }: { entry: DailyLog; userImage?: string | null }) {
-  const timestamp = formatTimestamp(entry.date, entry.createdAt);
-  const dateLabel = entry.date.slice(5).replace("-", ".");
+const MONTHS_EN = ["JAN", "FEB", "MAR", "APR", "MAY", "JUNE", "JULY", "AUG", "SEPT", "OCT", "NOV", "DEC"];
 
-  const caption = (() => {
-    const t = entry.thoughts.trim();
-    if (!t) return `${dateLabel} 无言`;
-    const end = t.search(/[。！？\n]/);
-    const snippet = end > 0 && end <= 14 ? t.slice(0, end) : t.slice(0, 12);
-    return `${dateLabel}  ${snippet}${t.length > snippet.length ? "…" : ""}`;
-  })();
-
+function MoodDots({ score }: { score: number }) {
+  const filled = Math.max(0, Math.min(10, Math.round(score)));
   return (
-    <div className="relative flex h-full flex-col overflow-hidden px-6 py-4 md:pl-8 md:pr-7 md:py-6">
-      <div
-        className="flex shrink-0 items-center justify-between border-b pb-2 pl-2 text-[12px] tracking-[0.16em]"
-        style={{ borderColor: "rgba(139,94,60,0.1)", color: "var(--m-ink3)", fontFamily: "ui-sans-serif, sans-serif" }}
-      >
-        <span>{timestamp}</span>
-        <span>{getWeekdayShort(entry.date)}</span>
-      </div>
-      <div
-        className="mx-auto my-auto flex shrink-0 items-center justify-center"
-        style={{ maxHeight: 230, maxWidth: "100%" }}
-      >
-        {userImage ? (
-          <div style={{ transform: "rotate(-2.2deg)", maxWidth: 195, width: "100%" }}>
-            <div
-              style={{
-                background: "#fff",
-                padding: "7px 7px 0",
-                borderRadius: 3,
-                boxShadow: [
-                  "0 1px 0 1px #e8e0d4",
-                  "0 2px 0 1px #ddd6c8",
-                  "0 3px 0 1px #d2c8ba",
-                  "0 4px 0 1px #c8bfaf",
-                  "0 10px 22px rgba(0,0,0,0.18)",
-                  "0 3px 8px rgba(0,0,0,0.10)",
-                ].join(", "),
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                alt="日记图片"
-                src={userImage}
-                style={{ display: "block", width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 1 }}
-              />
-              <div
-                style={{
-                  padding: "6px 8px 9px",
-                  fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",cursive',
-                  fontSize: 11.5,
-                  color: "rgba(70,52,36,0.50)",
-                  letterSpacing: "0.04em",
-                  lineHeight: 1.4,
-                  textAlign: "center",
-                  textShadow: "0.3px 0.3px 0 rgba(0,0,0,0.06)",
-                }}
-              >
-                {caption}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <Image
-            alt="handbook illustration"
-            className="h-auto w-full rotate-[-2deg] opacity-95 drop-shadow-[0_12px_22px_rgba(110,78,51,0.13)]"
-            style={{ maxWidth: 210 }}
-            height={230}
-            src="/illustrations/personal-notebook.svg"
-            width={230}
-          />
-        )}
-      </div>
-      <div className="relative mt-auto shrink-0 pl-2 pt-1">
-        <div className="relative" style={{ width: 250 }}>
-          <Image
-            alt="" aria-hidden
-            className="pointer-events-none select-none"
-            src="/illustrations/bookmark-label.svg"
-            width={250} height={127}
-            style={{ width: "100%", height: "auto" }}
-          />
-          <div className="absolute inset-x-0 top-0 pl-10 pr-6 pb-3 pt-4">
-            <div
-              className="flex items-center gap-1 text-[9px] tracking-[0.26em]"
-              style={{ color: "rgba(124,90,58,0.72)" }}
-            >
-              <svg fill="currentColor" height="9" viewBox="0 0 8 10" width="9" className="opacity-80">
-                <path d="M0 0H8V10L4 7.5L0 10V0Z" />
-              </svg>
-              BOOKMARK
-            </div>
-            <p className="mt-1.5 text-[14px] font-medium leading-tight" style={{ color: "rgba(79,55,39,0.96)" }}>
-              {getBookmarkText(entry)}
-            </p>
-            <p className="mt-1 text-[11px] leading-snug" style={{ color: "rgba(125,94,66,0.76)", maxWidth: 136 }}>
-              {getBookmarkSubline(entry)}
-            </p>
-          </div>
-        </div>
-        <Image
-          alt="" aria-hidden
-          className="pointer-events-none absolute select-none opacity-[0.68] mix-blend-multiply"
-          src="/illustrations/wax-seal.svg"
-          width={70} height={70}
-          style={{ width: 70, height: "auto", bottom: 0, right: -4 }}
+    <div className="flex items-center gap-[5px]" aria-label={`心情 ${filled}/10`}>
+      {Array.from({ length: 10 }, (_, i) => (
+        <span
+          key={i}
+          className="block rounded-full"
+          style={{
+            width: 5,
+            height: 5,
+            background: i < filled ? "var(--v5-accent)" : "rgba(var(--v5-ink-rgb),0.14)",
+          }}
         />
-      </div>
+      ))}
     </div>
   );
 }
 
-// ── Homepage card ─────────────────────────────────────────────────────────────
-
 export function FeaturedBookPreview({ entry, onClick }: { entry: DailyLog; onClick?: () => void }) {
   const excerpt = getExcerpt(entry.thoughts);
+  const d = parseISODate(entry.date);
+  const time = Number.isFinite(Date.parse(entry.createdAt)) ? formatTimeHM(entry.createdAt) : "";
+  const cover = entry.images?.find(Boolean) ?? null;
 
-  // When onClick is provided, render as a button instead of a Link
-  const Wrapper = onClick
-    ? ({ children, className }: { children: React.ReactNode; className?: string }) => (
-        <button type="button" className={`${className} w-full text-left`} onClick={onClick}>{children}</button>
-      )
-    : ({ children, className }: { children: React.ReactNode; className?: string }) => (
-        <Link className={className} href={`/journal?id=${entry.id}`}>{children}</Link>
-      );
-
-  return (
-    <Wrapper className="group block">
-      <div className="relative px-2 pb-4 pt-2 md:px-3 md:pb-5">
-        <div className="relative overflow-hidden rounded-[40px]">
-          <Image alt="" aria-hidden className="pointer-events-none select-none object-fill" fill src="/illustrations/book-cover-shell.svg" />
-          <div className="relative z-10 px-[42px] pb-[42px] pt-[38px] md:px-[52px] md:pb-[52px] md:pt-[44px]">
-            <div className="relative overflow-hidden rounded-[24px] transition-transform duration-300 group-hover:-translate-y-0.5">
-              <div aria-hidden className="pointer-events-none absolute inset-y-6 left-1/2 z-10 hidden w-px -translate-x-1/2 md:block"
-                style={{ background: "linear-gradient(180deg,transparent 0%,rgba(139,94,60,0.18) 50%,transparent 100%)" }}
-              />
-              <div className="grid min-h-[480px] grid-cols-1 md:grid-cols-2">
-                <LeftPage entry={entry} userImage={null} />
-                <div
-                  className="relative flex flex-col overflow-hidden px-5 py-4 md:pl-10 md:pr-7 md:py-6"
-                  style={{ backgroundImage: "repeating-linear-gradient(180deg,transparent,transparent 33px,rgba(139,94,60,0.08) 33px,rgba(139,94,60,0.08) 34px)" }}
-                >
-                  <p
-                    className="text-[16px] leading-[1.95] tracking-[0.04em]"
-                    style={{
-                      color: "rgba(71,49,35,0.92)",
-                      fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif',
-                      display: "-webkit-box",
-                      WebkitLineClamp: 10,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {excerpt}
-                  </p>
-                </div>
-              </div>
+  const body = (
+    <div
+      key={entry.id}
+      className="featured-excerpt grid overflow-hidden transition-transform duration-300 group-hover:-translate-y-0.5 md:grid-cols-[210px_1fr]"
+      style={{
+        background: "rgba(var(--v5-accent-rgb),0.035)",
+        border: "1px solid var(--v5-rule)",
+        borderRadius: 22,
+      }}
+    >
+      {/* ── 左栏：日期 / 时间 / 心情 / 标签 / 配图 ── */}
+      <div
+        className="flex flex-col gap-4 px-7 py-7 md:border-r"
+        style={{ borderColor: "var(--v5-rule)" }}
+      >
+        <div>
+          <div
+            style={{
+              fontFamily: "var(--v5-serif)",
+              fontSize: 76,
+              fontWeight: 500,
+              lineHeight: 0.9,
+              color: "var(--v5-ink)",
+              fontFeatureSettings: '"lnum" 1',
+            }}
+          >
+            {d.getDate()}
+          </div>
+          <div className="v5-eyebrow mt-3">
+            {MONTHS_EN[d.getMonth()]} · {getWeekdayShort(entry.date)}
+          </div>
+          {time ? (
+            <div className="mt-1" style={{ fontFamily: "var(--v5-serif)", fontStyle: "italic", fontSize: 14, color: "var(--v5-ink3)" }}>
+              {getTimeOfDay(entry.createdAt)} · {time}
             </div>
+          ) : null}
+        </div>
+
+        <div>
+          <MoodDots score={entry.mood} />
+          <div className="mt-1.5 text-[11px]" style={{ color: "var(--v5-ink3)", letterSpacing: "0.08em" }}>
+            心情 {entry.mood}/10
           </div>
         </div>
+
+        {entry.tags.length > 0 ? (
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {entry.tags.slice(0, 4).map((t) => (
+              <span key={t} style={{ fontFamily: "var(--v5-serif)", fontStyle: "italic", fontSize: 14, color: "var(--v5-accent)" }}>
+                #{t}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 用户上传图（Supabase / data URL）
+          <img
+            alt="日记配图"
+            src={cover}
+            className="mt-auto w-full object-cover"
+            style={{ aspectRatio: "4 / 3", borderRadius: 14, border: "1px solid var(--v5-rule)", boxShadow: "var(--v5-sh-1)" }}
+          />
+        ) : null}
       </div>
-    </Wrapper>
+
+      {/* ── 右栏：引号 + 摘录（淡横线）+ 阅读全文 ── */}
+      <div className="relative flex min-h-[280px] flex-col px-7 pb-6 pt-5 md:px-10">
+        <span
+          aria-hidden
+          className="pointer-events-none select-none"
+          style={{
+            fontFamily: "var(--v5-serif)",
+            fontSize: 84,
+            lineHeight: 1,
+            height: 44,
+            color: "var(--v5-accent)",
+            opacity: 0.35,
+          }}
+        >
+          “
+        </span>
+        <p
+          className="m-0"
+          style={{
+            fontFamily: "var(--v5-serif)",
+            fontSize: 17,
+            lineHeight: "34px",
+            letterSpacing: "0.02em",
+            color: "var(--v5-ink)",
+            backgroundImage: "repeating-linear-gradient(180deg, transparent 0 33px, rgba(var(--v5-ink-rgb),0.07) 33px 34px)",
+            display: "-webkit-box",
+            WebkitLineClamp: 7,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {excerpt}
+        </p>
+
+        <div className="mt-auto flex items-center justify-between gap-4 pt-6">
+          <span className="truncate text-[13px]" style={{ fontFamily: "var(--v5-serif)", fontStyle: "italic", color: "var(--v5-ink3)" }}>
+            {entry.reading.trim() ? `在读《${entry.reading.trim().replace(/^《|》$/g, "")}》` : ""}
+          </span>
+          <span
+            className="shrink-0 text-[13px] transition-transform duration-300 group-hover:translate-x-0.5"
+            style={{ fontFamily: "var(--v5-serif)", color: "var(--v5-accent)", letterSpacing: "0.06em" }}
+          >
+            阅读全文 →
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" className="group block w-full text-left" onClick={onClick}>
+        {body}
+      </button>
+    );
+  }
+  return (
+    <Link className="group block" href={`/journal?id=${entry.id}`}>
+      {body}
+    </Link>
   );
 }
 

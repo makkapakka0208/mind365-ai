@@ -1428,7 +1428,7 @@ export function downloadMind365Markdown(filename = "mind365-export.md") {
   triggerDownload(buildMind365Markdown(), "text/markdown;charset=utf-8", filename);
 }
 
-const BACKUP_EXTRA_KEYS = ["reviews", "mind365_custom_themes", "mind365_hidden_themes", JOURNAL_DRAFTS_KEY] as const;
+const BACKUP_EXTRA_KEYS = ["reviews", "mind365_custom_themes", "mind365_hidden_themes", JOURNAL_DRAFTS_KEY, "mind365_profile"] as const;
 
 export async function downloadGuestBackup() {
   const doc = getGuestDocument();

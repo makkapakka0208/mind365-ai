@@ -17,8 +17,13 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "@fontsource-variable/fraunces/full.css";
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/500.css";
+import "@fontsource/cormorant-garamond/600.css";
+import "@fontsource/cormorant-garamond/400-italic.css";
 
 import "./globals.css";
+import "./skins.css";
 
 export const metadata: Metadata = {
   title: "Mind365",
@@ -41,7 +46,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#8B5E3C",
+  themeColor: "#ece8df", // 与默认主题（灰泥）一致
 };
 
 export default function RootLayout({
@@ -55,7 +60,7 @@ export default function RootLayout({
         {/* 首屏前同步应用主题，防止暗色模式闪白（与 src/lib/theme.ts 逻辑一致） */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=localStorage.getItem("mind365-theme");var d=p==="dark"||(p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.setAttribute("data-theme","dark");}}catch(e){}})();`,
+            __html: `(function(){try{var r=document.documentElement;var p=localStorage.getItem("mind365-theme")||"plaster";var d=p==="dark"||p==="patina"||(p!=="light"&&p!=="plaster"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d){r.setAttribute("data-theme","dark");}if(p==="plaster"||p==="patina"){r.setAttribute("data-skin",p);}}catch(e){}})();`,
           }}
         />
         {/* PWA Icons */}

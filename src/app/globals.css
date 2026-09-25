@@ -27,6 +27,18 @@
   --v5-rose:         #b67e6a;
   --v5-amber:        #c8893a;
 
+  /* 供 rgba(var(--x-rgb), α) 使用的通道值 + 实心浮层底色 */
+  --v5-accent-rgb:   139, 94, 60;
+  --v5-ink-rgb:      75, 51, 27;
+  --v5-shadow-rgb:   75, 51, 27;
+  --m-on-accent-rgb: 255, 255, 255;
+  --v5-surface:      #faf7f0;
+  --v5-accent-deep:  #6b4628;
+  /* 强调色实心按钮（质感主题里换成着色毛玻璃）*/
+  --v5-accent-fill:      var(--v5-accent);
+  --v5-accent-fill-ink:  var(--m-on-accent);
+  --v5-accent-fill-ring: var(--v5-accent);
+
   --v5-sh-1:     0 1px 2px rgba(75,51,27,0.04), 0 0 0 1px rgba(75,51,27,0.04);
   --v5-sh-2:     0 1px 3px rgba(75,51,27,0.05), 0 4px 12px rgba(75,51,27,0.04), 0 0 0 1px rgba(75,51,27,0.04);
   --v5-sh-3:     0 1px 3px rgba(75,51,27,0.06), 0 8px 24px rgba(75,51,27,0.07), 0 0 0 1px rgba(75,51,27,0.04);
@@ -273,6 +285,90 @@ button {
   max-width: 68ch;
 }
 
+/* 年轮动效：已过的日刻度依次点亮（YearDial，只播一次） */
+@keyframes year-dial-tick-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.year-dial.is-animated .year-dial-tick {
+  animation: year-dial-tick-in 420ms var(--v5-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .year-dial-tick {
+    animation: none !important;
+  }
+}
+
+/* 品牌加载动画（BrandLoader）：延迟淡入 + 刻度彗尾绕圈 + 文案呼吸 */
+@keyframes brand-loader-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes brand-loader-tick {
+  0%        { opacity: 1; }
+  45%, 100% { opacity: 0.12; }
+}
+
+@keyframes brand-loader-breathe {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
+}
+
+.brand-loader {
+  animation: brand-loader-in 600ms var(--v5-ease-out) 200ms both;
+}
+
+.brand-loader-tick {
+  opacity: 0.12;
+  animation: brand-loader-tick 1.8s linear infinite;
+}
+
+.brand-loader-label {
+  animation: brand-loader-breathe 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-loader,
+  .brand-loader-tick,
+  .brand-loader-label {
+    animation: none;
+  }
+
+  .brand-loader-tick { opacity: 0.5; }
+}
+
+/* 精选记录：翻页时淡入上浮 */
+@keyframes featured-excerpt-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.featured-excerpt {
+  animation: featured-excerpt-in 480ms var(--v5-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .featured-excerpt { animation: none; }
+}
+
+/* 四象限矩阵的十字发丝线：手机单列时只有横线，≥640px 时 2×2 */
+.quad-matrix > * + * {
+  border-top: 1px solid rgba(var(--v5-ink-rgb), 0.10);
+}
+
+@media (min-width: 640px) {
+  .quad-matrix > :nth-child(2) {
+    border-top: none;
+  }
+
+  .quad-matrix > :nth-child(odd) {
+    border-right: 1px solid rgba(var(--v5-ink-rgb), 0.10);
+  }
+}
+
 /* ── v5 utility classes ─────────────────────────────────────────── */
 .v5-page-bg {
   background:
@@ -371,7 +467,6 @@ button {
   font-family: var(--v5-serif);
 }
 
-.daily-log-hero,
 .daily-log-paper,
 .daily-log-side-card {
   border: 1px solid var(--v5-rule);
@@ -381,37 +476,45 @@ button {
   box-shadow: 0 1px 2px rgba(75, 51, 27, 0.04), 0 12px 34px rgba(75, 51, 27, 0.07);
 }
 
-.daily-log-hero {
-  overflow: hidden;
-  border-radius: 32px;
-  padding: clamp(26px, 3.2vw, 40px) clamp(28px, 4vw, 46px);
-  background:
-    radial-gradient(circle at 92% 0%, rgba(255, 238, 190, 0.60), transparent 42%),
-    linear-gradient(135deg, #fffaf0 0%, #faecc8 100%);
+/* 心境随笔刊头：日期即标题 + 斜体副标题 + 底部发丝线（无卡片） */
+.daily-log-masthead {
+  padding: 4px 4px 18px;
+  border-bottom: 1px solid var(--v5-rule-strong);
 }
 
-.daily-log-date {
-  font-size: 14px;
-  font-style: italic;
-  color: var(--v5-ink3);
-}
-
-.daily-log-title {
-  margin: 18px 0 0;
+.daily-log-masthead-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 14px;
+  margin: 0;
   color: var(--v5-ink);
-  font-size: clamp(34px, 4vw, 52px);
-  font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  font-family: var(--v5-serif);
+  font-size: clamp(34px, 4vw, 50px);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
 }
 
-.daily-log-subtitle {
-  margin: 18px 0 0;
-  max-width: 760px;
-  color: var(--v5-ink2);
-  font-size: clamp(16px, 1.55vw, 19px);
+.daily-log-masthead-numeral {
+  color: var(--v5-accent);
+  font-size: 0.72em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.daily-log-masthead-dot {
+  color: var(--v5-ink-mute);
+  font-size: 0.6em;
+}
+
+.daily-log-masthead-sub {
+  margin: 10px 0 0;
+  color: var(--v5-ink3);
+  font-family: var(--v5-serif);
+  font-size: 15.5px;
   font-style: italic;
-  line-height: 1.75;
+  letter-spacing: 0.04em;
 }
 
 .daily-log-paper {
@@ -516,10 +619,6 @@ button {
 }
 
 @media (max-width: 640px) {
-  .daily-log-title {
-    font-size: 30px;
-  }
-
   .daily-log-textarea {
     min-height: 300px;
     padding: 22px;
@@ -559,6 +658,14 @@ html[data-theme="dark"] {
   --v5-accent-bg:    rgba(200, 154, 110, 0.10);
   --v5-rose:         #cf9d8a;
   --v5-amber:        #d9a254;
+
+  /* 供 rgba(var(--x-rgb), α) 使用的通道值 + 实心浮层底色 */
+  --v5-accent-rgb:   200, 154, 110;
+  --v5-ink-rgb:      240, 228, 212;
+  --v5-shadow-rgb:   0, 0, 0;
+  --m-on-accent-rgb: 27, 20, 14;
+  --v5-surface:      #241b13;
+  --v5-accent-deep:  #a87b52;
 
   --v5-sh-1:     0 1px 2px rgba(0,0,0,0.35), 0 0 0 1px rgba(235,210,180,0.05);
   --v5-sh-2:     0 1px 3px rgba(0,0,0,0.40), 0 4px 12px rgba(0,0,0,0.30), 0 0 0 1px rgba(235,210,180,0.05);
@@ -615,19 +722,12 @@ html[data-theme="dark"] .v5-page-bg {
     linear-gradient(180deg, var(--v5-bg) 0%, var(--v5-bg-warm) 100%);
 }
 
-html[data-theme="dark"] .daily-log-hero,
 html[data-theme="dark"] .daily-log-paper,
 html[data-theme="dark"] .daily-log-side-card {
   background:
     linear-gradient(180deg, rgba(46, 36, 24, 0.65), rgba(38, 29, 19, 0.30)),
     var(--v5-card);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 34px rgba(0, 0, 0, 0.35);
-}
-
-html[data-theme="dark"] .daily-log-hero {
-  background:
-    radial-gradient(circle at 92% 0%, rgba(96, 70, 32, 0.35), transparent 42%),
-    linear-gradient(135deg, #251c12 0%, #2b2113 100%);
 }
 
 html[data-theme="dark"] .daily-log-textarea {

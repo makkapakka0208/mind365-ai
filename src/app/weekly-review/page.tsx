@@ -9,7 +9,6 @@ import { LineChartCard } from "@/components/charts/line-chart-card";
 import { SummaryCard } from "@/components/dashboard/summary-card";
 import { AiReflectionPanel } from "@/components/review/ai-reflection-panel";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Illustration } from "@/components/ui/illustration";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -103,7 +102,7 @@ export default function WeeklyReviewPage() {
       ) : (
         <>
           <StaggerItem index={0}>
-            <Panel className="grid items-center gap-4 p-5 lg:grid-cols-[1.3fr_1fr]" interactive>
+            <Panel className="p-5" interactive>
               <div>
                 <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>本周快照</h3>
                 <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
@@ -111,7 +110,6 @@ export default function WeeklyReviewPage() {
                   {metrics.totalStudyHours.toFixed(1)} 小时，阅读 {metrics.totalReadingHours.toFixed(1)} 小时。
                 </p>
               </div>
-              <Illustration alt="weekly reflection illustration" className="mx-auto max-w-[230px]" src="/illustrations/relaxed-reading.svg" />
             </Panel>
           </StaggerItem>
 

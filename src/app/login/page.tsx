@@ -124,8 +124,8 @@ export default function LoginPage() {
           <div
             className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
             style={{
-              background: "var(--m-accent)",
-              color: "#fff",
+              background: "var(--v5-accent-fill)",
+              color: "var(--v5-accent-fill-ink)",
               boxShadow: "var(--m-shadow-out)",
             }}
           >

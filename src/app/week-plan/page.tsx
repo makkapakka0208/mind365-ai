@@ -125,7 +125,7 @@ function WeekSwitcher({
           className="ml-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
           onClick={() => onChange(thisWeek)}
           type="button"
-          style={{ background: "var(--m-accent)", color: "#fff" }}
+          style={{ background: "var(--v5-accent-fill)", color: "var(--v5-accent-fill-ink)" }}
         >
           回到本周
         </button>
@@ -899,7 +899,7 @@ export default function WeekPlanPage() {
                   <Link
                     className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-opacity hover:opacity-80"
                     href="/life-path"
-                    style={{ background: "var(--m-accent)", color: "#fff" }}
+                    style={{ background: "var(--v5-accent-fill)", color: "var(--v5-accent-fill-ink)" }}
                   >
                     前往人生主线
                   </Link>

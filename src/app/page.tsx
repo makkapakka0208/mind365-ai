@@ -16,7 +16,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
 import { HomeTodoCard } from "@/components/dashboard/home-todo-card";
-import { TimeHero } from "@/components/dashboard/time-hero";
+import { getYearStats, TimeHero, YearDial } from "@/components/dashboard/time-hero";
 import { Button } from "@/components/ui/button";
 import { CountUp } from "@/components/ui/count-up";
 import { Dialog } from "@/components/ui/dialog";
@@ -530,16 +530,8 @@ function BookPreview({ entry }: { entry: DailyLog }) {
 const SERIF = '"Noto Serif SC", "Songti SC", serif';
 
 // Mobile Home · time card with pendulum analog clock (design: OverviewScreen)
-function HomePendulumCard({ now }: { now: Date }) {
-  const yr = now.getFullYear();
-  const startOfYear = new Date(yr, 0, 1);
-  const daysPassed = Math.floor((now.getTime() - startOfYear.getTime()) / 86400000);
-  const daysLeft = 365 - daysPassed;
-  const pct = Math.round((daysPassed / 365) * 100);
-
-  const hrAngle = ((now.getHours() % 12) + now.getMinutes() / 60) * 30;
-  const minAngle = now.getMinutes() * 6;
-  const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
+function HomePendulumCard() {
+  const { year: yr, month, daysInYear, daysPassed, daysLeft, yearPct: pct } = getYearStats();
 
   return (
     <div
@@ -550,7 +542,7 @@ function HomePendulumCard({ now }: { now: Date }) {
         boxShadow: "var(--m-shadow-out)",
       }}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <div className="flex items-baseline gap-1.5">
             <span className="font-bold leading-none" style={{ fontSize: 44, color: "var(--m-ink)", letterSpacing: "-0.04em", fontFamily: "var(--m-font-display)" }}>
@@ -563,7 +555,7 @@ function HomePendulumCard({ now }: { now: Date }) {
               <CountUp value={String(daysPassed)} className="block font-bold leading-none" style={{ fontSize: 26, color: "var(--m-accent)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)" }} />
               <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>天已过</span>
             </div>
-            <div className="h-[26px] w-px" style={{ background: "rgba(139,94,60,0.14)" }} />
+            <div className="h-[26px] w-px" style={{ background: "var(--v5-rule-strong)" }} />
             <div>
               <CountUp value={String(daysLeft)} className="block font-normal leading-none" style={{ fontSize: 26, color: "var(--m-ink)", letterSpacing: "-0.03em", fontFamily: "var(--m-font-display)" }} />
               <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>天未至</span>
@@ -571,45 +563,15 @@ function HomePendulumCard({ now }: { now: Date }) {
           </div>
         </div>
 
-        {/* Pendulum clock */}
-        <svg width="90" height="110" viewBox="0 0 90 110" style={{ flexShrink: 0 }} aria-hidden>
-          <circle cx="45" cy="45" r="38" fill="var(--m-base)" stroke="rgba(139,94,60,0.16)" strokeWidth="1.5" />
-          {Array.from({ length: 12 }).map((_, i) => {
-            const a = ((i * 30 - 90) * Math.PI) / 180;
-            const r1 = 31;
-            const r2 = i % 3 === 0 ? 23 : 27;
-            return (
-              <line
-                key={i}
-                x1={45 + r1 * Math.cos(a)} y1={45 + r1 * Math.sin(a)}
-                x2={45 + r2 * Math.cos(a)} y2={45 + r2 * Math.sin(a)}
-                stroke="rgba(139,94,60,0.3)" strokeWidth={i % 3 === 0 ? 2 : 1} strokeLinecap="round"
-              />
-            );
-          })}
-          {[{ t: "XII", a: -90 }, { t: "III", a: 0 }, { t: "VI", a: 90 }, { t: "IX", a: 180 }].map(({ t, a }) => {
-            const ra = (a * Math.PI) / 180;
-            return (
-              <text key={t} x={45 + 19 * Math.cos(ra)} y={45 + 19 * Math.sin(ra) + 3.5} textAnchor="middle" fontFamily="serif" fontSize="6" fill="var(--m-ink3)">{t}</text>
-            );
-          })}
-          <line x1="45" y1="45" x2={45 + 16 * Math.cos(rad(hrAngle))} y2={45 + 16 * Math.sin(rad(hrAngle))} stroke="var(--m-ink)" strokeWidth="2.5" strokeLinecap="round" />
-          <line x1="45" y1="45" x2={45 + 24 * Math.cos(rad(minAngle))} y2={45 + 24 * Math.sin(rad(minAngle))} stroke="var(--m-ink)" strokeWidth="1.5" strokeLinecap="round" />
-          <circle cx="45" cy="45" r="2.5" fill="var(--m-accent)" />
-          <text x="45" y="62" textAnchor="middle" fontFamily="serif" fontSize="5.5" fill="var(--m-ink3)">{yr} {pct}%</text>
-          {/* 摆锤组：绕表盘下沿 (45,83) 左右摆动，与桌面端一致 */}
-          <g style={{ transformOrigin: "45px 83px", animation: "v5-pendulum-swing 3.6s ease-in-out infinite" }}>
-            <line x1="45" y1="83" x2="45" y2="100" stroke="rgba(139,94,60,0.45)" strokeWidth="1.2" />
-            <circle cx="45" cy="106" r="6" fill="var(--m-accent)" opacity="0.7" />
-          </g>
-        </svg>
+        {/* 年轮（与桌面端 TimeHero 同一组件的紧凑版） */}
+        <YearDial year={yr} month={month} daysInYear={daysInYear} daysPassed={daysPassed} size={116} compact />
       </div>
 
       {/* Progress bar */}
-      <div className="relative mt-4" style={{ height: 1, background: "rgba(139,94,60,0.1)" }}>
-        <div className="absolute left-0 top-0" style={{ height: 1, width: `${pct}%`, background: "rgba(139,94,60,0.45)" }} />
+      <div className="relative mt-4" style={{ height: 1, background: "rgba(var(--v5-ink-rgb),0.10)" }}>
+        <div className="absolute left-0 top-0" style={{ height: 1, width: `${pct}%`, background: "var(--m-accent)" }} />
       </div>
-      <div className="mt-1.5 flex justify-between" style={{ fontSize: 10.5, color: "rgba(139,94,60,0.4)" }}>
+      <div className="mt-1.5 flex justify-between" style={{ fontSize: 10.5, color: "var(--m-ink3)" }}>
         <span>1 月</span>
         <span>已走完 {pct}%</span>
         <span>12 月</span>
@@ -901,18 +863,18 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
                 fontWeight: 500,
                 padding: "12px 22px",
                 borderRadius: 999,
-                background: "var(--v5-ink)",
-                color: "var(--m-on-accent)",
-                boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+                background: "var(--v5-pill-bg)",
+                color: "var(--v5-pill-ink)",
+                boxShadow: "0 4px 12px rgba(var(--v5-shadow-rgb),0.18)",
                 transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.background = "var(--v5-accent)";
+                e.currentTarget.style.background = "var(--v5-pill-hover)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.background = "var(--v5-ink)";
+                e.currentTarget.style.background = "var(--v5-pill-bg)";
               }}
             >
               写一条新记录
@@ -1259,7 +1221,7 @@ export default function HomePage() {
             </div>
 
             {/* ─ Time card ─ */}
-            <HomePendulumCard now={now} />
+            <HomePendulumCard />
 
             {/* ─ Todo quick card ─ */}
             <HomeTodoCard />
@@ -1430,12 +1392,10 @@ export default function HomePage() {
 
             {/* Featured — original Panel-based layout (per user request) */}
             <Panel className="p-7 lg:p-8">
-              <div className="flex items-center justify-between border-b border-dashed pb-5" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
+              <div className="flex items-center justify-between border-b pb-5" style={{ borderColor: "var(--v5-rule)" }}>
                 <div>
-                  <p className="text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                    FEATURED · 书页摘录
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-tight">精选记录</h3>
+                  <p className="v5-eyebrow">FEATURED · 书页摘录</p>
+                  <h3 className="mt-2 text-2xl font-semibold tracking-tight" style={{ fontFamily: "var(--v5-serif)" }}>精选记录</h3>
                 </div>
               </div>
 
@@ -1443,12 +1403,12 @@ export default function HomePage() {
                 {activeEntry ? (
                   <>
                     <FeaturedBookPreview entry={activeEntry} onClick={() => setDiaryModalId(activeEntry.id)} />
-                    <div className="mt-5 flex items-center justify-between gap-4 px-3">
+                    <div className="mt-5 flex items-center justify-between gap-4 px-1">
                       <div
                         className="text-sm tracking-[0.28em]"
                         style={{
                           color: "var(--m-ink2)",
-                          fontFamily: '"Playfair Display", "Noto Serif SC", serif',
+                          fontFamily: "var(--v5-serif)",
                         }}
                       >
                         {String(safeIndex + 1).padStart(2, "0")} / {String(recentLogs.length).padStart(2, "0")}
@@ -1462,7 +1422,7 @@ export default function HomePage() {
                           onClick={() => turnPage("prev")}
                           style={{
                             background: "var(--m-base-light)",
-                            borderColor: "rgba(139,94,60,0.12)",
+                            borderColor: "var(--v5-rule-strong)",
                             color: "var(--m-accent)",
                           }}
                           type="button"
@@ -1476,7 +1436,7 @@ export default function HomePage() {
                           onClick={() => turnPage("next")}
                           style={{
                             background: "var(--m-base-light)",
-                            borderColor: "rgba(139,94,60,0.12)",
+                            borderColor: "var(--v5-rule-strong)",
                             color: "var(--m-accent)",
                           }}
                           type="button"
@@ -1487,7 +1447,7 @@ export default function HomePage() {
                     </div>
                   </>
                 ) : (
-                  <div className="rounded-[22px] border border-dashed px-6 py-10 text-center" style={{ borderColor: "rgba(139,94,60,0.16)" }}>
+                  <div className="rounded-[22px] border border-dashed px-6 py-10 text-center" style={{ borderColor: "var(--v5-rule-strong)" }}>
                     <p className="text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
                       还没有可以展示的精选记录。
                     </p>

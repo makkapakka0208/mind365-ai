@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { desktopNavItems } from "@/components/layout/nav-items";
 import { SmartActionCard } from "@/components/layout/smart-action-card";
+import { BrandLoader } from "@/components/ui/brand-loader";
 import { OnlineStatus } from "@/components/pwa/online-status";
 import { PWAInstallPrompt } from "@/components/pwa/install-prompt";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
@@ -15,6 +16,8 @@ import { useAuth } from "@/lib/auth";
 interface AppShellProps {
   children: React.ReactNode;
 }
+
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 const PATH_GROUPS: Record<string, string[]> = {
   "/": ["/"],
@@ -44,13 +47,7 @@ export function AppShell({ children }: AppShellProps) {
         className="v5-page-bg flex items-center justify-center"
         style={{ height: "100dvh" }}
       >
-        <div
-          className="h-8 w-8 animate-spin rounded-full border-4"
-          style={{
-            borderColor: "var(--v5-rule)",
-            borderTopColor: "var(--v5-accent)",
-          }}
-        />
+        <BrandLoader />
       </div>
     );
   }
@@ -79,7 +76,7 @@ export function AppShell({ children }: AppShellProps) {
           {/* Logo */}
           <div className="flex items-center gap-2.5" style={{ padding: "0 12px 28px" }}>
             <span
-              className="grid place-items-center"
+              className="shell-logo-mark grid place-items-center"
               style={{
                 width: 30,
                 height: 30,
@@ -95,28 +92,32 @@ export function AppShell({ children }: AppShellProps) {
             >
               M
             </span>
-            <span
-              style={{
-                fontFamily: "var(--v5-serif)",
-                fontSize: 17,
-                fontWeight: 500,
-                color: "var(--v5-ink)",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Mind365
-            </span>
+            <div>
+              <span
+                className="shell-logo-text"
+                style={{
+                  fontFamily: "var(--v5-serif)",
+                  fontSize: 17,
+                  fontWeight: 500,
+                  color: "var(--v5-ink)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                Mind365
+              </span>
+              <span className="shell-logo-sub">Journal · Anno {new Date().getFullYear()}</span>
+            </div>
           </div>
 
           {/* Nav list */}
           <nav className="grid" style={{ gap: 2 }}>
-            {desktopNavItems.map((item) => {
+            {desktopNavItems.map((item, index) => {
               const Icon = item.icon;
               const active = isActive(item.href);
               return (
                 <Link
                   aria-current={active ? "page" : undefined}
-                  className="flex items-center"
+                  className="shell-nav-link flex items-center"
                   href={item.href}
                   key={item.href}
                   style={{
@@ -140,7 +141,9 @@ export function AppShell({ children }: AppShellProps) {
                     if (!active) e.currentTarget.style.background = "transparent";
                   }}
                 >
+                  <span aria-hidden className="shell-nav-num">{ROMAN[index]}</span>
                   <Icon
+                    className="shell-nav-icon"
                     size={16}
                     color={active ? "var(--v5-accent)" : "var(--v5-ink3)"}
                   />

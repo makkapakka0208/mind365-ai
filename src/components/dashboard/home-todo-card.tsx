@@ -88,7 +88,7 @@ export function HomeTodoCard({ className }: { className?: string }) {
           disabled={!text.trim()}
           aria-label="添加待办"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-opacity disabled:opacity-40"
-          style={{ background: "var(--m-accent)", color: "var(--m-on-accent)" }}
+          style={{ background: "var(--v5-accent-fill)", color: "var(--v5-accent-fill-ink)" }}
         >
           <Plus size={16} />
         </button>
