@@ -5,6 +5,7 @@
  * Zero I/O beyond the single generateYearSummary() fetch call.
  */
 
+import { hasDiaryConsent } from "@/lib/ai-consent";
 import { apiFetch } from "@/lib/api";
 import type {
   ComputedYearStats,
@@ -280,7 +281,9 @@ export async function generateYearSummary(
   quotes: YearReadingCard[] = [],
 ): Promise<YearSummaryAI> {
   const stats = computeYearStats(data);
-  const payload = buildPayload(data, stats, quotes);
+  const built = buildPayload(data, stats, quotes);
+  // 未授权读取日记时不发送日记摘录和由正文统计出的关键词（服务端也会兜底去掉）
+  const payload = (await hasDiaryConsent()) ? built : { ...built, journalSamples: [], keywordStats: [] };
 
   try {
     const res = await apiFetch("/api/year-summary", {

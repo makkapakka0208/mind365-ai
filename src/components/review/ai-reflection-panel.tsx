@@ -19,8 +19,11 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import { useDiaryConsent } from "@/lib/ai-consent";
 import { toISODate } from "@/lib/date";
 import {
   getCurrentReviewKey,
@@ -407,6 +410,7 @@ export function AiReflectionPanel({
   summary,
   title,
 }: AiReflectionPanelProps) {
+  const diaryConsent = useDiaryConsent();
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasSavedReflection, setHasSavedReflection] = useState(false);
   const [reflection, setReflection] = useState("");
@@ -505,6 +509,14 @@ export function AiReflectionPanel({
               <p className="mt-1 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
                 穿透数据表象，生成一份结构化的成长复盘报告。
               </p>
+              {!diaryConsent && (
+                <p className="mt-1 text-xs leading-6" style={{ color: "var(--m-ink3)" }}>
+                  未授权读取日记，本次只参考心情和时长等统计数据。
+                  <Link href="/settings" className="ml-1 underline-offset-2 hover:underline" style={{ color: "var(--m-accent)" }}>
+                    去设置开启
+                  </Link>
+                </p>
+              )}
             </div>
             <Button className="justify-center sm:min-w-44" onClick={onGenerate} size="lg" variant="primary">
               {isGenerating ? (

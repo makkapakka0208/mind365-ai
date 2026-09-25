@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { guardApiRequest } from "@/lib/server/api-guard";
+import { authorizeApiRequest } from "@/lib/server/api-guard";
 
 export const runtime = "nodejs";
 
@@ -123,8 +123,8 @@ function normalizeKeywords(v: unknown) {
    ───────────────────────────────────────────── */
 
 export async function POST(request: NextRequest) {
-  const guardError = await guardApiRequest(request);
-  if (guardError) return guardError;
+  const auth = await authorizeApiRequest(request);
+  if (auth.error) return auth.error;
 
   let body: unknown;
   try {
@@ -135,6 +135,11 @@ export async function POST(request: NextRequest) {
 
   if (!isRecord(body)) {
     return NextResponse.json({ message: "请求体格式无效。" }, { status: 400 });
+  }
+
+  // 未授权读取日记：服务端兜底去掉日记摘录和由正文统计出的关键词
+  if (!auth.diaryConsent) {
+    body = { ...body, journalSamples: [], keywordStats: [] };
   }
 
   const provider = process.env.AI_PROVIDER?.trim().toLowerCase();
@@ -154,6 +159,12 @@ export async function POST(request: NextRequest) {
   const userPrompt = [
     "这是这一年的全部素材（JSON）。包括逐月统计 monthly、日记关键词统计 keywordStats、阅读卡片 readingCards、日记摘录 journalSamples、目标 goals。",
     "请按系统提示词的要求输出年度纪录片 JSON。",
+    ...(auth.diaryConsent
+      ? []
+      : [
+          "重要：用户没有授权读取日记正文，journalSamples 和 keywordStats 为空。只能依据逐月统计、阅读卡片和目标来写；",
+          "不要编造日记原话、具体事件或关键词。需要日记内容的字段，写一句诚实的短句说明「未授权读取日记」。keywords 可返回空数组。",
+        ]),
     "",
     JSON.stringify(body, null, 2),
   ].join("\n");
