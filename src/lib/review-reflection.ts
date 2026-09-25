@@ -1,4 +1,5 @@
 import { accountStorage } from "@/lib/account-storage";
+import { hasDiaryConsent } from "@/lib/ai-consent";
 ﻿import { apiFetch } from "@/lib/api";
 import { parseReadingHours } from "@/lib/analytics";
 import { toISODate } from "@/lib/date";
@@ -158,12 +159,14 @@ export function buildReviewPayload(
   range: { end: Date; start: Date },
   summary: ReviewSummary,
   goals?: WeeklyGoals,
+  includeJournalText = true,
 ) {
   const payload: Record<string, unknown> = {
     entries: logs.map((log) => ({
       date: log.date,
       emotionScore: log.mood,
-      journalText: log.thoughts,
+      // 未授权读取日记时不发送正文（服务端也会兜底清空）
+      journalText: includeJournalText ? log.thoughts : "",
       readingHours: parseReadingHours(log.reading),
       studyHours: log.studyHours,
     })),
@@ -198,7 +201,7 @@ export async function requestAiReflection(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(buildReviewPayload(period, logs, range, summary, goals)),
+    body: JSON.stringify(buildReviewPayload(period, logs, range, summary, goals, await hasDiaryConsent())),
   });
 
   const contentType = response.headers.get("content-type") ?? "";

@@ -38,6 +38,9 @@
   --v5-accent-fill:      var(--v5-accent);
   --v5-accent-fill-ink:  var(--m-on-accent);
   --v5-accent-fill-ring: var(--v5-accent);
+  /* Button 的 secondary 变体（质感主题里同样换成着色毛玻璃）*/
+  --v5-secondary-fill:     var(--v5-accent-soft);
+  --v5-secondary-fill-ink: var(--m-on-accent);
 
   --v5-sh-1:     0 1px 2px rgba(75,51,27,0.04), 0 0 0 1px rgba(75,51,27,0.04);
   --v5-sh-2:     0 1px 3px rgba(75,51,27,0.05), 0 4px 12px rgba(75,51,27,0.04), 0 0 0 1px rgba(75,51,27,0.04);
@@ -494,18 +497,6 @@ button {
   font-weight: 500;
   letter-spacing: 0.02em;
   line-height: 1.1;
-}
-
-.daily-log-masthead-numeral {
-  color: var(--v5-accent);
-  font-size: 0.72em;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-}
-
-.daily-log-masthead-dot {
-  color: var(--v5-ink-mute);
-  font-size: 0.6em;
 }
 
 .daily-log-masthead-sub {

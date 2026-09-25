@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 
-import { guardApiRequest } from "@/lib/server/api-guard";
+import { authorizeApiRequest } from "@/lib/server/api-guard";
 
 export const runtime = "nodejs";
 
@@ -414,8 +414,8 @@ function sseToTextStream(upstream: ReadableStream<Uint8Array>): ReadableStream<U
    ───────────────────────────────────────────── */
 
 export async function POST(request: NextRequest) {
-  const guardError = await guardApiRequest(request);
-  if (guardError) return guardError;
+  const auth = await authorizeApiRequest(request);
+  if (auth.error) return auth.error;
 
   let rawBody: unknown;
 
@@ -425,7 +425,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "请求体格式无效。" }, { status: 400 });
   }
 
-  const payload = parsePayload(rawBody);
+  const parsed = parsePayload(rawBody);
+  // 未授权读取日记：服务端兜底清空正文（即使前端误发了也不会进到模型里）
+  const payload = parsed && !auth.diaryConsent
+    ? { ...parsed, entries: parsed.entries.map((entry) => ({ ...entry, journalText: "" })) }
+    : parsed;
 
   if (!payload) {
     return NextResponse.json({ message: "复盘数据格式无效。" }, { status: 400 });
@@ -471,7 +475,14 @@ export async function POST(request: NextRequest) {
   }
 
   const systemPrompt = getSystemPrompt(payload.period);
-  const userPrompt = buildPrompt(payload);
+  const userPrompt = auth.diaryConsent
+    ? buildPrompt(payload)
+    : [
+        buildPrompt(payload),
+        "",
+        "重要：用户没有授权读取日记正文，entries[].journalText 全部为空。只能基于心情分、学习与阅读时长、记录天数和目标来复盘；",
+        "不要推测或编造日记里发生的具体事件、人物和想法。需要日记内容才能写的部分，用一句话说明「未授权读取日记，这部分只看了数据」，然后照常写能从数据得出的内容。",
+      ].join("\n");
 
   try {
     const useOpenAI = provider === "openai";

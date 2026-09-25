@@ -36,6 +36,8 @@ html[data-skin="plaster"] {
   --v5-accent-fill:      rgba(138, 102, 48, 0.12);
   --v5-accent-fill-ink:  #6e5024;
   --v5-accent-fill-ring: rgba(138, 102, 48, 0.30);
+  --v5-secondary-fill:     rgba(138, 102, 48, 0.10);
+  --v5-secondary-fill-ink: #6e5024;
   --v5-rule:         rgba(60, 50, 35, 0.11);
   --v5-rule-strong:  rgba(60, 50, 35, 0.20);
 
@@ -108,6 +110,8 @@ html[data-skin="patina"] {
   --v5-accent-fill:      rgba(208, 168, 103, 0.16);
   --v5-accent-fill-ink:  #e8cf9c;
   --v5-accent-fill-ring: rgba(208, 168, 103, 0.38);
+  --v5-secondary-fill:     rgba(208, 168, 103, 0.10);
+  --v5-secondary-fill-ink: #e8cf9c;
   --v5-rule:         rgba(236, 228, 210, 0.11);
   --v5-rule-strong:  rgba(236, 228, 210, 0.20);
 
@@ -220,8 +224,99 @@ html[data-skin] .daily-log-textarea::placeholder {
   color: var(--v5-ink-mute);
 }
 
+/* ── 书库精选金句卡：实心金色渐变 → 金色调毛玻璃；
+   卡内文字用的是「强调色上的文字」token，这里就地改指向正文色 ── */
+html[data-skin] .quote-featured {
+  --m-on-accent: var(--v5-ink);
+  --m-on-accent-rgb: var(--v5-ink-rgb);
+  background: rgba(var(--v5-accent-rgb), 0.14) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--v5-accent-fill-ring),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    var(--v5-sh-2) !important;
+  -webkit-backdrop-filter: var(--skin-blur);
+  backdrop-filter: var(--skin-blur);
+}
+
+/* ── 日记详情弹窗（DiaryBookModal）：卡片整体一块玻璃，左右两栏透明，只靠发丝线分隔 ── */
+html[data-skin] .diary-modal-overlay {
+  background: rgba(var(--v5-shadow-rgb), 0.22);
+}
+
 html[data-skin] .diary-modal-card {
   background: var(--glass-bg-strong);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow);
+}
+
+html[data-skin] .diary-modal-left {
+  background: rgba(var(--v5-accent-rgb), 0.04);
+  border-right-color: var(--v5-rule);
+}
+
+html[data-skin] .diary-modal-right {
+  background: transparent;
+}
+
+html[data-skin] .diary-modal-stat-card,
+html[data-skin] .diary-modal-image-card {
+  background: var(--m-base);
+  border-color: var(--v5-rule);
+  box-shadow: none;
+}
+
+html[data-skin] .diary-modal-left-sep,
+html[data-skin] .diary-modal-right-sep,
+html[data-skin] .diary-modal-section-sep {
+  background: linear-gradient(90deg, var(--v5-rule-strong), transparent 75%);
+}
+
+html[data-skin] .diary-modal-content {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent,
+    transparent 38px,
+    rgba(var(--v5-ink-rgb), 0.06) 38px,
+    rgba(var(--v5-ink-rgb), 0.06) 39px
+  );
+}
+
+html[data-skin] .diary-modal-tag,
+html[data-skin] .diary-modal-counter {
+  background: rgba(var(--v5-accent-rgb), 0.10);
+  border-color: rgba(var(--v5-accent-rgb), 0.16);
+  color: var(--v5-ink3);
+}
+
+html[data-skin] .diary-modal-nav-btn {
+  background: var(--glass-bg-strong);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 14px rgba(var(--v5-shadow-rgb), 0.18);
+  -webkit-backdrop-filter: var(--skin-blur);
+  backdrop-filter: var(--skin-blur);
+}
+
+html[data-skin] .diary-modal-close-btn:hover {
+  background: rgba(var(--v5-ink-rgb), 0.06);
+}
+
+html[data-skin] .diary-modal-image-badge {
+  background: var(--glass-bg-strong);
+  border-color: var(--glass-edge);
+}
+
+html[data-skin] .diary-modal-delete-btn {
+  color: var(--v5-ink3);
+  border-color: var(--v5-rule-strong);
+}
+
+html[data-skin] .diary-modal-footer {
+  border-top-color: var(--v5-rule);
+}
+
+html[data-skin] .diary-modal-mute,
+html[data-skin] .diary-modal-brand {
+  color: var(--v5-ink-mute);
 }
 
 /* ── 字体：Cormorant 没有 opsz 轴，去掉 Fraunces 的变体设置 ── */
@@ -304,11 +399,12 @@ html[data-skin] .m-tab-bar a.active .m-tab-icon {
     inset 0 1px 0 rgba(255, 255, 255, 0.10);
 }
 
-/* 实心按钮 → 着色毛玻璃：细金边 + 顶部高光，和卡片同一种材质 */
+/* 实心按钮（药丸 / 强调 / 次要）→ 着色毛玻璃：细金边 + 顶部高光，和卡片同一种材质 */
 html[data-skin] :is(
   [style*="--v5-pill-bg"],
   [style*="--v5-pill-hover"],
-  [style*="background: var(--v5-accent-fill)"]
+  [style*="background: var(--v5-accent-fill)"],
+  [style*="background: var(--v5-secondary-fill)"]
 ) {
   -webkit-backdrop-filter: var(--skin-blur);
   backdrop-filter: var(--skin-blur);

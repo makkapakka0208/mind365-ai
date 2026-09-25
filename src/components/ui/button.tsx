@@ -24,8 +24,8 @@ const variantStyles: Record<ButtonVariant, React.CSSProperties> = {
     boxShadow: "var(--m-shadow-out)",
   },
   secondary: {
-    background: "var(--v5-accent-soft, #7e6046)",
-    color: "var(--m-on-accent)",
+    background: "var(--v5-secondary-fill)",
+    color: "var(--v5-secondary-fill-ink)",
     boxShadow: "var(--m-shadow-out)",
   },
   ghost: {

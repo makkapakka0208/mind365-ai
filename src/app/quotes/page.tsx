@@ -32,6 +32,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { NoteIndex, NoteReader } from "@/components/library/note-reader";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -2521,6 +2522,7 @@ function V5QuoteCard({
   if (variant === "featured") {
     return (
       <div
+        className="quote-featured"
         onClick={onOpen}
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
@@ -3385,7 +3387,7 @@ function ReadingNotebookSection() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [message, setMessage] = useState("");
-  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [readerIndex, setReaderIndex] = useState<number | null>(null);
 
   const notes = useNotesStore();
 
@@ -3398,10 +3400,6 @@ function ReadingNotebookSection() {
     () => tags.split(/[,\s，、]+/).map((t) => t.trim().replace(/^#/, "")).filter(Boolean),
     [tags],
   );
-
-  const toggleExpanded = (id: string) => {
-    setExpandedIds((cur) => cur.includes(id) ? cur.filter((i) => i !== id) : [...cur, id]);
-  };
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -3566,78 +3564,22 @@ function ReadingNotebookSection() {
                 {sortedNotes.length} 篇
               </span>
             </h3>
-            <div className="space-y-4">
-              {sortedNotes.map((note) => {
-                const isExpanded = expandedIds.includes(note.id);
-                return (
-                  <div
-                    key={note.id}
-                    className="group relative break-inside-avoid"
-                    style={{
-                      background: "var(--m-base-light)",
-                      borderRadius: 16,
-                      border: "1px solid var(--m-rule)",
-                      padding: "20px 20px 16px",
-                      transition: "all 0.25s ease",
-                      boxShadow: "0 1px 4px rgba(var(--v5-accent-rgb),0.06)",
-                    }}
-                  >
-                    <h4
-                      className="text-lg font-semibold leading-tight"
-                      style={{ color: "var(--m-ink)" }}
-                    >
-                      {note.title}
-                    </h4>
-                    <p
-                      className="mt-3 whitespace-pre-wrap text-[15px] leading-8"
-                      style={isExpanded
-                        ? { color: "var(--m-ink2)" }
-                        : { color: "var(--m-ink2)", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 4, overflow: "hidden" }}
-                    >
-                      {note.content}
-                    </p>
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap gap-2">
-                        {note.tags.map((tag) => (
-                          <span
-                            className="rounded-full px-3 py-1 text-xs"
-                            key={`${note.id}-${tag}`}
-                            style={{ background: "rgba(var(--v5-accent-rgb),0.08)", color: "var(--m-accent)" }}
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          aria-label="删除笔记"
-                          className="rounded-full p-1.5 transition-all hover:opacity-80"
-                          onClick={() => {
-                            if (window.confirm("确定删除这篇笔记吗？删除后无法恢复。")) {
-                              void deleteNote(note.id);
-                            }
-                          }}
-                          style={{ background: "color-mix(in srgb, var(--m-danger) 10%, transparent)", color: "var(--m-danger, #b24c38)" }}
-                          type="button"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                        <button
-                          className="rounded-full px-4 py-1.5 text-sm transition-all hover:opacity-80"
-                          onClick={() => toggleExpanded(note.id)}
-                          style={{ background: "rgba(var(--v5-accent-rgb),0.08)", color: "var(--m-accent)" }}
-                          type="button"
-                        >
-                          {isExpanded ? "收起" : "展开阅读"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <NoteIndex notes={sortedNotes} onOpen={setReaderIndex} />
           </div>
         </StaggerItem>
+      )}
+
+      {readerIndex !== null && sortedNotes[readerIndex] && (
+        <NoteReader
+          index={readerIndex}
+          notes={sortedNotes}
+          onClose={() => setReaderIndex(null)}
+          onDelete={(id) => {
+            void deleteNote(id);
+            setReaderIndex(null);
+          }}
+          onIndexChange={setReaderIndex}
+        />
       )}
     </div>
   );

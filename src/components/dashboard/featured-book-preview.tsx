@@ -76,10 +76,12 @@ function formatTimeHM(createdAt: string): string {
 }
 
 function getMoodMeta(score: number): { label: string; color: string; bg: string } {
-  if (score >= 8) return { label: "心情很好", color: "#4A9B6F", bg: "rgba(74,155,111,0.10)" };
-  if (score >= 6) return { label: "状态平稳", color: "#C8962A", bg: "rgba(200,150,42,0.10)" };
-  if (score >= 4) return { label: "有些疲惫", color: "#C07A3A", bg: "rgba(192,122,58,0.10)" };
-  return { label: "心情低落", color: "#C0392B", bg: "rgba(192,57,43,0.10)" };
+  // 走主题 token：各主题下都与整体配色协调
+  const tone = (c: string) => ({ color: c, bg: `color-mix(in srgb, ${c} 12%, transparent)` });
+  if (score >= 8) return { label: "心情很好", ...tone("var(--m-success)") };
+  if (score >= 6) return { label: "状态平稳", ...tone("var(--v5-accent)") };
+  if (score >= 4) return { label: "有些疲惫", ...tone("var(--v5-ink3)") };
+  return { label: "心情低落", ...tone("var(--m-danger)") };
 }
 
 // ── Mood Spirit ───────────────────────────────────────────────────────────────
@@ -936,9 +938,9 @@ export function DiaryBookModal({
                         type="button"
                         className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium transition-all duration-200 hover:-translate-y-px hover:shadow-md"
                         style={{
-                          background: "#9B6B44",
-                          color: "#FBF8F3",
-                          boxShadow: "0 2px 8px rgba(155,107,68,0.2)",
+                          background: "var(--v5-accent-fill)",
+                          color: "var(--v5-accent-fill-ink)",
+                          boxShadow: "0 2px 8px rgba(var(--v5-accent-rgb),0.2)",
                         }}
                         onClick={() => { onEdit(entry); onClose(); }}
                       >
@@ -950,9 +952,9 @@ export function DiaryBookModal({
                       href={`/journal?id=${entry.id}`}
                       className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium transition-all duration-200 hover:-translate-y-px hover:shadow-md"
                       style={{
-                        background: "#9B6B44",
-                        color: "#FBF8F3",
-                        boxShadow: "0 2px 8px rgba(155,107,68,0.2)",
+                        background: "var(--v5-accent-fill)",
+                        color: "var(--v5-accent-fill-ink)",
+                        boxShadow: "0 2px 8px rgba(var(--v5-accent-rgb),0.2)",
                       }}
                       onClick={onClose}
                     >
@@ -963,7 +965,7 @@ export function DiaryBookModal({
                     {onDelete && !confirmDelete && (
                       <button
                         type="button"
-                        className="diary-modal-delete-btn inline-flex items-center justify-center rounded-full transition-all duration-200 hover:bg-[rgba(176,117,106,0.08)]"
+                        className="diary-modal-delete-btn inline-flex items-center justify-center rounded-full transition-all duration-200 hover:bg-[rgba(var(--v5-ink-rgb),0.06)]"
                         style={{ width: 36, height: 36 }}
                         onClick={() => setConfirmDelete(true)}
                       >
@@ -974,8 +976,8 @@ export function DiaryBookModal({
                       <div className="inline-flex items-center gap-1.5">
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-medium text-white transition-colors hover:bg-red-700"
-                          style={{ background: "#C0392B" }}
+                          className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-medium transition-opacity hover:opacity-85"
+                          style={{ background: "var(--m-danger)", color: "var(--v5-surface)" }}
                           onClick={() => { onDelete(entry.id); onClose(); }}
                         >
                           <Trash2 size={12} />
@@ -983,7 +985,7 @@ export function DiaryBookModal({
                         </button>
                         <button
                           type="button"
-                          className="rounded-full px-3 py-2 text-[11px] font-medium transition-colors hover:bg-[rgba(155,107,68,0.06)]"
+                          className="rounded-full px-3 py-2 text-[11px] font-medium transition-colors hover:bg-[rgba(var(--v5-ink-rgb),0.06)]"
                           style={{ color: "var(--v5-ink3)" }}
                           onClick={() => setConfirmDelete(false)}
                         >

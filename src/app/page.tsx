@@ -35,7 +35,7 @@ import {
   parseReadingHours,
   sortLogsByDate,
 } from "@/lib/analytics";
-import { getTodayISODate, parseISODate, toISODate } from "@/lib/date";
+import { getTodayISODate, parseISODate, toChineseNumber, toISODate } from "@/lib/date";
 import {
   getAllTimeBestStreak,
   getFocusInsight,
@@ -594,10 +594,6 @@ function getDailyQuote(quotes: Quote[]): Quote | null {
   return quotes[dayNumber % quotes.length] ?? null;
 }
 
-function formatShortDate(date: Date) {
-  return `${date.getMonth() + 1}/${String(date.getDate()).padStart(2, "0")}`;
-}
-
 /* ── v5 KPI card ───────────────────────────────────────────────────── */
 
 interface V5KpiCardProps {
@@ -779,90 +775,92 @@ interface V5HeroPanelProps {
   dailyQuote: Quote | null;
 }
 
+/**
+ * 首页问候卡 · 横幅刊头：
+ * 上：问候 + 今日一句（左）/ 中文日期（右）；下：操作按钮（左）/ 本周·本月·心情（右）。
+ * 保留暖色飘尘氛围层。
+ */
 function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMood, reviewBadge, dailyQuote }: V5HeroPanelProps) {
+  const ghostStyle: React.CSSProperties = {
+    fontFamily: "var(--v5-serif)",
+    fontSize: 15,
+    fontWeight: 500,
+    padding: "10px 20px",
+    borderRadius: 999,
+    border: "1px solid var(--v5-rule-strong)",
+    background: "transparent",
+    color: "var(--v5-ink2)",
+    transition: "background var(--v5-dur) var(--v5-ease)",
+  };
+  const ghostHover = {
+    onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = "rgba(var(--v5-ink-rgb),0.06)"; },
+    onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = "transparent"; },
+  };
+  const quoteSource = dailyQuote
+    ? `${dailyQuote.author || "佚名"}${dailyQuote.book ? `《${dailyQuote.book.replace(/^《|》$/g, "")}》` : ""}`
+    : "阿德勒《被讨厌的勇气》";
+
   return (
     <div
       className="relative overflow-hidden"
       style={{
         borderRadius: 32,
-        padding: "28px 48px",
         background: "linear-gradient(135deg, var(--m-paper-hi) 0%, var(--m-paper-lo) 100%)",
         boxShadow: "var(--v5-sh-3)",
       }}
     >
-      {/* breathing decoration */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute"
-        style={{ right: -150, top: "50%", transform: "translateY(-50%)", width: 460, height: 460, opacity: 0.35 }}
-      >
-        <svg viewBox="0 0 480 480" width="100%" height="100%">
-          <defs>
-            <radialGradient cx="50%" cy="50%" id="v5-hero-rg" r="50%">
-              <stop offset="0%" stopColor="#e8a87c" stopOpacity="0.42" />
-              <stop offset="60%" stopColor="#e8a87c" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#e8a87c" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <circle cx="240" cy="240" fill="url(#v5-hero-rg)" r="240">
-            <animate attributeName="r" dur="6s" repeatCount="indefinite" values="240;260;240" />
-            <animate attributeName="opacity" dur="6s" repeatCount="indefinite" values="1;0.7;1" />
-          </circle>
-          <circle cx="240" cy="240" fill="#fff" opacity="0.4" r="160">
-            <animate attributeName="r" dur="6s" repeatCount="indefinite" values="160;180;160" />
-          </circle>
-        </svg>
-      </div>
-
       {/* 暖色飘尘氛围层 */}
       <ParticleField count={20} speed={0.12} color="200, 150, 96" />
 
-      <div
-        className="relative grid items-center"
-        style={{ gridTemplateColumns: "minmax(0,1.55fr) minmax(0,1fr)", gap: 48 }}
-      >
-        {/* LEFT */}
-        <div>
-          <div className="v5-eyebrow" style={{ marginBottom: 16 }}>
-            DAILY SYSTEM · {now.getMonth() + 1}月{now.getDate()}日 星期{"日一二三四五六"[now.getDay()]}
+      <div className="relative" style={{ padding: "30px 44px 30px" }}>
+        {/* 上：问候 / 日期 */}
+        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+          <div className="min-w-0">
+            <h1
+              className="v5-display"
+              style={{
+                margin: 0,
+                fontSize: "clamp(40px, 4.4vw, 56px)",
+                fontVariationSettings: '"opsz" 144, "SOFT" 80',
+                fontWeight: 400,
+                color: "var(--v5-ink)",
+              }}
+            >
+              {greeting}
+            </h1>
+            {/* 今日一句：放在问候下方，代替原来的固定寄语 */}
+            <p
+              title="今日一句"
+              style={{
+                margin: "12px 0 0",
+                fontFamily: "var(--v5-serif)",
+                fontSize: 16,
+                lineHeight: 1.7,
+                fontStyle: "italic",
+                color: "var(--v5-ink2)",
+              }}
+            >
+              {dailyQuote?.text ?? "重要的不是被给予了什么，而是如何去使用被给予的东西。"}
+              <span style={{ marginLeft: 12, fontSize: 14, color: "var(--v5-ink3)" }}>—— {quoteSource}</span>
+            </p>
           </div>
-          <h1
-            className="v5-display"
-            style={{
-              margin: 0,
-              fontSize: "clamp(40px, 4.4vw, 56px)",
-              fontVariationSettings: '"opsz" 144, "SOFT" 80',
-              fontWeight: 400,
-              color: "var(--v5-ink)",
-            }}
+          <div
+            className="whitespace-nowrap pb-1.5"
+            style={{ fontFamily: "var(--v5-serif)", fontSize: 14, letterSpacing: "0.24em", color: "var(--v5-ink3)" }}
           >
-            {greeting}
-          </h1>
-          <p
-            style={{
-              margin: "24px 0 0",
-              fontFamily: "var(--v5-serif)",
-              fontVariationSettings: '"opsz" 14',
-              fontSize: 16,
-              lineHeight: 1.7,
-              color: "var(--v5-ink2)",
-              fontStyle: "italic",
-              maxWidth: 480,
-            }}
-          >
-            愿你在喧嚣之外，拥有一片自由呼吸的自留地。
-          </p>
+            {toChineseNumber(now.getMonth() + 1)}月{toChineseNumber(now.getDate())}日 · 星期{"日一二三四五六"[now.getDay()]}
+          </div>
+        </div>
 
-          <div className="mt-9 flex flex-wrap" style={{ gap: 12 }}>
+        {/* 中：操作 / 统计 */}
+        <div className="mt-7 flex flex-wrap items-center justify-between gap-x-8 gap-y-5">
+          <div className="flex flex-wrap" style={{ gap: 10 }}>
             <Link
               className="inline-flex items-center justify-center"
               href="/daily-log"
               style={{
-                fontFamily: "var(--v5-sans)",
-                fontSize: 14,
-                fontWeight: 500,
-                padding: "12px 22px",
-                borderRadius: 999,
+                ...ghostStyle,
+                border: 0,
                 background: "var(--v5-pill-bg)",
                 color: "var(--v5-pill-ink)",
                 boxShadow: "0 4px 12px rgba(var(--v5-shadow-rgb),0.18)",
@@ -879,168 +877,46 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
             >
               写一条新记录
             </Link>
-            <Link
-              className="inline-flex items-center"
-              href="/review"
-              style={{
-                fontFamily: "var(--v5-sans)",
-                fontSize: 14,
-                fontWeight: 500,
-                padding: "12px 22px",
-                borderRadius: 999,
-                border: "1px solid var(--v5-rule-strong)",
-                background: "transparent",
-                color: "var(--v5-ink2)",
-                gap: 8,
-                transition: "background var(--v5-dur) var(--v5-ease)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(75,51,27,0.06)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-            >
+            <Link className="inline-flex items-center" href="/review" style={{ ...ghostStyle, gap: 8 }} {...ghostHover}>
               进入周 / 月复盘
               {reviewBadge && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full px-2 py-0.5"
-                  style={{ background: "#C0392B", color: "var(--m-on-accent)", fontSize: 10, fontWeight: 600 }}
+                  style={{ background: "color-mix(in srgb, var(--m-danger) 14%, transparent)", color: "var(--m-danger)", fontSize: 11, fontWeight: 600 }}
                 >
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
+                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "var(--m-danger)" }} />
                   {reviewBadge}
                 </span>
               )}
             </Link>
-            <Link
-              href="/week-plan"
-              style={{
-                fontFamily: "var(--v5-sans)",
-                fontSize: 14,
-                fontWeight: 500,
-                padding: "12px 22px",
-                borderRadius: 999,
-                border: "1px solid var(--v5-rule-strong)",
-                background: "transparent",
-                color: "var(--v5-ink2)",
-                transition: "background var(--v5-dur) var(--v5-ease)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(75,51,27,0.06)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-            >
+            <Link className="inline-flex items-center" href="/week-plan" style={ghostStyle} {...ghostHover}>
               本周主线
             </Link>
           </div>
 
-          {/* Inline stats */}
-          <div className="mt-7 flex" style={{ gap: 32, fontFamily: "var(--v5-sans)" }}>
+          <div className="flex" style={{ gap: 24 }}>
             {[
-              { label: "This week", value: String(weekEntries), unit: "篇" },
-              { label: "This month", value: String(monthEntries), unit: "篇" },
-              { label: "Avg mood", value: hasMood ? avgMood.toFixed(1) : "--", unit: "/ 10" },
+              { label: "本周", value: String(weekEntries), unit: "篇" },
+              { label: "本月", value: String(monthEntries), unit: "篇" },
+              { label: "心情", value: hasMood ? avgMood.toFixed(1) : "—", unit: "/ 10" },
             ].map((stat, i) => (
-              <div className="flex items-stretch" key={stat.label} style={{ gap: 32 }}>
+              <div className="flex items-stretch" key={stat.label} style={{ gap: 24 }}>
                 {i > 0 && <div style={{ width: 1, background: "var(--v5-rule)" }} />}
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 500,
-                      letterSpacing: "0.06em",
-                      color: "var(--v5-ink3)",
-                      textTransform: "uppercase",
-                    }}
-                  >
+                <div className="whitespace-nowrap">
+                  <div style={{ fontFamily: "var(--v5-serif)", fontSize: 12.5, letterSpacing: "0.2em", color: "var(--v5-ink3)" }}>
                     {stat.label}
                   </div>
-                  <div
-                    className="v5-numeral mt-1"
-                    style={{ fontSize: 26, color: "var(--v5-ink)" }}
-                  >
-                    {stat.value}{" "}
-                    <span style={{ fontSize: 13, color: "var(--v5-ink3)", marginLeft: 2 }}>{stat.unit}</span>
+                  <div className="v5-numeral mt-1" style={{ fontSize: 28, color: "var(--v5-ink)" }}>
+                    {stat.value}
+                    <span style={{ fontFamily: "var(--v5-serif)", fontSize: 13, color: "var(--v5-ink3)", marginLeft: 6 }}>{stat.unit}</span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* RIGHT — Today's Reflection */}
-        <div
-          className="relative flex min-w-0 flex-col"
-          style={{
-            background: "var(--glass-bg)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            border: "1px solid rgba(139, 94, 60, 0.10)",
-            borderRadius: 24,
-            padding: "24px 24px 20px",
-            boxShadow: "0 2px 12px rgba(139, 94, 60, 0.06)",
-            gap: 14,
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="v5-eyebrow" style={{ fontSize: 10 }}>Today&apos;s Reflection</span>
-            <span
-              style={{
-                fontFamily: "var(--v5-mono)",
-                fontSize: 10.5,
-                color: "var(--v5-ink3)",
-                letterSpacing: "0.08em",
-              }}
-            >
-              {formatShortDate(now)}
-            </span>
-          </div>
-
-          <p
-            className="relative"
-            style={{
-              margin: 0,
-              fontFamily: "var(--v5-serif)",
-              fontVariationSettings: '"opsz" 144, "SOFT" 60',
-              fontSize: 22,
-              lineHeight: 1.42,
-              color: "var(--v5-ink)",
-              letterSpacing: "-0.015em",
-              paddingLeft: 18,
-            }}
-          >
-            <span
-              aria-hidden
-              className="absolute"
-              style={{
-                left: 0,
-                top: -8,
-                fontFamily: "var(--v5-serif)",
-                fontVariationSettings: '"opsz" 144, "wght" 500',
-                fontSize: 56,
-                lineHeight: 1,
-                color: "var(--v5-accent)",
-                opacity: 0.5,
-              }}
-            >
-              “
-            </span>
-            {dailyQuote?.text ?? "重要的不是被给予了什么，而是如何去使用被给予的东西。"}
-          </p>
-
-          <div className="flex items-center" style={{ gap: 12 }}>
-            <span style={{ width: 24, height: 1, background: "var(--v5-rule-strong)" }} />
-            <span
-              style={{
-                fontFamily: "var(--v5-serif)",
-                fontStyle: "italic",
-                fontSize: 13,
-                color: "var(--v5-ink2)",
-                fontVariationSettings: '"opsz" 14',
-              }}
-            >
-              {dailyQuote
-                ? `${dailyQuote.author || "佚名"}${dailyQuote.book ? ` · ${dailyQuote.book}` : ""}`
-                : "阿德勒 · 被讨厌的勇气"}
-            </span>
-          </div>
-
-        </div>
       </div>
+
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Textarea } from "@/components/ui/textarea";
 import { sortLogsByDate } from "@/lib/analytics";
-import { getTodayISODate } from "@/lib/date";
+import { getTodayISODate, toChineseNumber } from "@/lib/date";
 import { isBase64DataUrl, migrateBase64Images } from "@/lib/image-storage";
 import {
   calculateAlignmentScore,
@@ -151,15 +151,6 @@ function RecentEntryButton({
   );
 }
 
-/** 1–31 → 一 … 三十一（刊头日期用）。 */
-function toChineseNumber(n: number) {
-  const digits = "零一二三四五六七八九";
-  if (n <= 10) return n === 10 ? "十" : digits[n];
-  const tens = Math.floor(n / 10);
-  const ones = n % 10;
-  return `${tens === 1 ? "" : digits[tens]}十${ones ? digits[ones] : ""}`;
-}
-
 export default function DailyLogPage() {
   return (
     <Suspense>
@@ -294,11 +285,7 @@ function DailyLogInner() {
       <PageTransition className="daily-log-v5 mx-auto max-w-[1460px] space-y-6 pb-8">
         {/* 刊头：日期即标题，那句话退为斜体副标题；无卡片，底部一条发丝线 */}
         <header className="daily-log-masthead">
-          <h1 className="daily-log-masthead-title">
-            <span className="daily-log-masthead-numeral">II</span>
-            <span aria-hidden className="daily-log-masthead-dot">·</span>
-            {masthead.title}
-          </h1>
+          <h1 className="daily-log-masthead-title">{masthead.title}</h1>
           <p className="daily-log-masthead-sub">
             {masthead.weekday} · {masthead.line}
           </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Camera, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, FileText, HardDrive, MonitorSmartphone, Moon, Pencil, Settings2, Sun, Target, Upload } from "lucide-react";
+import { BookOpen, Camera, CheckCircle2, ChevronRight, Clock, Cloud, CloudOff, Compass, Download, FileText, HardDrive, Lock, MonitorSmartphone, Moon, Pencil, Settings2, Sun, Target, Unlock, Upload } from "lucide-react";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -27,6 +27,7 @@ import {
 import type { CloudSyncStatus } from "@/lib/storage";
 import { useDailyLogsStore, useNotesStore, useQuotesStore } from "@/lib/storage-store";
 import { toggleTabMode, useTabMode } from "@/lib/tab-mode";
+import { setDiaryConsent, useDiaryConsent } from "@/lib/ai-consent";
 import { fileToAvatarDataUrl, saveProfile, useProfile } from "@/lib/profile";
 import { DEFAULT_THEME, getThemePreference, setThemePreference, type ThemePreference } from "@/lib/theme";
 
@@ -86,6 +87,21 @@ export default function SettingsPage() {
   const [targetSaved, setTargetSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const diaryConsent = useDiaryConsent();
+  const [confirmConsent, setConfirmConsent] = useState(false);
+  const [consentSaving, setConsentSaving] = useState(false);
+  const updateDiaryConsent = async (allowed: boolean) => {
+    setConsentSaving(true);
+    try {
+      await setDiaryConsent(allowed);
+      setConfirmConsent(false);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "授权设置保存失败，请重试。");
+    } finally {
+      setConsentSaving(false);
+    }
+  };
   const [syncMessage, setSyncMessage] = useState("");
   useEffect(() => {
     const update = () => {
@@ -499,6 +515,85 @@ export default function SettingsPage() {
         </Panel>
       </StaggerItem>
 
+      {/* ── AI 读取日记授权（默认关闭）── */}
+      <StaggerItem index={0}>
+        <Panel className="px-5 py-4 sm:px-6">
+          <div className="flex items-center gap-3.5">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: "rgba(var(--v5-accent-rgb),0.08)" }}
+            >
+              {diaryConsent
+                ? <Unlock size={18} style={{ color: "var(--m-accent)" }} />
+                : <Lock size={18} style={{ color: "var(--m-ink3)" }} />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold" style={{ color: "var(--m-ink)" }}>允许 AI 读取日记</p>
+              <p className="mt-0.5 text-xs leading-5" style={{ color: "var(--m-ink3)" }}>
+                {!user
+                  ? "登录后可设置"
+                  : diaryConsent
+                    ? "已开启：AI 复盘和年度总结会参考日记正文"
+                    : "未开启：AI 只看心情、时长等统计数据，日记正文不会发送"}
+              </p>
+            </div>
+            {user && (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={diaryConsent}
+                aria-label="允许 AI 读取日记"
+                disabled={consentSaving}
+                className="relative shrink-0 rounded-full transition-colors disabled:opacity-60"
+                style={{
+                  width: 44,
+                  height: 26,
+                  background: diaryConsent ? "var(--v5-accent)" : "rgba(var(--v5-ink-rgb),0.16)",
+                }}
+                onClick={() => {
+                  if (diaryConsent) void updateDiaryConsent(false);
+                  else setConfirmConsent(true);
+                }}
+              >
+                <span
+                  className="absolute top-[3px] block rounded-full transition-all"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    left: diaryConsent ? 21 : 3,
+                    background: "var(--v5-surface)",
+                    boxShadow: "0 1px 3px rgba(var(--v5-shadow-rgb),0.3)",
+                  }}
+                />
+              </button>
+            )}
+          </div>
+
+          {/* 开启前的确认：说清楚会发送什么、发给谁 */}
+          {confirmConsent && !diaryConsent && (
+            <div
+              className="mt-4 rounded-xl px-4 py-3.5 text-[13px] leading-6"
+              style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)", color: "var(--m-ink2)" }}
+            >
+              开启后，你在使用 AI 复盘、年度总结时，相关日期的日记正文会发送给 DeepSeek 用于生成内容。可以随时关闭。
+              <div className="mt-3 flex items-center gap-3">
+                <Button size="sm" type="button" variant="primary" disabled={consentSaving} onClick={() => void updateDiaryConsent(true)}>
+                  {consentSaving ? "保存中…" : "确认开启"}
+                </Button>
+                <button
+                  type="button"
+                  className="text-xs transition-opacity hover:opacity-75"
+                  style={{ color: "var(--m-ink3)" }}
+                  onClick={() => setConfirmConsent(false)}
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+        </Panel>
+      </StaggerItem>
+
       {/* ── 每周目标 ── */}
       <StaggerItem index={1}>
         <Panel className="p-6 sm:p-8">
@@ -565,7 +660,7 @@ export default function SettingsPage() {
                 数据备份
               </h3>
               <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
-                导出全部记录为 JSON 文件，或从备份文件恢复。
+                导出全部记录为 JSON 文件；导入时与现有记录合并，不会覆盖。
               </p>
             </div>
 
@@ -575,19 +670,37 @@ export default function SettingsPage() {
                 {exporting ? "正在生成备份" : "导出备份"}
               </Button>
 
-              <Button className="justify-center" onClick={onImportTrigger} size="lg" type="button" variant="secondary">
+              <Button className="justify-center" onClick={onImportTrigger} size="lg" type="button" variant="ghost">
                 <Upload className="mr-2" size={17} />
                 导入备份
               </Button>
             </div>
 
-            {user && <Button className="w-full justify-center" disabled={exporting} onClick={() => void onExport(true)} type="button" variant="secondary">
-              <Download size={17} className="mr-2" />导出游客 / 旧版本地数据
-            </Button>}
-            <Button className="w-full justify-center" onClick={onExportMarkdown} size="lg" type="button" variant="ghost">
-              <FileText className="mr-2" size={17} />
-              导出为 Markdown（仅阅读 / 归档）
-            </Button>
+            {/* 次要导出：一行文字链接，不和主操作抢位置 */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px]" style={{ color: "var(--m-ink3)" }}>
+              <span>其他导出：</span>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-75"
+                style={{ color: "var(--m-accent)" }}
+                onClick={onExportMarkdown}
+              >
+                <FileText size={14} />
+                Markdown（仅阅读归档）
+              </button>
+              {user && (
+                <button
+                  type="button"
+                  disabled={exporting}
+                  className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-75 disabled:opacity-50"
+                  style={{ color: "var(--m-accent)" }}
+                  onClick={() => void onExport(true)}
+                >
+                  <Download size={14} />
+                  登录前的游客数据
+                </button>
+              )}
+            </div>
 
             <input
               accept="application/json,.json"
@@ -596,10 +709,6 @@ export default function SettingsPage() {
               ref={fileInputRef}
               type="file"
             />
-
-            <div className="rounded-xl p-3 text-xs leading-5" style={{ background: "rgba(180,150,110,0.08)", border: "1px solid var(--m-rule)", color: "var(--m-ink3)" }}>
-              导入采用合并恢复，旧版备份缺失的待办和草稿会保留。请保管好备份文件，其中包含私人记录。图片较多时恢复可能受浏览器存储容量限制。
-            </div>
 
             {message ? <p className="text-sm" style={{ color: "var(--m-success)" }}>{message}</p> : null}
             {error ? <p className="text-sm" style={{ color: "var(--m-danger)" }}>{error}</p> : null}
