@@ -17,6 +17,7 @@ import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
 import { HomeTodoCard } from "@/components/dashboard/home-todo-card";
 import { getYearStats, TimeHero, YearDial } from "@/components/dashboard/time-hero";
+import { TodaySection } from "@/components/dashboard/today-section";
 import { Button } from "@/components/ui/button";
 import { CountUp } from "@/components/ui/count-up";
 import { Dialog } from "@/components/ui/dialog";
@@ -26,16 +27,13 @@ import { PageTransition } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
 import {
   computeSummary,
-  getCurrentMonthLogs,
-  getCurrentMonthQuotes,
-  getCurrentMonthTimeEntries,
   getCurrentWeekLogs,
   getCurrentWeekQuotes,
   getCurrentWeekTimeEntries,
   parseReadingHours,
   sortLogsByDate,
 } from "@/lib/analytics";
-import { getTodayISODate, parseISODate, toChineseNumber, toISODate } from "@/lib/date";
+import { getTodayISODate, parseISODate, toISODate } from "@/lib/date";
 import {
   getAllTimeBestStreak,
   getFocusInsight,
@@ -767,20 +765,16 @@ function V5KpiCard({ eyebrow, title, value, unit, icon: Icon, description, foote
 interface V5HeroPanelProps {
   now: Date;
   greeting: string;
-  weekEntries: number;
-  monthEntries: number;
-  avgMood: number;
-  hasMood: boolean;
   reviewBadge: string | null;
   dailyQuote: Quote | null;
 }
 
 /**
  * 首页问候卡 · 横幅刊头：
- * 上：问候 + 今日一句（左）/ 中文日期（右）；下：操作按钮（左）/ 本周·本月·心情（右）。
+ * 上：问候 + 今日一句；下：操作按钮（左）/ 日期（右）。
  * 保留暖色飘尘氛围层。
  */
-function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMood, reviewBadge, dailyQuote }: V5HeroPanelProps) {
+function V5HeroPanel({ now, greeting, reviewBadge, dailyQuote }: V5HeroPanelProps) {
   const ghostStyle: React.CSSProperties = {
     fontFamily: "var(--v5-serif)",
     fontSize: 15,
@@ -820,7 +814,7 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
               className="v5-display"
               style={{
                 margin: 0,
-                fontSize: "clamp(40px, 4.4vw, 56px)",
+                fontSize: "clamp(32px, 3.2vw, 42px)",
                 fontVariationSettings: '"opsz" 144, "SOFT" 80',
                 fontWeight: 400,
                 color: "var(--v5-ink)",
@@ -844,15 +838,9 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
               <span style={{ marginLeft: 12, fontSize: 14, color: "var(--v5-ink3)" }}>—— {quoteSource}</span>
             </p>
           </div>
-          <div
-            className="whitespace-nowrap pb-1.5"
-            style={{ fontFamily: "var(--v5-serif)", fontSize: 14, letterSpacing: "0.24em", color: "var(--v5-ink3)" }}
-          >
-            {toChineseNumber(now.getMonth() + 1)}月{toChineseNumber(now.getDate())}日 · 星期{"日一二三四五六"[now.getDay()]}
-          </div>
         </div>
 
-        {/* 中：操作 / 统计 */}
+        {/* 下：操作按钮（左）/ 日期（右） */}
         <div className="mt-7 flex flex-wrap items-center justify-between gap-x-8 gap-y-5">
           <div className="flex flex-wrap" style={{ gap: 10 }}>
             <Link
@@ -894,26 +882,14 @@ function V5HeroPanel({ now, greeting, weekEntries, monthEntries, avgMood, hasMoo
             </Link>
           </div>
 
-          <div className="flex" style={{ gap: 24 }}>
-            {[
-              { label: "本周", value: String(weekEntries), unit: "篇" },
-              { label: "本月", value: String(monthEntries), unit: "篇" },
-              { label: "心情", value: hasMood ? avgMood.toFixed(1) : "—", unit: "/ 10" },
-            ].map((stat, i) => (
-              <div className="flex items-stretch" key={stat.label} style={{ gap: 24 }}>
-                {i > 0 && <div style={{ width: 1, background: "var(--v5-rule)" }} />}
-                <div className="whitespace-nowrap">
-                  <div style={{ fontFamily: "var(--v5-serif)", fontSize: 12.5, letterSpacing: "0.2em", color: "var(--v5-ink3)" }}>
-                    {stat.label}
-                  </div>
-                  <div className="v5-numeral mt-1" style={{ fontSize: 28, color: "var(--v5-ink)" }}>
-                    {stat.value}
-                    <span style={{ fontFamily: "var(--v5-serif)", fontSize: 13, color: "var(--v5-ink3)", marginLeft: 6 }}>{stat.unit}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          {/* 日期：数字显示，放在右下角 */}
+          <div
+            className="whitespace-nowrap"
+            style={{ fontFamily: "var(--v5-serif)", fontSize: 15, letterSpacing: "0.08em", color: "var(--v5-ink3)", fontFeatureSettings: '"lnum" 1' }}
+          >
+            {now.getMonth() + 1} 月 {now.getDate()} 日 · 星期{"日一二三四五六"[now.getDay()]}
           </div>
+
         </div>
       </div>
 
@@ -938,15 +914,11 @@ export default function HomePage() {
 
   const allLogsSorted = useMemo(() => sortLogsByDate(logs, "desc"), [logs]);
   const recentLogs = useMemo(() => allLogsSorted.slice(0, 6), [allLogsSorted]);
-  const monthLogs = useMemo(() => sortLogsByDate(getCurrentMonthLogs(logs), "desc"), [logs]);
-  const monthQuotes = useMemo(() => getCurrentMonthQuotes(quotes), [quotes]);
-  const monthTimeEntries = useMemo(() => getCurrentMonthTimeEntries(timeEntries), [timeEntries]);
   const todayLog = useMemo(() => recentLogs.find((log) => log.date === getTodayISODate()) ?? null, [recentLogs]);
   const weeklyLogs = useMemo(() => getCurrentWeekLogs(logs), [logs]);
   const weeklyQuotes = useMemo(() => getCurrentWeekQuotes(quotes), [quotes]);
   const weeklyTimeEntries = useMemo(() => getCurrentWeekTimeEntries(timeEntries), [timeEntries]);
   const weeklySummary = useMemo(() => computeSummary(weeklyLogs, weeklyQuotes, weeklyTimeEntries), [weeklyLogs, weeklyQuotes, weeklyTimeEntries]);
-  const monthlySummary = useMemo(() => computeSummary(monthLogs, monthQuotes, monthTimeEntries), [monthLogs, monthQuotes, monthTimeEntries]);
   const todayStudyHours = useMemo(
     () => timeEntries.filter((entry) => entry.date === getTodayISODate() && entry.type === "study").reduce((sum, entry) => sum + entry.hours, 0),
     [timeEntries],
@@ -1185,15 +1157,14 @@ export default function HomePage() {
         <section className="mx-auto hidden md:block" style={{ maxWidth: 1240 }}>
           <div className="grid" style={{ gap: 32 }}>
             <V5HeroPanel
-              avgMood={weeklySummary.entries ? weeklySummary.averageMood : 0}
               dailyQuote={dailyQuote}
               greeting={getGreeting(now)}
-              hasMood={weeklySummary.entries > 0}
-              monthEntries={monthlySummary.entries}
               now={now}
               reviewBadge={reviewBadge}
-              weekEntries={weeklySummary.entries}
             />
+
+            {/* 今天：记录状态 · 最近的你 · 正在发生 · 那年今日 */}
+            <TodaySection onOpenLog={setDiaryModalId} />
 
             {monthEndPrompt && (
               <div

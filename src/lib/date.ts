@@ -68,12 +68,3 @@ export function isDateWithinRange(value: string, start: Date, end: Date): boolea
   const current = parseISODate(value).getTime();
   return current >= start.getTime() && current <= end.getTime();
 }
-
-/** 1–31 → 一 … 三十一。 */
-export function toChineseNumber(n: number): string {
-  const digits = "零一二三四五六七八九";
-  if (n <= 10) return n === 10 ? "十" : digits[n];
-  const tens = Math.floor(n / 10);
-  const ones = n % 10;
-  return `${tens === 1 ? "" : digits[tens]}十${ones ? digits[ones] : ""}`;
-}

@@ -9,7 +9,6 @@ import { LineChartCard } from "@/components/charts/line-chart-card";
 import { SummaryCard } from "@/components/dashboard/summary-card";
 import { AiReflectionPanel } from "@/components/review/ai-reflection-panel";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Illustration } from "@/components/ui/illustration";
 import { PageTitle } from "@/components/ui/page-title";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -80,14 +79,12 @@ export default function MonthlyReviewPage() {
         <EmptyState
           description="本月还没有足够的数据。先写几条日记，再回来做月度复盘。"
           icon={Sparkles}
-          illustrationAlt="nature illustration"
-          illustrationSrc="/illustrations/among-nature.svg"
           title="暂无本月数据"
         />
       ) : (
         <>
           <StaggerItem index={0}>
-            <Panel className="grid items-center gap-4 p-5 lg:grid-cols-[1.3fr_1fr]" interactive>
+            <Panel className="p-5" interactive>
               <div>
                 <h3 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>本月快照</h3>
                 <p className="mt-2 text-sm leading-7" style={{ color: "var(--m-ink2)" }}>
@@ -95,7 +92,6 @@ export default function MonthlyReviewPage() {
                   {metrics.totalStudyHours.toFixed(1)} 小时，阅读 {metrics.totalReadingHours.toFixed(1)} 小时。
                 </p>
               </div>
-              <Illustration alt="monthly reflection illustration" className="mx-auto max-w-[230px]" src="/illustrations/reading-time.svg" />
             </Panel>
           </StaggerItem>
 

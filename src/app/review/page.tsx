@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { AiReflectionPanel } from "@/components/review/ai-reflection-panel";
+import { MoodCurve } from "@/components/review/mood-curve";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -464,22 +465,7 @@ export default function ReviewHubPage() {
                   MOOD · 情绪走势
                 </p>
 
-                <div className="mt-4 space-y-3">
-                  {reviewData.logs.map((log) => (
-                    <div className="flex items-center gap-3" key={log.id}>
-                      <span className="w-10 text-xs" style={{ color: "var(--m-ink3)" }}>
-                        {new Intl.DateTimeFormat("zh-CN", { day: "numeric" }).format(parseISODate(log.date))}
-                      </span>
-                      <div
-                        className="h-10 rounded-[14px]"
-                        style={{
-                          width: `${Math.max(18, log.mood * 9)}%`,
-                          background: log.mood >= 8 ? "#9b6a42" : log.mood >= 6 ? "#b48c69" : "#d8c0a5",
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <MoodCurve logs={reviewData.logs} mode={mode} range={reviewData.range} />
               </div>
 
               <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(139,94,60,0.12)" }}>

@@ -9,6 +9,8 @@ interface ImageUploaderProps {
   images: string[];
   onChange: (images: string[]) => void;
   maxImages?: number;
+  /** 紧凑模式：一行小缩略图 + 细长添加条 */
+  compact?: boolean;
 }
 
 async function processFiles(
@@ -38,7 +40,7 @@ async function processFiles(
   return { next: [...current, ...uploaded], errors };
 }
 
-export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploaderProps) {
+export function ImageUploader({ images, onChange, maxImages = 9, compact = false }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -85,6 +87,73 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
 
   const canAdd = images.length < maxImages;
 
+  // 紧凑模式：一行小缩略图 + 一条细长的添加条（心境随笔页底部使用）
+  if (compact) {
+    return (
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {images.map((src, i) => (
+            <div
+              className="group relative h-16 w-16 overflow-hidden rounded-[12px]"
+              key={i}
+              style={{ border: "1px solid var(--v5-rule)", boxShadow: "var(--v5-sh-1)" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img alt={`日记图片 ${i + 1}`} className="h-full w-full object-cover" src={src} />
+              <button
+                aria-label="删除图片"
+                className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+                onClick={() => removeImage(i)}
+                style={{ background: "rgba(0,0,0,0.55)" }}
+                type="button"
+              >
+                <X color="white" size={11} />
+              </button>
+            </div>
+          ))}
+
+          {canAdd && (
+            <div
+              className="flex h-16 min-w-[220px] flex-1 cursor-pointer items-center gap-3 rounded-[12px] border border-dashed px-4 transition-colors hover:bg-[rgba(var(--v5-accent-rgb),0.05)]"
+              onClick={() => inputRef.current?.click()}
+              onDragLeave={onDragLeave}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              style={{
+                borderColor: isDragging ? "var(--v5-accent)" : "var(--v5-rule-strong)",
+                background: isDragging ? "rgba(var(--v5-accent-rgb),0.08)" : "transparent",
+              }}
+            >
+              {isProcessing ? (
+                <Loader2 size={17} className="shrink-0 animate-spin" style={{ color: "var(--v5-accent)" }} />
+              ) : (
+                <ImagePlus size={17} className="shrink-0" style={{ color: "var(--v5-accent)" }} />
+              )}
+              <span style={{ fontFamily: "var(--v5-serif)", fontSize: 14.5, color: "var(--v5-ink3)" }}>
+                {isProcessing ? progress : images.length ? `再加几张 · 还能加 ${maxImages - images.length} 张` : `添加照片 · 点击或拖进来，最多 ${maxImages} 张`}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {errorMsg && (
+          <p className="text-xs" style={{ color: "var(--m-danger)" }}>
+            {errorMsg}
+          </p>
+        )}
+
+        <input
+          accept="image/*"
+          className="hidden"
+          multiple
+          onChange={(e) => { if (e.target.files) void handleFiles(e.target.files); e.target.value = ""; }}
+          ref={inputRef}
+          type="file"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4">
       {images.length > 0 && (
@@ -95,8 +164,8 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
               key={i}
               style={{
                 background: "var(--m-paper-hi)",
-                border: "1px solid rgba(139,94,60,0.10)",
-                boxShadow: "0 14px 30px rgba(122,79,43,0.10)",
+                border: "1px solid var(--v5-rule)",
+                boxShadow: "0 14px 30px rgba(var(--v5-shadow-rgb),0.10)",
               }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -109,7 +178,7 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
                 aria-label="删除图片"
                 className="absolute right-2 top-2 rounded-full p-1 opacity-0 transition-opacity group-hover:opacity-100"
                 onClick={() => removeImage(i)}
-                style={{ background: "rgba(71,49,35,0.62)" }}
+                style={{ background: "rgba(0,0,0,0.55)" }}
                 type="button"
               >
                 <X color="white" size={14} />
@@ -127,14 +196,14 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
           onDragOver={onDragOver}
           onDrop={onDrop}
           style={{
-            borderColor: isDragging ? "rgba(214,154,84,0.62)" : "rgba(139,94,60,0.18)",
+            borderColor: isDragging ? "var(--v5-accent)" : "var(--v5-rule-strong)",
             background: isDragging ? "var(--m-paper-lo)" : "var(--m-paper-soft)",
             boxShadow: "var(--m-shadow-in)",
           }}
         >
           <span
             className="grid h-12 w-12 place-items-center rounded-[18px]"
-            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+            style={{ background: "rgba(var(--v5-accent-rgb),0.08)", color: "var(--m-accent)" }}
           >
             {isProcessing ? <Loader2 size={21} className="animate-spin" /> : <ImagePlus size={21} />}
           </span>
@@ -145,7 +214,7 @@ export function ImageUploader({ images, onChange, maxImages = 9 }: ImageUploader
       )}
 
       {errorMsg && (
-        <p className="text-xs" style={{ color: "#C0392B" }}>
+        <p className="text-xs" style={{ color: "var(--m-danger)" }}>
           {errorMsg}
         </p>
       )}

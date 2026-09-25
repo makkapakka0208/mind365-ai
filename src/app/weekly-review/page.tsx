@@ -95,8 +95,6 @@ export default function WeeklyReviewPage() {
         <EmptyState
           description="本周还没有日记。先写一条记录，图表和 AI 复盘就会出现。"
           icon={Sparkles}
-          illustrationAlt="reading illustration"
-          illustrationSrc="/illustrations/reading-time.svg"
           title="暂无本周数据"
         />
       ) : (
