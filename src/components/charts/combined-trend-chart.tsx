@@ -661,9 +661,9 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
                   onClick={() => setRange(opt.value)}
                   type="button"
                   style={{
-                    background: active ? "var(--m-accent)" : "transparent",
-                    color: active ? "#fff" : "var(--m-ink2)",
-                    boxShadow: active ? "0 2px 8px rgba(139,94,60,0.25)" : "none",
+                    background: active ? "var(--v5-accent-fill)" : "transparent",
+                    color: active ? "var(--v5-accent-fill-ink)" : "var(--m-ink2)",
+                    boxShadow: active ? "0 2px 8px rgba(var(--v5-accent-rgb),0.25)" : "none",
                   }}
                 >
                   {opt.label}

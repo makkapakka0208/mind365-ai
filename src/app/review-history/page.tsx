@@ -75,8 +75,6 @@ export default function ReviewHistoryPage() {
         <EmptyState
           description={"还没有保存过复盘记录。去周度、月度或年度复盘页，点击\u201C保存复盘\u201D按钮归档。"}
           icon={Archive}
-          illustrationAlt="archive illustration"
-          illustrationSrc="/illustrations/relaxed-reading.svg"
           title="暂无复盘档案"
         />
       ) : (

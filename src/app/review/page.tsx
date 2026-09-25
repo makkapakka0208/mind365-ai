@@ -366,9 +366,9 @@ export default function ReviewHubPage() {
                 style={
                   mode === item.key
                     ? {
-                        background: "var(--m-accent)",
-                        color: "var(--m-on-accent)",
-                        boxShadow: "0 10px 20px rgba(139,94,60,0.2)",
+                        background: "var(--v5-accent-fill)",
+                        color: "var(--v5-accent-fill-ink)",
+                        boxShadow: "0 10px 20px rgba(var(--v5-accent-rgb),0.2)",
                       }
                     : {
                         background: "transparent",
@@ -389,8 +389,6 @@ export default function ReviewHubPage() {
               <EmptyState
                 description={mode === "week" ? "本周还没有足够的记录，先去写一条今天的日记。" : "本月还没有足够的记录，先去积累几天内容。"}
                 icon={CalendarDays}
-                illustrationAlt="review illustration"
-                illustrationSrc="/illustrations/relaxed-reading.svg"
                 title={mode === "week" ? "本周暂无内容" : "本月暂无内容"}
               />
             </div>

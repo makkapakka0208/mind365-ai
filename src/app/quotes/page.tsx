@@ -118,9 +118,9 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
               fontSize: 14,
               fontWeight: isActive ? 500 : 400,
               cursor: "pointer",
-              background: isActive ? "var(--v5-accent)" : "transparent",
-              color: isActive ? "#fff" : "var(--v5-ink2)",
-              boxShadow: isActive ? "0 2px 8px rgba(139,94,60,0.18)" : "none",
+              background: isActive ? "var(--v5-accent-fill)" : "transparent",
+              color: isActive ? "var(--v5-accent-fill-ink)" : "var(--v5-ink2)",
+              boxShadow: isActive ? "0 2px 8px rgba(var(--v5-accent-rgb),0.18)" : "none",
               transition: "background var(--v5-dur-fast) var(--v5-ease), color var(--v5-dur-fast) var(--v5-ease)",
             }}
           >
@@ -181,9 +181,9 @@ function ThemePickerDialog({
                 onClick={() => onPick(label)}
                 type="button"
                 style={{
-                  background: active ? "var(--m-accent)" : "var(--m-base)",
-                  border: active ? "1px solid var(--m-accent)" : "1px solid var(--m-rule)",
-                  color: active ? "#fff" : "var(--m-ink2)",
+                  background: active ? "var(--v5-accent-fill)" : "var(--m-base)",
+                  border: active ? "1px solid var(--v5-accent-fill-ring)" : "1px solid var(--m-rule)",
+                  color: active ? "var(--v5-accent-fill-ink)" : "var(--m-ink2)",
                 }}
               >
                 <span>{getThemeIcon(label)}</span>
@@ -248,14 +248,14 @@ function QuoteCard({ quote, onOpen }: { quote: Quote; onOpen?: () => void }) {
           marginBottom: 14,
           cursor: onOpen ? "pointer" : undefined,
           transition: "all 0.25s ease",
-          boxShadow: "0 1px 4px rgba(139,94,60,0.06)",
+          boxShadow: "0 1px 4px rgba(var(--v5-accent-rgb),0.06)",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = "0 6px 24px rgba(139,94,60,0.10)";
+          e.currentTarget.style.boxShadow = "0 6px 24px rgba(var(--v5-accent-rgb),0.10)";
           e.currentTarget.style.transform = "translateY(-2px)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = "0 1px 4px rgba(139,94,60,0.06)";
+          e.currentTarget.style.boxShadow = "0 1px 4px rgba(var(--v5-accent-rgb),0.06)";
           e.currentTarget.style.transform = "translateY(0)";
         }}
       >
@@ -306,7 +306,7 @@ function QuoteCard({ quote, onOpen }: { quote: Quote; onOpen?: () => void }) {
                 className="rounded px-2 py-0.5"
                 style={{
                   fontSize: 11,
-                  background: "rgba(139,94,60,0.06)",
+                  background: "rgba(var(--v5-accent-rgb),0.06)",
                   color: "var(--m-accent)",
                 }}
               >
@@ -376,11 +376,11 @@ function WeeklyCognitiveCard({ quotes }: { quotes: Quote[] }) {
     <div
       className="overflow-hidden"
       style={{
-        background: "rgba(253,250,243,0.7)",
+        background: "var(--m-paper-hi)",
         borderRadius: 20,
-        border: "1px solid rgba(139,94,60,0.06)",
+        border: "1px solid rgba(var(--v5-accent-rgb),0.06)",
         padding: "28px 24px",
-        boxShadow: "0 2px 12px rgba(139,94,60,0.03)",
+        boxShadow: "0 2px 12px rgba(var(--v5-accent-rgb),0.03)",
       }}
     >
       <div className="flex items-start justify-between gap-4">
@@ -414,7 +414,7 @@ function WeeklyCognitiveCard({ quotes }: { quotes: Quote[] }) {
         </div>
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: "rgba(139,94,60,0.05)", color: "var(--m-accent)" }}
+          style={{ background: "rgba(var(--v5-accent-rgb),0.05)", color: "var(--m-accent)" }}
         >
           <Sparkles size={16} />
         </span>
@@ -424,8 +424,8 @@ function WeeklyCognitiveCard({ quotes }: { quotes: Quote[] }) {
         <div
           className="mt-5 rounded-2xl px-5 py-4"
           style={{
-            background: "rgba(139,94,60,0.025)",
-            border: "1px solid rgba(139,94,60,0.06)",
+            background: "rgba(var(--v5-accent-rgb),0.025)",
+            border: "1px solid rgba(var(--v5-accent-rgb),0.06)",
           }}
         >
           <p
@@ -453,9 +453,9 @@ function WeeklyCognitiveCard({ quotes }: { quotes: Quote[] }) {
           onClick={generate}
           type="button"
           style={{
-            background: "rgba(139,94,60,0.06)",
+            background: "rgba(var(--v5-accent-rgb),0.06)",
             color: "var(--m-accent)",
-            border: "1px solid rgba(139,94,60,0.1)",
+            border: "1px solid rgba(var(--v5-accent-rgb),0.1)",
           }}
         >
           <Sparkles size={14} />
@@ -485,7 +485,7 @@ function QuoteCardFace({
   return (
     <div
       style={{
-        background: "#FAF7F0",
+        background: "var(--v5-surface)",
         borderRadius: 20,
         boxShadow: dim
           ? "0 4px 16px rgba(0,0,0,0.12)"
@@ -504,7 +504,7 @@ function QuoteCardFace({
           fontFamily: "ui-sans-serif,sans-serif",
           letterSpacing: "0.16em",
           textTransform: "uppercase",
-          color: "rgba(139,94,60,0.60)",
+          color: "rgba(var(--v5-accent-rgb),0.60)",
           marginBottom: 18,
         }}
       >
@@ -513,12 +513,12 @@ function QuoteCardFace({
 
       {/* Quote mark + text */}
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 52, lineHeight: 0.8, color: "rgba(139,94,60,0.12)", fontFamily: "Georgia,serif", marginBottom: 4 }}>"</div>
+        <div style={{ fontSize: 52, lineHeight: 0.8, color: "rgba(var(--v5-accent-rgb),0.12)", fontFamily: "Georgia,serif", marginBottom: 4 }}>"</div>
         <p
           style={{
             fontSize: 19,
             lineHeight: 1.85,
-            color: "rgba(45,24,17,0.90)",
+            color: "var(--v5-ink)",
             fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif',
             letterSpacing: "0.03em",
           }}
@@ -530,7 +530,7 @@ function QuoteCardFace({
       {/* Author / source */}
       <p
         className="mt-5 text-sm"
-        style={{ color: "rgba(100,72,50,0.65)", fontFamily: "ui-sans-serif,sans-serif" }}
+        style={{ color: "var(--v5-ink3)", fontFamily: "ui-sans-serif,sans-serif" }}
       >
         — {quote.author || "佚名"}{quote.book ? ` · ${quote.book}` : ""}
       </p>
@@ -545,9 +545,9 @@ function QuoteCardFace({
                 fontSize: 11,
                 padding: "2px 10px",
                 borderRadius: 99,
-                background: "rgba(139,94,60,0.07)",
-                border: "1px solid rgba(139,94,60,0.12)",
-                color: "rgba(100,72,50,0.70)",
+                background: "rgba(var(--v5-accent-rgb),0.07)",
+                border: "1px solid rgba(var(--v5-accent-rgb),0.12)",
+                color: "var(--v5-ink3)",
                 fontFamily: "ui-sans-serif,sans-serif",
               }}
             >
@@ -886,19 +886,19 @@ function QuoteStackModal({
                   /* ── Edit form ── */
                   <div
                     style={{
-                      background: "#FAF7F0",
+                      background: "var(--v5-surface)",
                       borderRadius: 20,
                       boxShadow: "0 28px 64px rgba(0,0,0,0.20)",
                       padding: "26px 24px 22px",
                     }}
                   >
-                    <p className="mb-4 text-sm font-semibold" style={{ color: "#7A5535" }}>编辑金句</p>
+                    <p className="mb-4 text-sm font-semibold" style={{ color: "var(--v5-accent)" }}>编辑金句</p>
                     <div className="space-y-3">
                       <textarea
                         className="w-full resize-none rounded-xl px-3 py-2.5 text-sm leading-7 outline-none"
                         onChange={(e) => setEditForm({ ...editForm, text: e.target.value })}
                         rows={4}
-                        style={{ background: "rgba(139,94,60,0.05)", border: "1px solid rgba(139,94,60,0.15)", color: "#2D1811", fontFamily: '"Ma Shan Zheng","STKaiti",serif', fontSize: 16 }}
+                        style={{ background: "rgba(var(--v5-accent-rgb),0.05)", border: "1px solid rgba(var(--v5-accent-rgb),0.15)", color: "var(--v5-ink)", fontFamily: '"Ma Shan Zheng","STKaiti",serif', fontSize: 16 }}
                         value={editForm.text}
                       />
                       <div className="grid grid-cols-2 gap-2">
@@ -906,14 +906,14 @@ function QuoteStackModal({
                           className="rounded-xl px-3 py-2 text-sm outline-none"
                           onChange={(e) => setEditForm({ ...editForm, author: e.target.value })}
                           placeholder="作者"
-                          style={{ background: "rgba(139,94,60,0.05)", border: "1px solid rgba(139,94,60,0.15)", color: "#2D1811", fontFamily: "ui-sans-serif" }}
+                          style={{ background: "rgba(var(--v5-accent-rgb),0.05)", border: "1px solid rgba(var(--v5-accent-rgb),0.15)", color: "var(--v5-ink)", fontFamily: "ui-sans-serif" }}
                           value={editForm.author}
                         />
                         <input
                           className="rounded-xl px-3 py-2 text-sm outline-none"
                           onChange={(e) => setEditForm({ ...editForm, book: e.target.value })}
                           placeholder="书名 / 来源"
-                          style={{ background: "rgba(139,94,60,0.05)", border: "1px solid rgba(139,94,60,0.15)", color: "#2D1811", fontFamily: "ui-sans-serif" }}
+                          style={{ background: "rgba(var(--v5-accent-rgb),0.05)", border: "1px solid rgba(var(--v5-accent-rgb),0.15)", color: "var(--v5-ink)", fontFamily: "ui-sans-serif" }}
                           value={editForm.book}
                         />
                       </div>
@@ -921,7 +921,7 @@ function QuoteStackModal({
                         className="w-full rounded-xl px-3 py-2 text-sm outline-none"
                         onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
                         placeholder="标签，逗号分隔"
-                        style={{ background: "rgba(139,94,60,0.05)", border: "1px solid rgba(139,94,60,0.15)", color: "#2D1811", fontFamily: "ui-sans-serif" }}
+                        style={{ background: "rgba(var(--v5-accent-rgb),0.05)", border: "1px solid rgba(var(--v5-accent-rgb),0.15)", color: "var(--v5-ink)", fontFamily: "ui-sans-serif" }}
                         value={editForm.tags}
                       />
                     </div>
@@ -931,7 +931,7 @@ function QuoteStackModal({
                         disabled={saving}
                         onClick={saveEdit}
                         type="button"
-                        style={{ background: "#2D1811", color: "#FAF7F0" }}
+                        style={{ background: "var(--v5-pill-bg)", color: "var(--v5-pill-ink)" }}
                       >
                         <Save size={13} />
                         {saving ? "保存中…" : "保存"}
@@ -940,7 +940,7 @@ function QuoteStackModal({
                         className="rounded-xl px-4 py-2 text-sm transition-opacity hover:opacity-70"
                         onClick={() => setIsEditing(false)}
                         type="button"
-                        style={{ color: "#A08060" }}
+                        style={{ color: "var(--v5-ink3)" }}
                       >
                         取消
                       </button>
@@ -1090,10 +1090,10 @@ function QuoteStackModal({
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                style={{ background: "#FAF7F0" }}
+                style={{ background: "var(--v5-surface)" }}
               >
-                <p className="mb-1 text-base font-semibold" style={{ color: "#2D1811" }}>确认删除</p>
-                <p className="mb-5 text-sm" style={{ color: "#8C735D" }}>
+                <p className="mb-1 text-base font-semibold" style={{ color: "var(--v5-ink)" }}>确认删除</p>
+                <p className="mb-5 text-sm" style={{ color: "var(--v5-ink3)" }}>
                   删除后无法恢复，确定要删除这条金句吗？
                 </p>
                 <div className="flex items-center gap-3">
@@ -1101,7 +1101,7 @@ function QuoteStackModal({
                     className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-opacity hover:opacity-80"
                     onClick={handleDelete}
                     type="button"
-                    style={{ background: "#DC4446", color: "#fff" }}
+                    style={{ background: "var(--m-danger)", color: "var(--v5-surface)" }}
                   >
                     删除
                   </button>
@@ -1109,7 +1109,7 @@ function QuoteStackModal({
                     className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-opacity hover:opacity-70"
                     onClick={() => setConfirmDelete(false)}
                     type="button"
-                    style={{ background: "rgba(0,0,0,0.06)", color: "#2D1811" }}
+                    style={{ background: "rgba(var(--v5-ink-rgb),0.06)", color: "var(--v5-ink)" }}
                   >
                     取消
                   </button>
@@ -1311,8 +1311,8 @@ function V5WeeklyInsight({
             style={{
               borderRadius: 16,
               padding: "16px 18px",
-              background: "rgba(139,94,60,0.05)",
-              border: "1px solid rgba(139,94,60,0.10)",
+              background: "rgba(var(--v5-accent-rgb),0.05)",
+              border: "1px solid rgba(var(--v5-accent-rgb),0.10)",
             }}
           >
             <div className="v5-eyebrow" style={{ fontSize: 10 }}>
@@ -1372,7 +1372,7 @@ function V5WeeklyInsight({
               fontWeight: 500,
               cursor: weekByTheme.length === 0 ? "not-allowed" : "pointer",
               opacity: weekByTheme.length === 0 ? 0.5 : 1,
-              boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+              boxShadow: "0 4px 12px rgba(var(--v5-shadow-rgb),0.18)",
               transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
             }}
             onMouseEnter={(e) => {
@@ -1422,7 +1422,7 @@ function V5WeeklyInsight({
                 >
                   {label}
                 </span>
-                <div className="flex-1" style={{ height: 4, background: "rgba(75,51,27,0.06)", borderRadius: 999 }}>
+                <div className="flex-1" style={{ height: 4, background: "rgba(var(--v5-ink-rgb),0.06)", borderRadius: 999 }}>
                   <div
                     style={{
                       width: `${pct}%`,
@@ -1791,8 +1791,6 @@ function ArchiveSection({
           <EmptyState
             description="保存第一条金句后，AI 会自动按主题分类，这里会形成你的认知文件夹。"
             icon={FolderOpen}
-            illustrationAlt="empty archive"
-            illustrationSrc="/illustrations/relaxed-reading.svg"
             title="还没有归档内容"
           />
         ) : (
@@ -1974,8 +1972,6 @@ function ArchiveSection({
             <EmptyState
               description="保存第一条金句后，AI 会自动按主题分类，这里会形成你的认知文件夹。"
               icon={FolderOpen}
-              illustrationAlt="empty archive"
-              illustrationSrc="/illustrations/relaxed-reading.svg"
               title="还没有归档内容"
             />
           ) : (
@@ -2147,7 +2143,7 @@ function V5TodaysPick({
               cursor: "pointer",
               transition: "background var(--v5-dur) var(--v5-ease)",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(75,51,27,0.06)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(var(--v5-ink-rgb),0.06)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <Shuffle size={14} />
@@ -2170,7 +2166,7 @@ function V5TodaysPick({
               fontWeight: 500,
               cursor: quote ? "pointer" : "not-allowed",
               opacity: quote ? 1 : 0.5,
-              boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+              boxShadow: "0 4px 12px rgba(var(--v5-shadow-rgb),0.18)",
               transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
             }}
             onMouseEnter={(e) => {
@@ -2198,7 +2194,7 @@ function V5TodaysPick({
               style={{
                 padding: "5px 12px",
                 borderRadius: 999,
-                background: "rgba(139,94,60,0.07)",
+                background: "rgba(var(--v5-accent-rgb),0.07)",
                 color: "var(--v5-ink2)",
                 fontFamily: "var(--v5-serif)",
                 fontStyle: "italic",
@@ -2270,7 +2266,7 @@ function V5FilterBar({
           fontSize: 13.5,
           fontWeight: 500,
           cursor: "pointer",
-          boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+          boxShadow: "0 4px 12px rgba(var(--v5-shadow-rgb),0.18)",
           transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
         }}
         onMouseEnter={(e) => {
@@ -2332,8 +2328,8 @@ function V5FilterBar({
                 padding: "5px 11px",
                 borderRadius: 999,
                 border: 0,
-                background: active ? "var(--v5-accent)" : "rgba(139,94,60,0.07)",
-                color: active ? "#fff" : "var(--v5-ink2)",
+                background: active ? "var(--v5-accent-fill)" : "rgba(var(--v5-accent-rgb),0.07)",
+                color: active ? "var(--v5-accent-fill-ink)" : "var(--v5-ink2)",
                 fontFamily: "var(--v5-serif)",
                 fontStyle: "italic",
                 fontSize: 12.5,
@@ -2425,7 +2421,7 @@ function V5FilterBar({
                   style={{
                     padding: "8px 12px",
                     borderRadius: 8,
-                    background: opt === sort ? "rgba(139,94,60,0.08)" : "transparent",
+                    background: opt === sort ? "rgba(var(--v5-accent-rgb),0.08)" : "transparent",
                     color: opt === sort ? "var(--v5-accent)" : "var(--v5-ink2)",
                     fontFamily: "var(--v5-sans)",
                     fontSize: 13,
@@ -2449,7 +2445,7 @@ function V5FilterBar({
             gap: 8,
             padding: "6px 12px",
             borderRadius: 999,
-            background: "rgba(139,94,60,0.06)",
+            background: "rgba(var(--v5-accent-rgb),0.06)",
             fontSize: 12,
             color: "var(--v5-ink2)",
             fontFamily: "var(--v5-sans)",
@@ -2530,8 +2526,8 @@ function V5QuoteCard({
         onMouseLeave={() => setHov(false)}
         style={{
           ...baseCardStyle,
-          background: "linear-gradient(135deg, var(--v5-accent) 0%, #6b4628 100%)",
-          color: "#fff",
+          background: "linear-gradient(135deg, var(--v5-accent) 0%, var(--v5-accent-deep) 100%)",
+          color: "var(--m-on-accent)",
         }}
       >
         <span
@@ -2544,7 +2540,7 @@ function V5QuoteCard({
             fontVariationSettings: '"opsz" 144, "wght" 500',
             fontSize: 88,
             lineHeight: 1,
-            color: "#fff",
+            color: "var(--m-on-accent)",
             opacity: 0.18,
             userSelect: "none",
           }}
@@ -2560,7 +2556,7 @@ function V5QuoteCard({
             fontSize: 23,
             fontWeight: 400,
             lineHeight: 1.42,
-            color: "#fff",
+            color: "var(--m-on-accent)",
             letterSpacing: "-0.01em",
           }}
         >
@@ -2570,7 +2566,7 @@ function V5QuoteCard({
           className="mt-5 flex items-center justify-between"
           style={{
             paddingTop: 14,
-            borderTop: "1px solid rgba(255,255,255,0.18)",
+            borderTop: "1px solid rgba(var(--m-on-accent-rgb),0.18)",
             gap: 10,
           }}
         >
@@ -2579,12 +2575,12 @@ function V5QuoteCard({
               fontFamily: "var(--v5-serif)",
               fontStyle: "italic",
               fontSize: 13,
-              color: "rgba(255,250,243,0.92)",
+              color: "rgba(var(--m-on-accent-rgb),0.92)",
             }}
           >
             {author}{book ? ` · 《${book}》` : ""}
           </span>
-          <Bookmark size={14} style={{ color: "rgba(255,250,243,0.7)" }} />
+          <Bookmark size={14} style={{ color: "rgba(var(--m-on-accent-rgb),0.7)" }} />
         </div>
         {tags.length > 0 && (
           <div className="mt-3 flex flex-wrap" style={{ gap: 6 }}>
@@ -2594,8 +2590,8 @@ function V5QuoteCard({
                 style={{
                   padding: "4px 10px",
                   borderRadius: 999,
-                  background: "rgba(255,250,243,0.12)",
-                  color: "#fff",
+                  background: "rgba(var(--m-on-accent-rgb),0.12)",
+                  color: "var(--m-on-accent)",
                   fontFamily: "var(--v5-serif)",
                   fontStyle: "italic",
                   fontSize: 12,
@@ -2693,7 +2689,7 @@ function V5QuoteCard({
                 style={{
                   padding: "3px 9px",
                   borderRadius: 999,
-                  background: "rgba(139,94,60,0.07)",
+                  background: "rgba(var(--v5-accent-rgb),0.07)",
                   color: "var(--v5-ink2)",
                   fontFamily: "var(--v5-serif)",
                   fontStyle: "italic",
@@ -2768,7 +2764,7 @@ function V5QuoteCard({
                 style={{
                   padding: "3px 9px",
                   borderRadius: 999,
-                  background: "rgba(139,94,60,0.07)",
+                  background: "rgba(var(--v5-accent-rgb),0.07)",
                   color: "var(--v5-ink2)",
                   fontFamily: "var(--v5-serif)",
                   fontStyle: "italic",
@@ -2841,7 +2837,7 @@ function V5AddQuoteModal({
       onClick={onClose}
       style={{
         zIndex: 100,
-        background: "rgba(33,22,17,0.45)",
+        background: "rgba(var(--v5-shadow-rgb),0.45)",
         backdropFilter: "blur(6px)",
         WebkitBackdropFilter: "blur(6px)",
         padding: 16,
@@ -2855,7 +2851,7 @@ function V5AddQuoteModal({
           background: "var(--v5-card)",
           borderRadius: 24,
           padding: 32,
-          boxShadow: "0 24px 60px rgba(33,22,17,0.35)",
+          boxShadow: "0 24px 60px rgba(var(--v5-shadow-rgb),0.35)",
           maxHeight: "90vh",
           overflowY: "auto",
         }}
@@ -2899,7 +2895,7 @@ function V5AddQuoteModal({
           style={{
             minHeight: 130,
             padding: "14px 16px",
-            background: "rgba(75,51,27,0.04)",
+            background: "rgba(var(--v5-ink-rgb),0.04)",
             border: "1px solid var(--v5-rule)",
             borderRadius: 14,
             fontFamily: "var(--v5-serif)",
@@ -2917,7 +2913,7 @@ function V5AddQuoteModal({
             placeholder="作者"
             style={{
               padding: "12px 14px",
-              background: "rgba(75,51,27,0.04)",
+              background: "rgba(var(--v5-ink-rgb),0.04)",
               border: "1px solid var(--v5-rule)",
               borderRadius: 12,
               fontFamily: "var(--v5-serif)",
@@ -2933,7 +2929,7 @@ function V5AddQuoteModal({
             placeholder="出处 · 书 / 文 / 演讲"
             style={{
               padding: "12px 14px",
-              background: "rgba(75,51,27,0.04)",
+              background: "rgba(var(--v5-ink-rgb),0.04)",
               border: "1px solid var(--v5-rule)",
               borderRadius: 12,
               fontFamily: "var(--v5-serif)",
@@ -2951,7 +2947,7 @@ function V5AddQuoteModal({
           placeholder="标签 · 用空格分隔，例：勇气 成长 当下"
           style={{
             padding: "12px 14px",
-            background: "rgba(75,51,27,0.04)",
+            background: "rgba(var(--v5-ink-rgb),0.04)",
             border: "1px solid var(--v5-rule)",
             borderRadius: 12,
             fontFamily: "var(--v5-serif)",
@@ -2970,7 +2966,7 @@ function V5AddQuoteModal({
                 style={{
                   padding: "4px 10px",
                   borderRadius: 999,
-                  background: "rgba(139,94,60,0.08)",
+                  background: "rgba(var(--v5-accent-rgb),0.08)",
                   color: "var(--v5-ink2)",
                   fontFamily: "var(--v5-serif)",
                   fontStyle: "italic",
@@ -3018,7 +3014,7 @@ function V5AddQuoteModal({
               fontWeight: 500,
               cursor: text.trim() && !saving ? "pointer" : "not-allowed",
               opacity: text.trim() && !saving ? 1 : 0.5,
-              boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
+              boxShadow: "0 4px 12px rgba(var(--v5-shadow-rgb),0.18)",
             }}
           >
             <Bookmark size={14} />
@@ -3171,8 +3167,6 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
               <EmptyState
                 description="保存第一条金句后，这里会逐渐变成你的私人灵感墙。"
                 icon={Sparkles}
-                illustrationAlt="relaxed reading illustration"
-                illustrationSrc="/illustrations/relaxed-reading.svg"
                 title="还没有收藏金句"
               />
             ) : (
@@ -3212,10 +3206,10 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
           onSubmit={onSubmit}
           style={{
             background:
-              "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
+              "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo)), linear-gradient(90deg, rgba(var(--v5-accent-rgb),0.045) 1px, transparent 1px)",
             backgroundSize: "auto, 44px 44px",
-            border: "1px solid rgba(139,94,60,0.12)",
-            boxShadow: "0 30px 70px rgba(122,79,43,0.13)",
+            border: "1px solid rgba(var(--v5-accent-rgb),0.12)",
+            boxShadow: "0 30px 70px rgba(var(--v5-shadow-rgb),0.13)",
           }}
         >
           {/* Header + save button */}
@@ -3247,7 +3241,7 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
                 placeholder="在这里写下那句打动你的话…"
                 required
                 style={{
-                  backgroundImage: "repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.07) 35px, rgba(139,94,60,0.07) 36px)",
+                  backgroundImage: "repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(var(--v5-accent-rgb),0.07) 35px, rgba(var(--v5-accent-rgb),0.07) 36px)",
                   backgroundPositionY: "35px",
                   fontFamily: '"Noto Serif SC", "Songti SC", "KaiTi", serif',
                   color: "var(--m-ink)",
@@ -3262,9 +3256,9 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
 
             {/* Elegant divider */}
             <div className="flex items-center gap-4 py-5">
-              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(139,94,60,0.12), transparent)" }} />
-              <QuoteIcon size={12} style={{ color: "rgba(139,94,60,0.25)" }} />
-              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(139,94,60,0.12), transparent)" }} />
+              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(var(--v5-accent-rgb),0.12), transparent)" }} />
+              <QuoteIcon size={12} style={{ color: "rgba(var(--v5-accent-rgb),0.25)" }} />
+              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(var(--v5-accent-rgb),0.12), transparent)" }} />
             </div>
 
             {/* Author + source — borderless underline inputs */}
@@ -3275,12 +3269,12 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
                   作者
                 </label>
                 <input
-                  className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                  className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(var(--v5-accent-rgb),0.28)] focus:border-b-2"
                   onChange={(e) => setAuthor(e.target.value)}
                   placeholder="留下名字"
                   style={{
                     borderBottomWidth: 1,
-                    borderBottomColor: "rgba(139,94,60,0.15)",
+                    borderBottomColor: "rgba(var(--v5-accent-rgb),0.15)",
                     borderBottomStyle: "solid",
                     color: "var(--m-ink)",
                     fontFamily: '"Noto Serif SC", "Songti SC", serif',
@@ -3295,12 +3289,12 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
                   出处
                 </label>
                 <input
-                  className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                  className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(var(--v5-accent-rgb),0.28)] focus:border-b-2"
                   onChange={(e) => setBook(e.target.value)}
                   placeholder="书籍、文章或演讲"
                   style={{
                     borderBottomWidth: 1,
-                    borderBottomColor: "rgba(139,94,60,0.15)",
+                    borderBottomColor: "rgba(var(--v5-accent-rgb),0.15)",
                     borderBottomStyle: "solid",
                     color: "var(--m-ink)",
                     fontFamily: '"Noto Serif SC", "Songti SC", serif',
@@ -3318,12 +3312,12 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
                 标签
               </label>
               <input
-                className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(var(--v5-accent-rgb),0.28)] focus:border-b-2"
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="思想, 成长, 勇气, 平静"
                 style={{
                   borderBottomWidth: 1,
-                  borderBottomColor: "rgba(139,94,60,0.15)",
+                  borderBottomColor: "rgba(var(--v5-accent-rgb),0.15)",
                   borderBottomStyle: "solid",
                   color: "var(--m-ink)",
                 }}
@@ -3336,7 +3330,7 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
                     <span
                       key={t}
                       className="rounded-full px-3 py-1 text-[11px] tracking-wide"
-                      style={{ background: "rgba(139,94,60,0.06)", color: "var(--m-accent)", border: "1px solid rgba(139,94,60,0.08)" }}
+                      style={{ background: "rgba(var(--v5-accent-rgb),0.06)", color: "var(--m-accent)", border: "1px solid rgba(var(--v5-accent-rgb),0.08)" }}
                     >
                       {t}
                     </span>
@@ -3359,8 +3353,6 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
         <EmptyState
           description="保存第一条金句后，这里会逐渐变成你的私人灵感墙。"
           icon={Sparkles}
-          illustrationAlt="relaxed reading illustration"
-          illustrationSrc="/illustrations/relaxed-reading.svg"
           title="还没有收藏金句"
         />
       ) : (
@@ -3435,10 +3427,10 @@ function ReadingNotebookSection() {
           onSubmit={onSubmit}
           style={{
             background:
-              "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo)), linear-gradient(90deg, rgba(165,106,67,0.045) 1px, transparent 1px)",
+              "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo)), linear-gradient(90deg, rgba(var(--v5-accent-rgb),0.045) 1px, transparent 1px)",
             backgroundSize: "auto, 44px 44px",
-            border: "1px solid rgba(139,94,60,0.12)",
-            boxShadow: "0 30px 70px rgba(122,79,43,0.13)",
+            border: "1px solid rgba(var(--v5-accent-rgb),0.12)",
+            boxShadow: "0 30px 70px rgba(var(--v5-shadow-rgb),0.13)",
           }}
         >
           {/* Header + save button */}
@@ -3469,13 +3461,13 @@ function ReadingNotebookSection() {
                 标题
               </label>
               <input
-                className="w-full border-0 border-b bg-transparent pb-2 text-xl font-semibold outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                className="w-full border-0 border-b bg-transparent pb-2 text-xl font-semibold outline-none transition-colors placeholder:text-[rgba(var(--v5-accent-rgb),0.28)] focus:border-b-2"
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="这段阅读想回答什么问题？"
                 required
                 style={{
                   borderBottomWidth: 1,
-                  borderBottomColor: "rgba(139,94,60,0.15)",
+                  borderBottomColor: "rgba(var(--v5-accent-rgb),0.15)",
                   borderBottomStyle: "solid",
                   color: "var(--m-ink)",
                   fontFamily: '"Noto Serif SC", "Songti SC", serif',
@@ -3487,9 +3479,9 @@ function ReadingNotebookSection() {
 
             {/* Elegant divider */}
             <div className="flex items-center gap-4 py-4">
-              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(139,94,60,0.12), transparent)" }} />
-              <Brain size={12} style={{ color: "rgba(139,94,60,0.25)" }} />
-              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(139,94,60,0.12), transparent)" }} />
+              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(var(--v5-accent-rgb),0.12), transparent)" }} />
+              <Brain size={12} style={{ color: "rgba(var(--v5-accent-rgb),0.25)" }} />
+              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(var(--v5-accent-rgb),0.12), transparent)" }} />
             </div>
 
             {/* Main writing area — seamless lined paper, no border */}
@@ -3500,7 +3492,7 @@ function ReadingNotebookSection() {
                 placeholder="写下你的摘录、理解、疑问，或者读完以后还在心里回响的一句话…"
                 required
                 style={{
-                  backgroundImage: "repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(139,94,60,0.07) 35px, rgba(139,94,60,0.07) 36px)",
+                  backgroundImage: "repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(var(--v5-accent-rgb),0.07) 35px, rgba(var(--v5-accent-rgb),0.07) 36px)",
                   backgroundPositionY: "35px",
                   fontFamily: '"Noto Serif SC", "Songti SC", "KaiTi", serif',
                   color: "var(--m-ink)",
@@ -3520,12 +3512,12 @@ function ReadingNotebookSection() {
                 标签
               </label>
               <input
-                className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(139,94,60,0.28)] focus:border-b-2"
+                className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(var(--v5-accent-rgb),0.28)] focus:border-b-2"
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="结构, 反思, 阅读, 成长"
                 style={{
                   borderBottomWidth: 1,
-                  borderBottomColor: "rgba(139,94,60,0.15)",
+                  borderBottomColor: "rgba(var(--v5-accent-rgb),0.15)",
                   borderBottomStyle: "solid",
                   color: "var(--m-ink)",
                 }}
@@ -3538,7 +3530,7 @@ function ReadingNotebookSection() {
                     <span
                       key={t}
                       className="rounded-full px-3 py-1 text-[11px] tracking-wide"
-                      style={{ background: "rgba(139,94,60,0.06)", color: "var(--m-accent)", border: "1px solid rgba(139,94,60,0.08)" }}
+                      style={{ background: "rgba(var(--v5-accent-rgb),0.06)", color: "var(--m-accent)", border: "1px solid rgba(var(--v5-accent-rgb),0.08)" }}
                     >
                       {t}
                     </span>
@@ -3587,7 +3579,7 @@ function ReadingNotebookSection() {
                       border: "1px solid var(--m-rule)",
                       padding: "20px 20px 16px",
                       transition: "all 0.25s ease",
-                      boxShadow: "0 1px 4px rgba(139,94,60,0.06)",
+                      boxShadow: "0 1px 4px rgba(var(--v5-accent-rgb),0.06)",
                     }}
                   >
                     <h4
@@ -3610,7 +3602,7 @@ function ReadingNotebookSection() {
                           <span
                             className="rounded-full px-3 py-1 text-xs"
                             key={`${note.id}-${tag}`}
-                            style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                            style={{ background: "rgba(var(--v5-accent-rgb),0.08)", color: "var(--m-accent)" }}
                           >
                             #{tag}
                           </span>
@@ -3625,7 +3617,7 @@ function ReadingNotebookSection() {
                               void deleteNote(note.id);
                             }
                           }}
-                          style={{ background: "rgba(178,76,56,0.08)", color: "var(--m-danger, #b24c38)" }}
+                          style={{ background: "color-mix(in srgb, var(--m-danger) 10%, transparent)", color: "var(--m-danger, #b24c38)" }}
                           type="button"
                         >
                           <Trash2 size={14} />
@@ -3633,7 +3625,7 @@ function ReadingNotebookSection() {
                         <button
                           className="rounded-full px-4 py-1.5 text-sm transition-all hover:opacity-80"
                           onClick={() => toggleExpanded(note.id)}
-                          style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                          style={{ background: "rgba(var(--v5-accent-rgb),0.08)", color: "var(--m-accent)" }}
                           type="button"
                         >
                           {isExpanded ? "收起" : "展开阅读"}

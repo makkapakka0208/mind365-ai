@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Textarea } from "@/components/ui/textarea";
 import { sortLogsByDate } from "@/lib/analytics";
-import { formatDate, getTodayISODate } from "@/lib/date";
+import { getTodayISODate } from "@/lib/date";
 import { isBase64DataUrl, migrateBase64Images } from "@/lib/image-storage";
 import {
   calculateAlignmentScore,
@@ -151,6 +151,15 @@ function RecentEntryButton({
   );
 }
 
+/** 1–31 → 一 … 三十一（刊头日期用）。 */
+function toChineseNumber(n: number) {
+  const digits = "零一二三四五六七八九";
+  if (n <= 10) return n === 10 ? "十" : digits[n];
+  const tens = Math.floor(n / 10);
+  const ones = n % 10;
+  return `${tens === 1 ? "" : digits[tens]}十${ones ? digits[ones] : ""}`;
+}
+
 export default function DailyLogPage() {
   return (
     <Suspense>
@@ -197,6 +206,21 @@ function DailyLogInner() {
     setViewingDate(date);
   };
   const isFuture = viewingDate > todayIso;
+  const masthead = useMemo(() => {
+    const [y, m, d] = viewingDate.split("-").map(Number);
+    const sameYear = y === Number(todayIso.slice(0, 4));
+    const weekday = "周" + "日一二三四五六"[new Date(y, m - 1, d).getDay()];
+    const line = viewingDate === todayIso
+      ? "把今天的故事，轻轻留在这里。"
+      : isFuture
+        ? "这一天还没有到来。"
+        : "回到这一天，补上或重读它的故事。";
+    return {
+      title: `${sameYear ? "" : `${y} 年 `}${toChineseNumber(m)}月${toChineseNumber(d)}日`,
+      weekday,
+      line,
+    };
+  }, [viewingDate, todayIso, isFuture]);
   const tagList = useMemo(() => getTagList(tags), [tags]);
   const activeMood = MOODS.reduce((nearest, item) => (
     Math.abs(item.value - mood) < Math.abs(nearest.value - mood) ? item : nearest
@@ -268,25 +292,17 @@ function DailyLogInner() {
   return (
     <>
       <PageTransition className="daily-log-v5 mx-auto max-w-[1460px] space-y-6 pb-8">
-        <div
-          className="pointer-events-none fixed right-5 top-5 z-10 hidden rounded-full px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-white md:block"
-          style={{ background: "var(--v5-ink)", boxShadow: "0 10px 24px rgba(33, 22, 17, 0.18)" }}
-        >
-          JOURNAL · v5
-        </div>
-
-        <section className="daily-log-hero">
-          <div className="flex flex-wrap items-start justify-between gap-5">
-            <div>
-              <div className="flex flex-wrap items-center gap-4">
-                <span className="v5-eyebrow">JOURNAL NOTEBOOK · 心境随笔</span>
-                <span className="hidden h-px w-7 bg-[var(--v5-rule-strong)] sm:block" />
-                <span className="daily-log-date">{formatDate(viewingDate)}</span>
-              </div>
-              <h1 className="daily-log-title">把今天的故事，轻轻留在这里吧</h1>
-            </div>
-          </div>
-        </section>
+        {/* 刊头：日期即标题，那句话退为斜体副标题；无卡片，底部一条发丝线 */}
+        <header className="daily-log-masthead">
+          <h1 className="daily-log-masthead-title">
+            <span className="daily-log-masthead-numeral">II</span>
+            <span aria-hidden className="daily-log-masthead-dot">·</span>
+            {masthead.title}
+          </h1>
+          <p className="daily-log-masthead-sub">
+            {masthead.weekday} · {masthead.line}
+          </p>
+        </header>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_540px]">
           <StaggerItem index={0}>

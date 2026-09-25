@@ -1,8 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, Check, ChevronDown, ChevronRight, Clock, Inbox, Target, Trash2, Zap } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { getTodayISODate } from "@/lib/date";
@@ -17,22 +16,28 @@ import {
 import { useTodosStore } from "@/lib/storage-store";
 import type { TodoItem, TodoQuadrant } from "@/types";
 
-const SERIF = '"Noto Serif SC", "Songti SC", serif';
+const SERIF = "var(--v5-serif)";
 
-// ── Quadrant metadata (Eisenhower matrix) — colors per design QUAD_CFG ──
+// ── Quadrant metadata (Eisenhower matrix) ──
+// 不再用红橙绿蓝四色：统一走主题强调色，按重要度递减（Ⅰ 最强 → Ⅳ 最淡），
+// 用罗马数字 + 行动词区分象限。
 interface QuadrantMeta {
   id: TodoQuadrant;
+  numeral: string;
+  action: string;
   label: string;
-  icon: LucideIcon;
-  color: string;
+  empty: string;
+  tone: string;
 }
 
 const QUADRANTS: QuadrantMeta[] = [
-  { id: "q1", label: "重要且紧急", icon: Zap, color: "#b04040" },
-  { id: "q2", label: "重要不紧急", icon: Target, color: "#c8893a" },
-  { id: "q3", label: "不重要且紧急", icon: Clock, color: "#5a8a3c" },
-  { id: "q4", label: "不重要不紧急", icon: Inbox, color: "#4a7a9b" },
+  { id: "q1", numeral: "I", action: "立即做", label: "重要且紧急", empty: "没有火烧眉毛的事", tone: "var(--v5-accent)" },
+  { id: "q2", numeral: "II", action: "计划做", label: "重要不紧急", empty: "为长期的事留一点时间", tone: "rgba(var(--v5-accent-rgb),0.72)" },
+  { id: "q3", numeral: "III", action: "速办或委派", label: "不重要但紧急", empty: "能快速了结的放这里", tone: "var(--v5-ink3)" },
+  { id: "q4", numeral: "IV", action: "放一放", label: "不重要不紧急", empty: "可以放下的事", tone: "var(--v5-ink-mute)" },
 ];
+
+const HAIRLINE = "1px solid rgba(var(--v5-ink-rgb),0.07)";
 
 function quadFromFlags(important: boolean, urgent: boolean): TodoQuadrant {
   if (important && urgent) return "q1";
@@ -66,10 +71,10 @@ function describeDue(due: string, done: boolean): { label: string; tone: DueTone
 }
 
 const TONE_COLORS: Record<DueTone, { fg: string; bg: string }> = {
-  overdue: { fg: "#C0392B", bg: "rgba(192,57,43,0.1)" },
-  today: { fg: "var(--m-accent)", bg: "rgba(139,94,60,0.12)" },
-  tomorrow: { fg: "#7e6046", bg: "rgba(126,96,70,0.1)" },
-  future: { fg: "var(--m-ink3)", bg: "rgba(139,94,60,0.07)" },
+  overdue: { fg: "var(--m-danger)", bg: "color-mix(in srgb, var(--m-danger) 12%, transparent)" },
+  today: { fg: "var(--v5-accent)", bg: "rgba(var(--v5-accent-rgb),0.12)" },
+  tomorrow: { fg: "var(--v5-ink2)", bg: "rgba(var(--v5-ink-rgb),0.07)" },
+  future: { fg: "var(--v5-ink3)", bg: "rgba(var(--v5-ink-rgb),0.05)" },
 };
 
 function DueChip({ todo }: { todo: TodoItem }) {
@@ -100,14 +105,14 @@ function DueChip({ todo }: { todo: TodoItem }) {
     );
   }
   return (
-    <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-50 transition-all sm:opacity-0 sm:group-hover:opacity-50" style={{ color: "var(--m-ink3)" }}>
+    <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full opacity-50 transition-all sm:opacity-0 sm:group-hover:opacity-50" style={{ color: "var(--v5-ink3)" }}>
       <CalendarDays size={13} />
       {overlayInput}
     </span>
   );
 }
 
-// ── Single todo row (lives inside a quadrant card, hairline-separated) ──
+// ── Single todo row (lives inside a quadrant cell, hairline-separated) ──
 function TodoRow({ todo, color }: { todo: TodoItem; color: string }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(todo.text);
@@ -119,18 +124,18 @@ function TodoRow({ todo, color }: { todo: TodoItem; color: string }) {
   };
 
   return (
-    <div className="group flex items-center gap-2.5 px-3.5 py-2.5">
+    <div className="group flex items-center gap-2.5 py-2">
       <button
         type="button"
         aria-label={todo.done ? "标记为未完成" : "标记为完成"}
         onClick={() => toggleTodo(todo.id)}
         className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all"
         style={{
-          border: `1.5px solid ${todo.done ? color : "rgba(139,94,60,0.30)"}`,
+          border: `1.2px solid ${todo.done ? color : "rgba(var(--v5-ink-rgb),0.28)"}`,
           background: todo.done ? color : "transparent",
         }}
       >
-        {todo.done && <Check size={11} color="#fff" strokeWidth={3} />}
+        {todo.done && <Check size={11} color="var(--v5-surface)" strokeWidth={3} />}
       </button>
 
       {editing ? (
@@ -143,16 +148,16 @@ function TodoRow({ todo, color }: { todo: TodoItem; color: string }) {
             if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
             if (e.key === "Escape") { setDraft(todo.text); setEditing(false); }
           }}
-          className="flex-1 bg-transparent text-sm outline-none"
-          style={{ color: "var(--m-ink)", fontFamily: SERIF }}
+          className="flex-1 bg-transparent text-[15px] outline-none"
+          style={{ color: "var(--v5-ink)", fontFamily: SERIF }}
         />
       ) : (
         <button
           type="button"
           onClick={() => { setDraft(todo.text); setEditing(true); }}
-          className="flex-1 truncate text-left text-sm leading-6"
+          className="flex-1 truncate text-left text-[15px] leading-6"
           style={{
-            color: todo.done ? "var(--m-ink3)" : "var(--m-ink)",
+            color: todo.done ? "var(--v5-ink3)" : "var(--v5-ink)",
             textDecoration: todo.done ? "line-through" : "none",
             fontFamily: SERIF,
           }}
@@ -167,8 +172,8 @@ function TodoRow({ todo, color }: { todo: TodoItem; color: string }) {
         type="button"
         aria-label="删除"
         onClick={() => deleteTodo(todo.id)}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full opacity-60 transition-all hover:bg-[rgba(0,0,0,0.05)] sm:opacity-0 sm:group-hover:opacity-60"
-        style={{ color: "var(--m-ink3)" }}
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full opacity-60 transition-all hover:bg-[rgba(var(--v5-ink-rgb),0.06)] sm:opacity-0 sm:group-hover:opacity-60"
+        style={{ color: "var(--v5-ink3)" }}
       >
         <Trash2 size={13} />
       </button>
@@ -176,26 +181,34 @@ function TodoRow({ todo, color }: { todo: TodoItem; color: string }) {
   );
 }
 
-// ── Quadrant card ──────────────────────────────────────────────
-function QuadCard({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
-  const Icon = meta.icon;
+// ── Quadrant cell（矩阵中的一格，靠发丝线分隔，不再是独立卡片）──
+function QuadCell({ meta, items, style }: { meta: QuadrantMeta; items: TodoItem[]; style?: React.CSSProperties }) {
   return (
     <div
-      className="flex flex-col overflow-hidden"
-      style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", borderRadius: 22, boxShadow: "var(--v5-sh-2)", minHeight: 150 }}
+      className="flex min-h-[168px] flex-col px-5 pb-3 pt-4"
+      style={{ background: meta.id === "q1" ? "rgba(var(--v5-accent-rgb),0.05)" : "transparent", ...style }}
     >
-      {/* top color bar */}
-      <div style={{ height: 3, background: meta.color, opacity: 0.65 }} />
-
-      {/* header */}
-      <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: "1px solid var(--m-rule)" }}>
-        <div className="flex items-center gap-2">
-          <Icon size={14} style={{ color: meta.color }} />
-          <span className="text-[13px] font-semibold" style={{ color: meta.color }}>{meta.label}</span>
+      {/* header：罗马数字 + 行动词 / 象限条件 + 计数 */}
+      <div className="flex items-start gap-3">
+        <span style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 500, lineHeight: 1, minWidth: 34, color: meta.tone }}>
+          {meta.numeral}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.2 }}>
+            {meta.action}
+          </div>
+          <div className="mt-1" style={{ fontSize: 10.5, letterSpacing: "0.22em", color: "var(--v5-ink3)" }}>
+            {meta.label}
+          </div>
         </div>
         <span
-          className="grid place-items-center text-xs font-semibold"
-          style={{ minWidth: 20, height: 20, borderRadius: 6, background: `${meta.color}1a`, color: meta.color }}
+          style={{
+            fontFamily: SERIF,
+            fontSize: 22,
+            lineHeight: 1,
+            color: items.length ? meta.tone : "var(--v5-ink-mute)",
+            fontFeatureSettings: '"lnum" 1',
+          }}
         >
           {items.length}
         </span>
@@ -203,16 +216,13 @@ function QuadCard({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
 
       {/* rows or empty */}
       {items.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center py-7">
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-full"
-            style={{ border: "1.5px solid rgba(139,94,60,0.16)", color: "rgba(139,94,60,0.22)" }}
-          >
-            <Check size={15} />
+        <div className="flex flex-1 items-center justify-center py-6">
+          <span style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13.5, color: "var(--v5-ink-mute)" }}>
+            {meta.empty}
           </span>
         </div>
       ) : (
-        <div>
+        <div className="mt-3">
           <AnimatePresence initial={false}>
             {items.map((t, i) => (
               <motion.div
@@ -222,9 +232,9 @@ function QuadCard({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.18 }}
-                style={{ borderTop: i === 0 ? "none" : "1px solid rgba(139,94,60,0.08)" }}
+                style={{ borderTop: i === 0 ? "none" : HAIRLINE }}
               >
-                <TodoRow todo={t} color={meta.color} />
+                <TodoRow todo={t} color={meta.tone} />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -233,6 +243,14 @@ function QuadCard({ meta, items }: { meta: QuadrantMeta; items: TodoItem[] }) {
     </div>
   );
 }
+
+const AXIS_LABEL: React.CSSProperties = {
+  fontFamily: SERIF,
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: "0.3em",
+  color: "var(--v5-ink3)",
+};
 
 /**
  * Full four-quadrant todo manager — embedded in Life Path (no standalone page).
@@ -272,24 +290,22 @@ export function QuadrantTodos({ className }: { className?: string }) {
       {/* Header */}
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em]" style={{ color: "var(--m-ink3)" }}>
-            TODAY&apos;S TASKS · 今日待办
-          </p>
-          <h2 className="mt-1.5 text-[26px] font-semibold leading-none tracking-[-0.02em]" style={{ color: "var(--m-ink)", fontFamily: SERIF }}>
+          <p className="v5-eyebrow">TODAY&apos;S TASKS · 今日待办</p>
+          <h2 className="mt-1.5 text-[28px] font-semibold leading-none" style={{ color: "var(--v5-ink)", fontFamily: SERIF }}>
             四象限清单
           </h2>
         </div>
         {todos.length > 0 ? (
           <div className="flex flex-col items-end gap-1.5 pt-1">
-            <span style={{ fontSize: 13, color: "var(--m-ink3)" }}>
+            <span style={{ fontSize: 13, color: "var(--v5-ink3)", fontFamily: SERIF }}>
               {activeCount > 0 ? (
-                <>还剩 <span style={{ color: "var(--m-accent)", fontWeight: 600 }}>{activeCount}</span> 项 · {pct}%</>
+                <>还剩 <span style={{ color: "var(--v5-accent)", fontWeight: 600 }}>{activeCount}</span> 项 · {pct}%</>
               ) : (
-                <span style={{ color: "#5a8a3c", fontWeight: 600 }}>全部完成 · {pct}%</span>
+                <span style={{ color: "var(--m-success)", fontWeight: 600 }}>全部完成 · {pct}%</span>
               )}
             </span>
-            <div className="overflow-hidden" style={{ width: 120, height: 3, borderRadius: 99, background: "rgba(139,94,60,0.12)" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "#5a8a3c" : "var(--m-accent)", borderRadius: 99, transition: "width 400ms" }} />
+            <div className="overflow-hidden" style={{ width: 120, height: 2, borderRadius: 99, background: "rgba(var(--v5-ink-rgb),0.10)" }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "var(--m-success)" : "var(--v5-accent)", borderRadius: 99, transition: "width 400ms" }} />
             </div>
           </div>
         ) : null}
@@ -298,66 +314,91 @@ export function QuadrantTodos({ className }: { className?: string }) {
       {/* Add bar */}
       <div
         className="mb-5 overflow-hidden"
-        style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", borderRadius: 22, boxShadow: "var(--v5-sh-2)" }}
+        style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", borderRadius: 20, boxShadow: "var(--v5-sh-2)" }}
       >
-        <div className="flex items-center gap-2.5 px-4 py-3">
-          <span className="h-[7px] w-[7px] shrink-0 rounded-full transition-colors" style={{ background: targetMeta.color }} />
+        <div className="flex items-center gap-3 px-5 py-3">
+          <span
+            className="shrink-0 text-center transition-colors"
+            style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 600, minWidth: 26, color: targetMeta.tone }}
+          >
+            {targetMeta.numeral}
+          </span>
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") add(); }}
             placeholder="添加今日待办，回车确认…"
             maxLength={200}
-            className="min-w-0 flex-1 bg-transparent text-[14.5px] outline-none"
-            style={{ color: "var(--m-ink)", fontFamily: SERIF }}
+            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+            style={{ color: "var(--v5-ink)", fontFamily: SERIF }}
           />
           <button
             type="button"
             onClick={add}
             disabled={!text.trim()}
-            className="shrink-0 rounded-[9px] px-3.5 text-xs transition-all disabled:cursor-not-allowed"
-            style={{
-              height: 30,
-              background: text.trim() ? "var(--m-ink)" : "rgba(139,94,60,0.10)",
-              color: text.trim() ? "#fff" : "var(--m-ink3)",
-              fontFamily: SERIF,
-            }}
+            className="shrink-0 rounded-full px-4 text-[13px] transition-all disabled:cursor-not-allowed disabled:opacity-45"
+            style={{ height: 30, background: "var(--v5-pill-bg)", color: "var(--v5-pill-ink)", fontFamily: SERIF }}
           >
             添加
           </button>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderTop: "1px solid rgba(139,94,60,0.08)" }}>
-          <span className="text-[11px]" style={{ color: "var(--m-ink3)" }}>象限：</span>
+        <div className="flex items-center gap-4 px-5 py-2.5" style={{ borderTop: HAIRLINE }}>
           {[
-            { label: "重要", value: important, set: setImportant, color: "#c8893a" },
-            { label: "紧急", value: urgent, set: setUrgent, color: "#b04040" },
+            { label: "重要", value: important, set: setImportant },
+            { label: "紧急", value: urgent, set: setUrgent },
           ].map((b) => (
             <button
               key={b.label}
               type="button"
+              aria-pressed={b.value}
               onClick={() => b.set((v) => !v)}
-              className="rounded-lg px-2.5 py-1 text-xs transition-all"
+              className="text-[13px] transition-colors"
               style={{
                 fontFamily: SERIF,
-                background: b.value ? `${b.color}15` : "rgba(139,94,60,0.05)",
-                color: b.value ? b.color : "var(--m-ink3)",
-                outline: b.value ? `1.5px solid ${b.color}40` : "1.5px solid transparent",
+                color: b.value ? "var(--v5-ink)" : "var(--v5-ink-mute)",
+                textDecoration: b.value ? "underline" : "line-through",
+                textDecorationColor: b.value ? "var(--v5-accent)" : "var(--v5-ink-mute)",
+                textDecorationThickness: 1,
+                textUnderlineOffset: 5,
               }}
             >
               {b.label}
             </button>
           ))}
-          <span className="ml-auto inline-flex items-center gap-1 text-xs" style={{ color: targetMeta.color, fontWeight: 600 }}>
-            → {targetMeta.label}
+          <span className="ml-auto inline-flex items-center gap-1.5 text-[13px]" style={{ fontFamily: SERIF, color: "var(--v5-ink3)" }}>
+            →
+            <span style={{ color: targetMeta.tone, fontWeight: 600 }}>{targetMeta.numeral}</span>
+            <span style={{ color: "var(--v5-ink2)" }}>{targetMeta.action}</span>
           </span>
         </div>
       </div>
 
-      {/* Matrix */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {QUADRANTS.map((meta) => (
-          <QuadCard key={meta.id} meta={meta} items={byQuadrant[meta.id]} />
-        ))}
+      {/* Matrix：一整块玻璃 + 十字发丝线；桌面端带坐标轴标签 */}
+      <div className="grid grid-cols-1 sm:grid-cols-[22px_1fr] sm:gap-x-3">
+        {/* 顶部轴：紧急 / 不紧急 */}
+        <div className="hidden sm:block" />
+        <div className="mb-2 hidden grid-cols-2 sm:grid">
+          <span className="text-center" style={AXIS_LABEL}>紧急</span>
+          <span className="text-center" style={AXIS_LABEL}>不紧急</span>
+        </div>
+
+        {/* 左侧轴：重要 / 不重要（竖排） */}
+        <div className="hidden grid-rows-2 sm:grid">
+          {["重要", "不重要"].map((l) => (
+            <span key={l} className="flex items-center justify-center" style={{ ...AXIS_LABEL, writingMode: "vertical-rl" }}>
+              {l}
+            </span>
+          ))}
+        </div>
+
+        <div
+          className="quad-matrix grid grid-cols-1 overflow-hidden sm:grid-cols-2"
+          style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", borderRadius: 22, boxShadow: "var(--v5-sh-2)" }}
+        >
+          {QUADRANTS.map((meta) => (
+            <QuadCell key={meta.id} meta={meta} items={byQuadrant[meta.id]} />
+          ))}
+        </div>
       </div>
 
       {/* Completed (collapsible) */}
@@ -368,7 +409,7 @@ export function QuadrantTodos({ className }: { className?: string }) {
               type="button"
               onClick={() => setShowDone((v) => !v)}
               className="inline-flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
-              style={{ color: "var(--m-ink3)", fontFamily: SERIF }}
+              style={{ color: "var(--v5-ink3)", fontFamily: SERIF }}
             >
               {showDone ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
               已完成 · {done.length} 项
@@ -377,7 +418,7 @@ export function QuadrantTodos({ className }: { className?: string }) {
               type="button"
               onClick={() => clearCompletedTodos()}
               className="text-xs transition-opacity hover:opacity-70"
-              style={{ color: "var(--m-ink3)" }}
+              style={{ color: "var(--v5-ink3)" }}
             >
               清除已完成
             </button>
@@ -390,13 +431,13 @@ export function QuadrantTodos({ className }: { className?: string }) {
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
                 className="mt-2 overflow-hidden rounded-2xl"
-                style={{ background: "rgba(244,236,220,0.4)", border: "1px solid var(--m-rule)" }}
+                style={{ background: "var(--m-base)", border: "1px solid var(--v5-rule)" }}
               >
                 {done.map((t, i) => {
                   const meta = QUADRANTS.find((q) => q.id === t.quadrant) ?? QUADRANTS[3];
                   return (
-                    <div key={t.id} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(139,94,60,0.08)", opacity: 0.7 }}>
-                      <TodoRow todo={t} color={meta.color} />
+                    <div key={t.id} className="px-4" style={{ borderTop: i === 0 ? "none" : HAIRLINE, opacity: 0.7 }}>
+                      <TodoRow todo={t} color={meta.tone} />
                     </div>
                   );
                 })}
