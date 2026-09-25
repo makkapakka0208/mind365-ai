@@ -35,21 +35,24 @@ import { apiFetch } from "@/lib/api";
 import { getCachedAuthUserId } from "@/lib/auth";
 import { createMind365SupabaseClient, getActiveSyncConfig, normalizeMind365Settings } from "@/lib/supabase";
 import type { Mind365Settings } from "@/types";
-import type { LifeDirection, MentorPlan, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
+import type { LifeDirection, MentorPlan, Milestone, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
 
 const DIRECTIONS_KEY = "mind365_life_directions";
 const GOALS_KEY = "mind365_life_goals";
 const MENTOR_KEY = "mind365_mentor_plans";
 const WEEK_PLANS_KEY = "mind365_week_plans";
+/** 人生里程碑：和人生主线共用同步表（按 kind 分行），无需单独建表 */
+const MILESTONES_KEY = "mind365_life_milestones";
 
 const REMOTE_TABLE = "life_path_state";
-type Kind = "directions" | "goals" | "mentor_plans" | "week_plans";
+type Kind = "directions" | "goals" | "mentor_plans" | "week_plans" | "milestones";
 
 export interface LifePathBackupData {
   directions: LifeDirection[];
   goals: UserGoal[];
   mentor_plans: Record<string, MentorPlan>;
   week_plans: Record<string, WeekPlan>;
+  milestones?: Milestone[];
 }
 
 export interface LifePathBackupImportResult {
@@ -57,6 +60,7 @@ export interface LifePathBackupImportResult {
   goals: number;
   mentorPlans: number;
   weekPlans: number;
+  milestones: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -99,6 +103,7 @@ function localKeyFor(kind: Kind): string {
     case "goals": return GOALS_KEY;
     case "mentor_plans": return MENTOR_KEY;
     case "week_plans": return WEEK_PLANS_KEY;
+    case "milestones": return MILESTONES_KEY;
   }
 }
 
@@ -185,13 +190,14 @@ export async function refreshLifePathState(): Promise<void> {
       row.kind === "directions" ||
       row.kind === "goals" ||
       row.kind === "mentor_plans" ||
-      row.kind === "week_plans"
+      row.kind === "week_plans" ||
+      row.kind === "milestones"
     ) {
       remoteByKind.set(row.kind as Kind, row);
     }
   }
 
-  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans"];
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones"];
   for (const kind of kinds) {
     if (!active()) return;
     const remote = remoteByKind.get(kind);
@@ -287,6 +293,28 @@ export async function enrichAndSaveDirections(dirs: LifeDirection[]): Promise<Li
   } catch {
     return dirs;
   }
+}
+
+// ── Milestones ────────────────────────────────────────────────────────────────
+
+/** 原始字符串快照：给 useSyncExternalStore 用（字符串不变就不重渲染） */
+export function readMilestonesRaw(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return accountStorage.getItem(MILESTONES_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function loadMilestones(): Milestone[] {
+  return tryParse<Milestone[]>(MILESTONES_KEY, []);
+}
+
+export function saveMilestones(milestones: Milestone[]): void {
+  if (typeof window === "undefined") return;
+  accountStorage.setItem(MILESTONES_KEY, JSON.stringify(milestones));
+  pushAsync("milestones", milestones);
 }
 
 // ── User Goals ────────────────────────────────────────────────────────────────
@@ -507,7 +535,7 @@ export function ensureWeekPlan(weekKey: string): WeekPlan {
  */
 export async function forceUploadAllLifePathData(): Promise<void> {
   const active = captureStorageScope();
-  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans"];
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones"];
   for (const kind of kinds) {
     if (!active()) return;
     const localRaw = typeof window !== "undefined" ? accountStorage.getItem(localKeyFor(kind)) : null;
@@ -523,12 +551,13 @@ export function getLifePathBackupData(): LifePathBackupData {
     goals: loadGoals(),
     mentor_plans: loadMentorPlans(),
     week_plans: loadWeekPlans(),
+    milestones: loadMilestones(),
   };
 }
 
 export function importLifePathBackupData(value: unknown, sync = true): LifePathBackupImportResult {
   if (typeof window === "undefined") {
-    return { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0 };
+    return { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0, milestones: 0 };
   }
 
   const data = value && typeof value === "object" ? value as Partial<LifePathBackupData> : {};
@@ -561,10 +590,25 @@ export function importLifePathBackupData(value: unknown, sync = true): LifePathB
     pushAsync("week_plans", weekPlans);
   }
 
+  // 里程碑：与现有的按 id 合并（备份里没有该字段时保持不变）
+  let milestoneCount = 0;
+  if (Array.isArray(data.milestones)) {
+    const byId = new Map(loadMilestones().map((m) => [m.id, m]));
+    for (const m of data.milestones) {
+      if (m && typeof m.id === "string" && typeof m.date === "string" && typeof m.title === "string") byId.set(m.id, m);
+    }
+    const merged = [...byId.values()];
+    accountStorage.setItem(MILESTONES_KEY, JSON.stringify(merged));
+    setMeta("milestones", now);
+    if (sync) pushAsync("milestones", merged);
+    milestoneCount = data.milestones.length;
+  }
+
   return {
     directions: directions.length,
     goals: goals.length,
     mentorPlans: Object.keys(mentorPlans).length,
     weekPlans: Object.keys(weekPlans).length,
+    milestones: milestoneCount,
   };
 }
