@@ -8,11 +8,10 @@ import { MonthCalendarThumb } from "@/components/daily-log/month-calendar-thumb"
 import { DiaryBookModalPortal } from "@/components/dashboard/featured-book-preview";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/ui/image-uploader";
-import { Input } from "@/components/ui/input";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Textarea } from "@/components/ui/textarea";
 import { sortLogsByDate } from "@/lib/analytics";
-import { getTodayISODate, toChineseNumber } from "@/lib/date";
+import { getTodayISODate } from "@/lib/date";
 import { isBase64DataUrl, migrateBase64Images } from "@/lib/image-storage";
 import {
   calculateAlignmentScore,
@@ -191,6 +190,7 @@ function DailyLogInner() {
   const setMood = (value: number) => change("mood", value);
   const setThoughts = (value: string) => change("thoughts", value);
   const setTags = (value: string) => change("tags", value);
+  const [tagDraft, setTagDraft] = useState("");
   const setImages = (value: string[]) => change("images", value);
   const pickDate = (date: string) => {
     if (date === viewingDate || (isSaving || !canSwitch())) return;
@@ -207,12 +207,29 @@ function DailyLogInner() {
         ? "这一天还没有到来。"
         : "回到这一天，补上或重读它的故事。";
     return {
-      title: `${sameYear ? "" : `${y} 年 `}${toChineseNumber(m)}月${toChineseNumber(d)}日`,
+      title: `${sameYear ? "" : `${y} 年 `}${m} 月 ${d} 日`,
       weekday,
       line,
     };
   }, [viewingDate, todayIso, isFuture]);
   const tagList = useMemo(() => getTagList(tags), [tags]);
+  /** 把输入框里的文字转成标签，合并进已有标签（去重） */
+  const commitTagDraft = (raw: string) => {
+    const added = getTagList(raw).filter((t) => !tagList.includes(t));
+    if (added.length) setTags([...tagList, ...added].map((t) => `#${t}`).join(" "));
+    setTagDraft("");
+  };
+
+  // 常用标签：所有日记里出现最多的 6 个，排除已经加上的
+  const suggestedTags = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const log of allLogs) for (const tag of log.tags) count.set(tag, (count.get(tag) ?? 0) + 1);
+    return [...count.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag)
+      .filter((tag) => !tagList.includes(tag))
+      .slice(0, 6);
+  }, [allLogs, tagList]);
   const activeMood = MOODS.reduce((nearest, item) => (
     Math.abs(item.value - mood) < Math.abs(nearest.value - mood) ? item : nearest
   ), MOODS[0]);
@@ -254,7 +271,7 @@ function DailyLogInner() {
         mood,
         reading: existingLog?.reading ?? "",
         studyHours: existingLog?.studyHours ?? 0,
-        tags: tagList,
+        tags: [...new Set([...tagList, ...getTagList(tagDraft)])],
         thoughts: thoughts.trim(),
       };
 
@@ -278,7 +295,7 @@ function DailyLogInner() {
     } finally {
       setIsSaving(false);
     }
-  }, [existingLog, images, isFuture, isSaving, mood, tagList, thoughts, viewingDate, draft, markSaved]);
+  }, [existingLog, images, isFuture, isSaving, mood, tagList, tagDraft, thoughts, viewingDate, draft, markSaved]);
 
   return (
     <>
@@ -433,39 +450,70 @@ function DailyLogInner() {
                 </div>
               </section>
 
-              <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-                <section className="daily-log-soft-panel">
-                  <label className="text-sm font-medium" style={{ color: "var(--v5-ink)" }}>
-                    标签
-                  </label>
-                  <Input
-                    className="mt-3"
-                    onChange={(event) => setTags(event.target.value)}
-                    placeholder="例如：#vibe #coding"
-                    type="text"
-                    value={tags}
-                    style={{
-                      background: "var(--m-paper-soft)",
-                      borderRadius: 16,
-                      borderColor: "rgba(139,94,60,0.10)",
-                    }}
-                  />
-                  {tagList.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
+              {/* 标签 + 照片：左右两个框，内容压紧 */}
+              <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                <section className="daily-log-soft-panel" style={{ padding: "14px 16px" }}>
+                  <label className="v5-eyebrow mb-2 block" htmlFor="journal-tags">标签</label>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       {tagList.map((tag) => (
-                        <span className="text-xs italic" key={tag} style={{ color: "var(--v5-accent)" }}>
-                          #{tag}
-                        </span>
+                        <button
+                          key={tag}
+                          type="button"
+                          title="点一下移除"
+                          className="rounded-full px-3 py-1 text-[13.5px] transition-opacity hover:opacity-70"
+                          style={{ background: "rgba(var(--v5-accent-rgb),0.12)", color: "var(--v5-accent)", fontFamily: "var(--v5-serif)", fontStyle: "italic" }}
+                          onClick={() => setTags(tagList.filter((t) => t !== tag).map((t) => `#${t}`).join(" "))}
+                        >
+                          #{tag} ×
+                        </button>
                       ))}
+                      <input
+                        id="journal-tags"
+                        className="min-w-[180px] flex-1 bg-transparent py-1.5 text-[15px] outline-none placeholder:text-[var(--v5-ink-mute)]"
+                        onBlur={() => commitTagDraft(tagDraft)}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          // 输入空格或逗号就转成一个标签
+                          if (/[\s,，、]$/.test(value)) commitTagDraft(value);
+                          else setTagDraft(value);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault(); // 不要触发表单提交
+                            commitTagDraft(tagDraft);
+                          } else if (event.key === "Backspace" && !tagDraft && tagList.length) {
+                            setTags(tagList.slice(0, -1).map((t) => `#${t}`).join(" "));
+                          }
+                        }}
+                        placeholder={tagList.length ? "再加一个…" : "输入标签，空格或回车确认"}
+                        style={{ color: "var(--v5-ink)", fontFamily: "var(--v5-serif)" }}
+                        type="text"
+                        value={tagDraft}
+                      />
                     </div>
-                  ) : null}
+                    {suggestedTags.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5" style={{ fontFamily: "var(--v5-serif)", fontSize: 13.5 }}>
+                        <span style={{ color: "var(--v5-ink3)" }}>常用</span>
+                        {suggestedTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className="italic transition-colors hover:text-[var(--v5-accent)]"
+                            style={{ color: "var(--v5-ink2)" }}
+                            onClick={() => setTags([...tagList, tag].map((t) => `#${t}`).join(" "))}
+                          >
+                            #{tag}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </section>
 
-                <section className="daily-log-soft-panel">
-                  <p className="mb-3 text-sm font-medium" style={{ color: "var(--v5-ink)" }}>
-                    今天的画面
-                  </p>
-                  <ImageUploader images={images} onChange={setImages} />
+                <section className="daily-log-soft-panel" style={{ padding: "14px 16px" }}>
+                  <span className="v5-eyebrow mb-2 block">今天的画面</span>
+                  <ImageUploader compact images={images} onChange={setImages} />
                 </section>
               </div>
 

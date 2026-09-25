@@ -224,10 +224,9 @@ html[data-skin] .daily-log-textarea::placeholder {
   color: var(--v5-ink-mute);
 }
 
-/* ── 书库精选金句卡：实心金色渐变 → 金色调毛玻璃；
-   卡内文字用的是「强调色上的文字」token，这里就地改指向正文色 ── */
-html[data-skin] .quote-featured {
-  --m-on-accent: var(--v5-ink);
+/* ── 时间线「很久没回看的日记」突出卡：实心铜色 → 金色调毛玻璃；
+   卡内文字用「强调色上的文字」通道，这里就地改指向正文色 ── */
+html[data-skin] .memory-featured {
   --m-on-accent-rgb: var(--v5-ink-rgb);
   background: rgba(var(--v5-accent-rgb), 0.14) !important;
   box-shadow:
@@ -238,7 +237,7 @@ html[data-skin] .quote-featured {
   backdrop-filter: var(--skin-blur);
 }
 
-/* ── 日记详情弹窗（DiaryBookModal）：卡片整体一块玻璃，左右两栏透明，只靠发丝线分隔 ── */
+/* ── 日记详情弹窗（DiaryBookModal，下同）：卡片整体一块玻璃，左右两栏透明，只靠发丝线分隔 ── */
 html[data-skin] .diary-modal-overlay {
   background: rgba(var(--v5-shadow-rgb), 0.22);
 }

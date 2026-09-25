@@ -613,9 +613,10 @@ function V5RecallChips({
 
 type MemoryVariant = "plain" | "pullquote" | "featured";
 
-function pickMemoryVariant(card: MemoryCard, index: number): MemoryVariant {
+/** 只有「很久没回看的日记」才突出显示（有实际含义）；不再按排列位置突出。 */
+function pickMemoryVariant(card: MemoryCard): MemoryVariant {
   const len = card.entry.thoughts?.length ?? 0;
-  if (card.trigger.type === "long_forgotten" || index % 4 === 0) return "featured";
+  if (card.trigger.type === "long_forgotten") return "featured";
   if (len < 40) return "pullquote";
   return "plain";
 }
@@ -668,10 +669,11 @@ function V5MemoryCard({
   };
 
   const isFeatured = variant === "featured";
-  const ink = isFeatured ? "rgba(255,250,243,0.96)" : "var(--v5-ink)";
-  const ink2 = isFeatured ? "rgba(255,250,243,0.78)" : "var(--v5-ink2)";
-  const ink3 = isFeatured ? "rgba(255,250,243,0.58)" : "var(--v5-ink3)";
-  const ruleColor = isFeatured ? "rgba(255,255,255,0.18)" : "var(--v5-rule)";
+  // 突出卡片上的文字走「强调色上的文字」通道，质感主题里会就地改成正文色（见 skins.css .memory-featured）
+  const ink = isFeatured ? "rgba(var(--m-on-accent-rgb),0.96)" : "var(--v5-ink)";
+  const ink2 = isFeatured ? "rgba(var(--m-on-accent-rgb),0.78)" : "var(--v5-ink2)";
+  const ink3 = isFeatured ? "rgba(var(--m-on-accent-rgb),0.58)" : "var(--v5-ink3)";
+  const ruleColor = isFeatured ? "rgba(var(--m-on-accent-rgb),0.18)" : "var(--v5-rule)";
 
   const baseBg: string = isFeatured
     ? "linear-gradient(135deg, #c9a784 0%, #b88863 100%)"
@@ -708,6 +710,7 @@ function V5MemoryCard({
 
   return (
     <Link
+      className={isFeatured ? "memory-featured" : undefined}
       href={`/journal?id=${id}`}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
@@ -715,7 +718,7 @@ function V5MemoryCard({
     >
       {/* Mode chip */}
       <div className="flex items-center" style={{ gap: 6, marginBottom: 12 }}>
-        <Icon size={13} strokeWidth={1.8} style={{ color: isFeatured ? "rgba(255,250,243,0.78)" : "var(--v5-accent)" }} />
+        <Icon size={13} strokeWidth={1.8} style={{ color: isFeatured ? "rgba(var(--m-on-accent-rgb),0.78)" : "var(--v5-accent)" }} />
         <span
           style={{
             fontFamily: "var(--v5-serif)",
@@ -761,7 +764,7 @@ function V5MemoryCard({
           }}
         >
           {yrs > 0 && (
-            <span style={{ color: isFeatured ? "rgba(255,250,243,0.85)" : "var(--v5-accent)", fontWeight: 600 }}>
+            <span style={{ color: isFeatured ? "rgba(var(--m-on-accent-rgb),0.85)" : "var(--v5-accent)", fontWeight: 600 }}>
               {yrs} 年前 ·{" "}
             </span>
           )}
@@ -890,7 +893,7 @@ export default function TimelinePage() {
                   <V5MemoryCard
                     card={card}
                     key={`${card.entry.id}-${card.trigger.type}-${i}`}
-                    variant={pickMemoryVariant(card, i)}
+                    variant={pickMemoryVariant(card)}
                   />
                 ))}
               </div>

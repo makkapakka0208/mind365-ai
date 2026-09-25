@@ -491,8 +491,8 @@ function QuoteCardFace({
         boxShadow: dim
           ? "0 4px 16px rgba(0,0,0,0.12)"
           : "0 28px 64px rgba(0,0,0,0.20), 0 6px 20px rgba(0,0,0,0.10)",
-        padding: "28px 26px 24px",
-        minHeight: 260,
+        padding: "40px 48px 34px",
+        minHeight: 340,
         display: "flex",
         flexDirection: "column",
         pointerEvents: dim ? "none" : undefined,
@@ -501,12 +501,11 @@ function QuoteCardFace({
       {/* Theme badge */}
       <span
         style={{
-          fontSize: 11,
-          fontFamily: "ui-sans-serif,sans-serif",
-          letterSpacing: "0.16em",
-          textTransform: "uppercase",
-          color: "rgba(var(--v5-accent-rgb),0.60)",
-          marginBottom: 18,
+          fontSize: 12,
+          fontFamily: "var(--v5-serif)",
+          letterSpacing: "0.2em",
+          color: "rgba(var(--v5-accent-rgb),0.75)",
+          marginBottom: 22,
         }}
       >
         {getThemeIcon(theme)} {theme}
@@ -514,14 +513,15 @@ function QuoteCardFace({
 
       {/* Quote mark + text */}
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 52, lineHeight: 0.8, color: "rgba(var(--v5-accent-rgb),0.12)", fontFamily: "Georgia,serif", marginBottom: 4 }}>"</div>
+        <div style={{ fontSize: 72, lineHeight: 0.7, height: 34, color: "rgba(var(--v5-accent-rgb),0.35)", fontFamily: "var(--v5-serif)" }}>“</div>
         <p
           style={{
-            fontSize: 19,
-            lineHeight: 1.85,
+            margin: "10px 0 0",
+            fontSize: 26,
+            lineHeight: 1.75,
             color: "var(--v5-ink)",
-            fontFamily: '"Ma Shan Zheng","STKaiti","KaiTi",serif',
-            letterSpacing: "0.03em",
+            fontFamily: "var(--v5-serif)",
+            letterSpacing: "0.02em",
           }}
         >
           {quote.text}
@@ -530,8 +530,8 @@ function QuoteCardFace({
 
       {/* Author / source */}
       <p
-        className="mt-5 text-sm"
-        style={{ color: "var(--v5-ink3)", fontFamily: "ui-sans-serif,sans-serif" }}
+        className="mt-7"
+        style={{ fontSize: 15, fontStyle: "italic", color: "var(--v5-ink3)", fontFamily: "var(--v5-serif)" }}
       >
         — {quote.author || "佚名"}{quote.book ? ` · ${quote.book}` : ""}
       </p>
@@ -755,7 +755,7 @@ function QuoteStackModal({
     }
   };
 
-  const CARD_WIDTH = "min(460px, calc(100vw - 72px))";
+  const CARD_WIDTH = "min(720px, calc(100vw - 72px))";
 
   return (
     <motion.div
@@ -786,7 +786,7 @@ function QuoteStackModal({
 
         {/* ── Category tabs ── */}
         <div className="shrink-0 overflow-x-auto pb-4 pt-2 px-4" style={{ scrollbarWidth: "none" }}>
-          <div className="flex gap-2 w-max">
+          <div className="mx-auto flex w-max gap-2">
             {themes.map((theme) => {
               const isActive = filterTab === theme;
               const canDelete = theme !== "全部";
@@ -845,7 +845,7 @@ function QuoteStackModal({
               className="pointer-events-none absolute"
               style={{
                 width: CARD_WIDTH,
-                transform: "translateX(-20%) translateY(10px) rotate(-3deg) scale(0.87)",
+                transform: "translateX(-24%) translateY(12px) rotate(-3deg) scale(0.86)",
                 opacity: 0.35,
                 transformOrigin: "bottom center",
                 zIndex: 1,
@@ -861,7 +861,7 @@ function QuoteStackModal({
               className="pointer-events-none absolute"
               style={{
                 width: CARD_WIDTH,
-                transform: "translateX(20%) translateY(10px) rotate(3deg) scale(0.87)",
+                transform: "translateX(24%) translateY(12px) rotate(3deg) scale(0.86)",
                 opacity: 0.35,
                 transformOrigin: "bottom center",
                 zIndex: 1,
@@ -1213,19 +1213,13 @@ function buildCognitiveSummary(topThemes: { label: string; count: number }[]): s
   return topThemes.slice(0, 3).map((t) => COGNITIVE_LINES[t.label] ?? `「${t.label}」正在成为本周的关注点`);
 }
 
+/** 本周收藏：一行摘要 + 可选的认知总结；本周一条都没有时整块不显示。 */
 function V5WeeklyInsight({
   weekQuotes,
-  buckets,
 }: {
   weekQuotes: Quote[];
   buckets: ReturnType<typeof groupQuotesByTheme>;
 }) {
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - 6);
-  const dateRange = `${weekStart.getMonth() + 1}/${String(weekStart.getDate()).padStart(2, "0")} — ${now.getMonth() + 1}/${String(now.getDate()).padStart(2, "0")}`;
-
-  // Per-theme weekly counts
   const weekByTheme = useMemo(() => {
     const m = new Map<string, number>();
     for (const q of weekQuotes) {
@@ -1235,221 +1229,54 @@ function V5WeeklyInsight({
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [weekQuotes]);
 
-  const topTheme = weekByTheme[0];
-  const maxCount = topTheme?.[1] ?? 0;
-
-  // Cognitive summary (lazy-built on click, same heuristic as WeeklyCognitiveCard)
   const [summary, setSummary] = useState<string[] | null>(null);
-  const generateSummary = () => {
-    setSummary(buildCognitiveSummary(weekByTheme.map(([label, count]) => ({ label, count }))));
-  };
+
+  if (weekQuotes.length === 0) return null;
+  const topTheme = weekByTheme[0];
 
   return (
     <div
-      className="relative overflow-hidden grid"
       style={{
-        gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)",
-        gap: 32,
-        borderRadius: 28,
-        padding: "32px 36px",
-        background: "linear-gradient(135deg, var(--v5-card) 0%, var(--v5-card-grad) 100%)",
-        boxShadow: "var(--v5-sh-2)",
+        borderRadius: 22,
+        padding: "18px 26px",
+        background: "var(--v5-card)",
+        border: "1px solid var(--v5-rule)",
+        boxShadow: "var(--v5-sh-1)",
       }}
     >
-      {/* Left column */}
-      <div>
-        <div className="flex items-center" style={{ gap: 14 }}>
-          <span className="v5-eyebrow">WEEKLY INSIGHT · 本周收藏</span>
-          <span style={{ width: 24, height: 1, background: "var(--v5-rule-strong)" }} />
-          <span
-            style={{
-              fontFamily: "var(--v5-mono)",
-              fontSize: 11,
-              color: "var(--v5-ink3)",
-              letterSpacing: "0.06em",
-            }}
-          >
-            {dateRange}
-          </span>
-        </div>
-
-        <h3
-          style={{
-            margin: "16px 0 0",
-            fontFamily: "var(--v5-serif)",
-            fontVariationSettings: '"opsz" 144, "SOFT" 60',
-            fontSize: 26,
-            fontWeight: 400,
-            lineHeight: 1.4,
-            color: "var(--v5-ink)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          本周收藏了{" "}
-          <span style={{ color: "var(--v5-accent)", fontStyle: "italic" }}>{weekQuotes.length} 条</span>{" "}
-          金句
-        </h3>
-
-        <p
-          style={{
-            margin: "10px 0 0",
-            fontFamily: "var(--v5-serif)",
-            fontStyle: "italic",
-            fontVariationSettings: '"opsz" 14',
-            fontSize: 14,
-            lineHeight: 1.7,
-            color: "var(--v5-ink2)",
-          }}
-        >
-          {topTheme
-            ? `主要集中在 ${topTheme[0]} (${topTheme[1]})，慢慢拼出你这周关心的事。`
-            : "本周还没有新的收藏。今天读到的句子，可以试着记下来。"}
+      <div className="flex flex-wrap items-center justify-between" style={{ gap: 12 }}>
+        <p style={{ margin: 0, fontFamily: "var(--v5-serif)", fontSize: 17, color: "var(--v5-ink)" }}>
+          本周收藏 <span style={{ fontSize: 22, color: "var(--v5-accent)" }}>{weekQuotes.length}</span> 条
+          {topTheme && (
+            <span style={{ color: "var(--v5-ink3)" }}>
+              <span aria-hidden style={{ margin: "0 10px" }}>·</span>
+              最多的是「{topTheme[0]}」
+            </span>
+          )}
         </p>
-
-        {summary ? (
-          <div
-            className="mt-5"
-            style={{
-              borderRadius: 16,
-              padding: "16px 18px",
-              background: "rgba(var(--v5-accent-rgb),0.05)",
-              border: "1px solid rgba(var(--v5-accent-rgb),0.10)",
-            }}
-          >
-            <div className="v5-eyebrow" style={{ fontSize: 10 }}>
-              本周核心认知
-            </div>
-            <ol className="m-0 mt-3 list-none p-0" style={{ display: "grid", gap: 8 }}>
-              {summary.map((line, i) => (
-                <li
-                  key={i}
-                  style={{
-                    fontFamily: "var(--v5-serif)",
-                    fontSize: 14,
-                    lineHeight: 1.75,
-                    color: "var(--v5-ink)",
-                  }}
-                >
-                  <span style={{ color: "var(--v5-accent)", marginRight: 6, fontWeight: 600 }}>
-                    {i + 1}.
-                  </span>
-                  {line}
-                </li>
-              ))}
-            </ol>
-            <button
-              className="mt-3 inline-flex items-center"
-              onClick={() => setSummary(null)}
-              type="button"
-              style={{
-                border: 0,
-                background: "transparent",
-                padding: 0,
-                color: "var(--v5-ink3)",
-                fontFamily: "var(--v5-sans)",
-                fontSize: 12,
-                cursor: "pointer",
-                gap: 4,
-              }}
-            >
-              重新生成
-            </button>
-          </div>
-        ) : (
-          <button
-            className="mt-5 inline-flex items-center"
-            disabled={weekByTheme.length === 0}
-            onClick={generateSummary}
-            type="button"
-            style={{
-              gap: 6,
-              padding: "10px 18px",
-              borderRadius: 999,
-              border: 0,
-              background: "var(--v5-pill-bg)",
-              color: "var(--v5-pill-ink)",
-              fontFamily: "var(--v5-sans)",
-              fontSize: 13.5,
-              fontWeight: 500,
-              cursor: weekByTheme.length === 0 ? "not-allowed" : "pointer",
-              opacity: weekByTheme.length === 0 ? 0.5 : 1,
-              boxShadow: "0 4px 12px rgba(var(--v5-shadow-rgb),0.18)",
-              transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
-            }}
-            onMouseEnter={(e) => {
-              if (weekByTheme.length === 0) return;
-              e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.background = "var(--v5-pill-hover)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.background = "var(--v5-pill-bg)";
-            }}
-          >
-            <Sparkles size={14} />
-            生成认知总结
-          </button>
-        )}
-      </div>
-
-      {/* Right column: distribution viz */}
-      <div className="flex flex-col" style={{ gap: 12 }}>
-        <div
-          className="v5-eyebrow"
-          style={{ fontSize: 10 }}
+        <button
+          className="inline-flex items-center rounded-full transition-opacity hover:opacity-80"
+          onClick={() =>
+            setSummary(summary ? null : buildCognitiveSummary(weekByTheme.map(([label, count]) => ({ label, count }))))
+          }
+          type="button"
+          style={{ gap: 6, padding: "7px 14px", fontFamily: "var(--v5-serif)", fontSize: 14, color: "var(--v5-accent)", background: "rgba(var(--v5-accent-rgb),0.08)" }}
         >
-          Distribution
-        </div>
-        {weekByTheme.length === 0 ? (
-          <p style={{ margin: 0, fontFamily: "var(--v5-sans)", fontSize: 12.5, color: "var(--v5-ink3)" }}>
-            本周还没有数据。
-          </p>
-        ) : (
-          weekByTheme.slice(0, 5).map(([label, count]) => {
-            const { accent } = getThemeMeta(label);
-            const pct = Math.max(8, (count / Math.max(1, maxCount)) * 100);
-            return (
-              <div className="flex items-center" key={label} style={{ gap: 10 }}>
-                <span
-                  style={{
-                    flex: "0 0 90px",
-                    fontFamily: "var(--v5-serif)",
-                    fontSize: 13,
-                    color: "var(--v5-ink2)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {label}
-                </span>
-                <div className="flex-1" style={{ height: 4, background: "rgba(var(--v5-ink-rgb),0.06)", borderRadius: 999 }}>
-                  <div
-                    style={{
-                      width: `${pct}%`,
-                      height: "100%",
-                      background: accent,
-                      borderRadius: 999,
-                      transition: "width var(--v5-dur-slow) var(--v5-ease-out)",
-                    }}
-                  />
-                </div>
-                <span
-                  style={{
-                    flex: "0 0 auto",
-                    fontFamily: "var(--v5-mono)",
-                    fontSize: 12,
-                    color: "var(--v5-ink2)",
-                    fontWeight: 600,
-                  }}
-                >
-                  {count}
-                </span>
-              </div>
-            );
-          })
-        )}
+          <Sparkles size={13} />
+          {summary ? "收起总结" : "生成认知总结"}
+        </button>
       </div>
+
+      {summary && (
+        <ol className="m-0 mt-4 list-none p-0" style={{ display: "grid", gap: 8, borderTop: "1px solid var(--v5-rule)", paddingTop: 14 }}>
+          {summary.map((line, i) => (
+            <li key={i} style={{ fontFamily: "var(--v5-serif)", fontSize: 14.5, lineHeight: 1.75, color: "var(--v5-ink)" }}>
+              <span style={{ color: "var(--v5-accent)", marginRight: 6, fontWeight: 600 }}>{i + 1}.</span>
+              {line}
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
@@ -1524,7 +1351,6 @@ function V5ThemeCard({
             <Icon size={17} strokeWidth={1.7} />
           </span>
           <div className="min-w-0">
-            <div className="v5-eyebrow" style={{ fontSize: 10 }}>Collection</div>
             <div
               style={{
                 marginTop: 2,
@@ -1801,19 +1627,7 @@ function ArchiveSection({
             <div>
               <div className="mb-5 flex flex-wrap items-end justify-between" style={{ gap: 16 }}>
                 <div>
-                  <div className="v5-eyebrow">COLLECTIONS · 主题归档</div>
-                  <h2
-                    className="v5-display mt-2"
-                    style={{
-                      margin: 0,
-                      fontSize: 28,
-                      fontVariationSettings: '"opsz" 144',
-                      fontWeight: 400,
-                      color: "var(--v5-ink)",
-                    }}
-                  >
-                    按主题翻阅
-                  </h2>
+                  <div className="v5-eyebrow">主题归档</div>
                 </div>
               </div>
               <div
@@ -2036,11 +1850,6 @@ function V5TodaysPick({
   onShuffle: () => void;
   onSaveToday: () => void;
 }) {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 0);
-  const dayNumber = Math.floor((now.getTime() - startOfYear.getTime()) / 86400000);
-  const dateLabel = `${now.getMonth() + 1}月${now.getDate()}日`;
-
   return (
     <div
       className="relative overflow-hidden"
@@ -2073,17 +1882,6 @@ function V5TodaysPick({
       {/* Top eyebrow row */}
       <div className="relative flex items-center" style={{ gap: 16 }}>
         <span className="v5-eyebrow">TODAY&apos;S PICK · 今日金句</span>
-        <span style={{ width: 24, height: 1, background: "var(--v5-rule-strong)" }} />
-        <span
-          style={{
-            fontFamily: "var(--v5-mono)",
-            fontSize: 11,
-            color: "var(--v5-ink3)",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {dateLabel} · 第 {dayNumber} 日
-        </span>
       </div>
 
       {/* Quote text */}
@@ -2186,27 +1984,6 @@ function V5TodaysPick({
         </div>
       </div>
 
-      {/* Tag chips */}
-      {quote && quote.tags && quote.tags.length > 0 && (
-        <div className="relative mt-5 flex flex-wrap" style={{ gap: 8 }}>
-          {quote.tags.slice(0, 5).map((tag) => (
-            <span
-              key={tag}
-              style={{
-                padding: "5px 12px",
-                borderRadius: 999,
-                background: "rgba(var(--v5-accent-rgb),0.07)",
-                color: "var(--v5-ink2)",
-                fontFamily: "var(--v5-serif)",
-                fontStyle: "italic",
-                fontSize: 12.5,
-              }}
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -2223,6 +2000,8 @@ interface V5FilterBarProps {
   onClearTags: () => void;
   sort: SortMode;
   onSortChange: (s: SortMode) => void;
+  /** 「共 N 句 · M 条标签」，显示在第一行最右 */
+  summary: string;
 }
 
 type SortMode = "recent" | "author" | "tag";
@@ -2243,6 +2022,7 @@ function V5FilterBar({
   onClearTags,
   sort,
   onSortChange,
+  summary,
 }: V5FilterBarProps) {
   const [showAllTags, setShowAllTags] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -2314,8 +2094,8 @@ function V5FilterBar({
         />
       </label>
 
-      {/* Tag chips */}
-      <div className="flex flex-wrap items-center" style={{ gap: 6, flex: "1 1 auto", minWidth: 0 }}>
+      {/* Tag chips：单独占第二行 */}
+      <div className="flex flex-wrap items-center" style={{ gap: 6, order: 3, flexBasis: "100%", minWidth: 0 }}>
         {visibleTags.map((tag) => {
           const active = activeTags.has(tag);
           return (
@@ -2369,8 +2149,11 @@ function V5FilterBar({
         )}
       </div>
 
-      {/* Sort dropdown */}
-      <div className="relative">
+      {/* 数量 + 排序：第一行最右 */}
+      <span style={{ order: 2, marginLeft: "auto", fontFamily: "var(--v5-serif)", fontSize: 13.5, color: "var(--v5-ink3)" }}>
+        {summary}
+      </span>
+      <div className="relative" style={{ order: 2 }}>
         <button
           className="inline-flex items-center"
           onClick={() => setSortOpen((v) => !v)}
@@ -2476,13 +2259,16 @@ function V5FilterBar({
 
 /* ── v5 Quote card with 3 variants ─────────────────────────────── */
 
-type QuoteVariant = "plain" | "pullquote" | "featured";
+type QuoteVariant = "plain" | "pullquote";
 
-function pickVariant(q: Quote, index: number): QuoteVariant {
+/**
+ * 卡片样式只由内容决定：带标签的短句（< 25 字）用斜体引文样式，其余统一。
+ * 以前「每第 4 张」按位置突出显示，没有实际含义、容易被误读为收藏，已去掉。
+ */
+function pickVariant(q: Quote): QuoteVariant {
   const len = q.text?.length ?? 0;
   if (len < 25 && q.tags && q.tags.length > 0) return "pullquote";
-  if (len > 120 || /[。！？!?]\s*\S/.test(q.text ?? "")) return "plain";
-  return index % 4 === 3 ? "featured" : "plain";
+  return "plain";
 }
 
 function formatSavedDate(iso: string): string {
@@ -2518,95 +2304,6 @@ function V5QuoteCard({
     position: "relative",
     overflow: "hidden",
   };
-
-  if (variant === "featured") {
-    return (
-      <div
-        className="quote-featured"
-        onClick={onOpen}
-        onMouseEnter={() => setHov(true)}
-        onMouseLeave={() => setHov(false)}
-        style={{
-          ...baseCardStyle,
-          background: "linear-gradient(135deg, var(--v5-accent) 0%, var(--v5-accent-deep) 100%)",
-          color: "var(--m-on-accent)",
-        }}
-      >
-        <span
-          aria-hidden
-          className="pointer-events-none absolute"
-          style={{
-            right: 18,
-            top: -22,
-            fontFamily: "var(--v5-serif)",
-            fontVariationSettings: '"opsz" 144, "wght" 500',
-            fontSize: 88,
-            lineHeight: 1,
-            color: "var(--m-on-accent)",
-            opacity: 0.18,
-            userSelect: "none",
-          }}
-        >
-          “
-        </span>
-        <p
-          className="relative"
-          style={{
-            margin: 0,
-            fontFamily: "var(--v5-serif)",
-            fontVariationSettings: '"opsz" 144, "SOFT" 60',
-            fontSize: 23,
-            fontWeight: 400,
-            lineHeight: 1.42,
-            color: "var(--m-on-accent)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {quote.text}
-        </p>
-        <div
-          className="mt-5 flex items-center justify-between"
-          style={{
-            paddingTop: 14,
-            borderTop: "1px solid rgba(var(--m-on-accent-rgb),0.18)",
-            gap: 10,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--v5-serif)",
-              fontStyle: "italic",
-              fontSize: 13,
-              color: "rgba(var(--m-on-accent-rgb),0.92)",
-            }}
-          >
-            {author}{book ? ` · 《${book}》` : ""}
-          </span>
-          <Bookmark size={14} style={{ color: "rgba(var(--m-on-accent-rgb),0.7)" }} />
-        </div>
-        {tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap" style={{ gap: 6 }}>
-            {tags.slice(0, 4).map((t) => (
-              <span
-                key={t}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 999,
-                  background: "rgba(var(--m-on-accent-rgb),0.12)",
-                  color: "var(--m-on-accent)",
-                  fontFamily: "var(--v5-serif)",
-                  fontStyle: "italic",
-                  fontSize: 12,
-                }}
-              >
-                #{t}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   if (variant === "pullquote") {
     return (
@@ -3122,36 +2819,8 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
       {/* ── Desktop (v5 redesign) ── */}
       <section className="hidden md:block">
         <div className="grid" style={{ gap: 32 }}>
-          {/* Section header */}
-          <div className="flex flex-wrap items-end justify-between" style={{ gap: 16 }}>
-            <div>
-              <div className="v5-eyebrow">MY LIBRARY · 我的金句库</div>
-              <h2
-                className="v5-display mt-2"
-                style={{
-                  margin: 0,
-                  fontSize: 30,
-                  fontVariationSettings: '"opsz" 144',
-                  fontWeight: 400,
-                  color: "var(--v5-ink)",
-                }}
-              >
-                回看那些打动过你的句子
-              </h2>
-            </div>
-            <span
-              style={{
-                fontFamily: "var(--v5-mono)",
-                fontSize: 12,
-                color: "var(--v5-ink3)",
-                letterSpacing: "0.06em",
-              }}
-            >
-              共 {quotes.length} 句 · {allTags.length} 条标签
-            </span>
-          </div>
-
           <V5FilterBar
+            summary={`共 ${quotes.length} 句 · ${allTags.length} 条标签`}
             activeTags={activeTags}
             allTags={allTags}
             onAdd={() => setAddOpen(true)}
@@ -3183,12 +2852,12 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
             )
           ) : (
             <div className="v5-quote-masonry">
-              {filtered.map((quote, i) => (
+              {filtered.map((quote) => (
                 <div id={`quote-${quote.id}`} key={quote.id}>
                   <V5QuoteCard
                     onOpen={() => onOpenQuote(quote.id)}
                     quote={quote}
-                    variant={pickVariant(quote, i)}
+                    variant={pickVariant(quote)}
                   />
                 </div>
               ))}
@@ -3388,6 +3057,7 @@ function ReadingNotebookSection() {
   const [tags, setTags] = useState("");
   const [message, setMessage] = useState("");
   const [readerIndex, setReaderIndex] = useState<number | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const notes = useNotesStore();
 
@@ -3413,137 +3083,75 @@ function ReadingNotebookSection() {
     setTitle("");
     setContent("");
     setTags("");
-    setMessage("阅读笔记已保存。");
+    setMessage("已保存");
+    setEditorOpen(false);
   };
 
   return (
     <div className="space-y-6">
-      {/* ── Note editor — journal-style writing surface ── */}
+      {/* ── 写笔记：平时收起成一行，点开才展开编辑区 ── */}
       <StaggerItem index={0}>
-        <form
-          className="relative overflow-hidden rounded-[32px] p-5 sm:p-7 lg:p-9"
-          onSubmit={onSubmit}
-          style={{
-            background:
-              "linear-gradient(180deg, var(--m-paper-hi), var(--m-paper-lo)), linear-gradient(90deg, rgba(var(--v5-accent-rgb),0.045) 1px, transparent 1px)",
-            backgroundSize: "auto, 44px 44px",
-            border: "1px solid rgba(var(--v5-accent-rgb),0.12)",
-            boxShadow: "0 30px 70px rgba(var(--v5-shadow-rgb),0.13)",
-          }}
-        >
-          {/* Header + save button */}
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="flex items-center gap-2 text-xs tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
-                <Brain size={14} />
-                READING NOTE
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold" style={{ color: "var(--m-ink)" }}>
-                写下一则阅读笔记
-              </h2>
-              <p className="mt-1 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
-                把读到的线索、疑问和触动放进这一页。
-              </p>
-            </div>
-            <Button disabled={!title.trim() || !content.trim()} size="lg" type="submit" variant="primary">
-              <Save className="mr-1.5" size={15} />
-              保存笔记
-            </Button>
-          </div>
-
-          <div className="space-y-0">
-            {/* Title — borderless underline input */}
-            <section className="pb-4">
-              <label className="mb-2 flex items-center gap-2 text-xs tracking-wider" style={{ color: "var(--m-ink3)" }}>
-                <PencilLine size={13} />
-                标题
-              </label>
+        {!editorOpen ? (
+          <button
+            type="button"
+            onClick={() => setEditorOpen(true)}
+            className="flex w-full items-center gap-3 rounded-[20px] px-6 py-4 text-left transition-colors hover:bg-[rgba(var(--v5-accent-rgb),0.05)]"
+            style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", boxShadow: "var(--v5-sh-1)" }}
+          >
+            <PencilLine size={16} style={{ color: "var(--v5-accent)" }} />
+            <span style={{ fontFamily: "var(--v5-serif)", fontSize: 16, color: "var(--v5-ink3)" }}>写一篇阅读笔记…</span>
+            {message && <span className="ml-auto text-sm" style={{ color: "var(--m-success)" }}>{message}</span>}
+          </button>
+        ) : (
+          <form
+            className="overflow-hidden rounded-[24px] px-6 pb-4 pt-5 sm:px-8"
+            onSubmit={onSubmit}
+            style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", boxShadow: "var(--v5-sh-2)" }}
+          >
+            <input
+              autoFocus
+              className="w-full bg-transparent pb-3 text-[22px] font-semibold outline-none placeholder:font-normal placeholder:text-[var(--v5-ink-mute)]"
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="标题"
+              required
+              style={{ borderBottom: "1px solid var(--v5-rule)", color: "var(--v5-ink)", fontFamily: "var(--v5-serif)" }}
+              type="text"
+              value={title}
+            />
+            <Textarea
+              className="mt-2 min-h-[260px] w-full resize-y border-0 bg-transparent px-0 py-3 text-[17px] leading-[34px] shadow-none outline-none focus:ring-0"
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="摘录、理解、疑问，或读完还在回响的一句话…"
+              required
+              style={{ background: "transparent", boxShadow: "none", fontFamily: "var(--v5-serif)", color: "var(--v5-ink)", caretColor: "var(--v5-accent)" }}
+              value={content}
+            />
+            <div className="flex flex-wrap items-center gap-3 pt-3" style={{ borderTop: "1px solid var(--v5-rule)" }}>
+              <Tag size={14} style={{ color: "var(--v5-ink3)" }} />
               <input
-                className="w-full border-0 border-b bg-transparent pb-2 text-xl font-semibold outline-none transition-colors placeholder:text-[rgba(var(--v5-accent-rgb),0.28)] focus:border-b-2"
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="这段阅读想回答什么问题？"
-                required
-                style={{
-                  borderBottomWidth: 1,
-                  borderBottomColor: "rgba(var(--v5-accent-rgb),0.15)",
-                  borderBottomStyle: "solid",
-                  color: "var(--m-ink)",
-                  fontFamily: '"Noto Serif SC", "Songti SC", serif',
-                }}
-                type="text"
-                value={title}
-              />
-            </section>
-
-            {/* Elegant divider */}
-            <div className="flex items-center gap-4 py-4">
-              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(var(--v5-accent-rgb),0.12), transparent)" }} />
-              <Brain size={12} style={{ color: "rgba(var(--v5-accent-rgb),0.25)" }} />
-              <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, rgba(var(--v5-accent-rgb),0.12), transparent)" }} />
-            </div>
-
-            {/* Main writing area — seamless lined paper, no border */}
-            <section className="relative">
-              <Textarea
-                className="min-h-[240px] w-full resize-none border-0 bg-transparent px-2 py-4 text-[17px] leading-[36px] outline-none focus:ring-0 sm:min-h-[320px] sm:px-4 sm:py-5 sm:text-[18px]"
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="写下你的摘录、理解、疑问，或者读完以后还在心里回响的一句话…"
-                required
-                style={{
-                  backgroundImage: "repeating-linear-gradient(180deg, transparent, transparent 35px, rgba(var(--v5-accent-rgb),0.07) 35px, rgba(var(--v5-accent-rgb),0.07) 36px)",
-                  backgroundPositionY: "35px",
-                  fontFamily: '"Noto Serif SC", "Songti SC", "KaiTi", serif',
-                  color: "var(--m-ink)",
-                  caretColor: "var(--m-accent)",
-                }}
-                value={content}
-              />
-              <div className="flex justify-end px-2 pb-2 text-xs" style={{ color: "var(--m-ink3)" }}>
-                {content.length} 字
-              </div>
-            </section>
-
-            {/* Tags — minimal inline */}
-            <section className="pt-4">
-              <label className="mb-2 flex items-center gap-2 text-xs tracking-wider" style={{ color: "var(--m-ink3)" }}>
-                <Tag size={13} />
-                标签
-              </label>
-              <input
-                className="w-full border-0 border-b bg-transparent pb-2 text-[15px] outline-none transition-colors placeholder:text-[rgba(var(--v5-accent-rgb),0.28)] focus:border-b-2"
+                className="min-w-[160px] flex-1 bg-transparent text-[14.5px] outline-none placeholder:text-[var(--v5-ink-mute)]"
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="结构, 反思, 阅读, 成长"
-                style={{
-                  borderBottomWidth: 1,
-                  borderBottomColor: "rgba(var(--v5-accent-rgb),0.15)",
-                  borderBottomStyle: "solid",
-                  color: "var(--m-ink)",
-                }}
+                placeholder="标签，用逗号分隔"
+                style={{ color: "var(--v5-ink)", fontFamily: "var(--v5-serif)" }}
                 type="text"
                 value={tags}
               />
-              {tagList.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {tagList.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full px-3 py-1 text-[11px] tracking-wide"
-                      style={{ background: "rgba(var(--v5-accent-rgb),0.06)", color: "var(--m-accent)", border: "1px solid rgba(var(--v5-accent-rgb),0.08)" }}
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
-
-          {message && (
-            <p className="mt-4 text-center text-sm" style={{ color: "var(--m-success)" }}>
-              {message}
-            </p>
-          )}
-        </form>
+              <span className="text-xs" style={{ color: "var(--v5-ink3)" }}>{content.replace(/\s/g, "").length} 字</span>
+              <button
+                type="button"
+                className="rounded-full px-3 py-1.5 text-sm transition-opacity hover:opacity-75"
+                style={{ color: "var(--v5-ink3)" }}
+                onClick={() => setEditorOpen(false)}
+              >
+                收起
+              </button>
+              <Button disabled={!title.trim() || !content.trim()} size="sm" type="submit" variant="primary">
+                <Save className="mr-1.5" size={14} />
+                保存
+              </Button>
+            </div>
+          </form>
+        )}
       </StaggerItem>
 
       {/* ── Notes list ── */}
@@ -3551,8 +3159,6 @@ function ReadingNotebookSection() {
         <EmptyState
           description="你的阅读笔记会在这里慢慢沉淀成一条个人专栏。写下第一篇后，阅读流就会开始形成。"
           icon={Sparkles}
-          illustrationAlt="thinking notebook illustration"
-          illustrationSrc="/illustrations/reading-time.svg"
           title="还没有阅读笔记"
         />
       ) : (

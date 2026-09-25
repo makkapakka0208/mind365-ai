@@ -1,10 +1,11 @@
 "use client";
 import { captureStorageScope } from "@/lib/account-storage";
 
-import { Bot, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Compass, Flame, Loader2, Map, Pencil, Plus, RefreshCw, Sparkles, Target, Trash2, X, Zap } from "lucide-react";
+import { Bot, CalendarDays, ChevronDown, ChevronUp, Compass, Flame, Loader2, Map, Pencil, Plus, RefreshCw, Sparkles, Target, Trash2, X, Zap } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
+import { GoalTracks, LifePathMasthead } from "@/components/life-path/goal-tracks";
 import { QuadrantTodos } from "@/components/todo/quadrant-todos";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -490,445 +491,6 @@ const V5_GOAL_ACCENTS = [
 
 function getGoalAccent(index: number): string {
   return V5_GOAL_ACCENTS[index % V5_GOAL_ACCENTS.length];
-}
-
-function V5LifePathHeader() {
-  return (
-    <div>
-      <div className="v5-eyebrow">LIFE PATH · 人生主线</div>
-    </div>
-  );
-}
-
-function V5HeroStat({
-  completed,
-  total,
-  onAdd,
-}: {
-  completed: number;
-  total: number;
-  onAdd: () => void;
-}) {
-  const sub = total === 0
-    ? "添加第一个目标，开始一段慢一点的成长。"
-    : completed >= total
-      ? "全部完成了，可以静下来想想下一段方向。"
-      : `再完成 ${total - completed} 个目标，就达成本月里程碑。`;
-  return (
-    <div
-      className="relative overflow-hidden"
-      style={{
-        borderRadius: 28,
-        padding: "32px 36px",
-        background: "linear-gradient(135deg, var(--v5-card) 0%, var(--v5-card-grad) 100%)",
-        boxShadow: "var(--v5-sh-2)",
-      }}
-    >
-      <div className="flex flex-wrap items-end justify-between" style={{ gap: 24 }}>
-        <div>
-          <div className="v5-eyebrow">OVERALL PROGRESS · 总览</div>
-          <div className="mt-3 flex items-baseline" style={{ gap: 10 }}>
-            <span
-              className="v5-numeral"
-              style={{
-                fontSize: 64,
-                fontVariationSettings: '"opsz" 144, "wght" 400',
-                color: "var(--v5-ink)",
-              }}
-            >
-              {completed} / {total}
-            </span>
-            <span style={{ fontFamily: "var(--v5-sans)", fontSize: 14, color: "var(--v5-ink3)" }}>
-              已完成
-            </span>
-          </div>
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontFamily: "var(--v5-serif)",
-              fontVariationSettings: '"opsz" 14',
-              fontSize: 13.5,
-              fontStyle: "italic",
-              color: "var(--v5-ink2)",
-            }}
-          >
-            {sub}
-          </p>
-        </div>
-        <button
-          className="inline-flex items-center"
-          onClick={onAdd}
-          type="button"
-          style={{
-            gap: 6,
-            padding: "10px 20px",
-            borderRadius: 999,
-            border: 0,
-            background: "var(--v5-pill-bg)",
-            color: "var(--v5-pill-ink)",
-            fontFamily: "var(--v5-sans)",
-            fontSize: 13.5,
-            fontWeight: 500,
-            cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(33,22,17,0.18)",
-            transition: "transform var(--v5-dur) var(--v5-ease), background var(--v5-dur) var(--v5-ease)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "translateY(-1px)";
-            e.currentTarget.style.background = "var(--v5-pill-hover)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "translateY(0)";
-            e.currentTarget.style.background = "var(--v5-pill-bg)";
-          }}
-        >
-          <Plus size={14} />
-          添加新目标
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function V5TimelineStrip({ goals }: { goals: UserGoal[] }) {
-  const withDeadline = useMemo(() => {
-    return goals
-      .map((g, i) => ({ g, i, daysLeft: calculateGoalProgress(g).daysLeft }))
-      .filter((x) => x.daysLeft !== null && x.daysLeft! >= 0);
-  }, [goals]);
-
-  const maxDays = useMemo(() => {
-    const all = withDeadline.map((x) => x.daysLeft!);
-    if (all.length === 0) return 365;
-    return Math.max(60, ...all);
-  }, [withDeadline]);
-
-  return (
-    <div>
-      <div className="flex items-center justify-between" style={{ gap: 16 }}>
-        <div className="v5-eyebrow">TIMELINE · 目标时间线</div>
-        <span
-          style={{
-            fontFamily: "var(--v5-mono)",
-            fontSize: 11,
-            color: "var(--v5-ink3)",
-            letterSpacing: "0.06em",
-          }}
-        >
-          今 → +{maxDays} 天
-        </span>
-      </div>
-
-      <div className="relative mt-6" style={{ height: 80 }}>
-        <div
-          className="absolute"
-          style={{ left: 0, right: 0, top: 36, height: 1, background: "var(--v5-rule-strong)" }}
-        />
-
-        {/* Today marker */}
-        <div
-          className="absolute"
-          style={{
-            left: 0,
-            top: 30,
-            width: 12,
-            height: 12,
-            borderRadius: "50%",
-            background: "var(--v5-ink)",
-            border: "3px solid #fff",
-            outline: "1px solid var(--v5-accent)",
-          }}
-          title="今天"
-        />
-        <span
-          className="absolute"
-          style={{
-            left: 0,
-            top: 52,
-            fontFamily: "var(--v5-sans)",
-            fontSize: 11.5,
-            color: "var(--v5-ink3)",
-          }}
-        >
-          今
-        </span>
-
-        {/* Goal markers — stagger labels above/below to avoid overlap */}
-        {withDeadline.map(({ g, i, daysLeft }, idx) => {
-          const pct = Math.min(100, Math.max(2, (daysLeft! / maxDays) * 100));
-          const accent = getGoalAccent(i);
-          const shortLabel = g.title.length > 4 ? `${g.title.slice(0, 4)}…` : g.title;
-          const above = idx % 2 === 0;
-          return (
-            <div className="absolute" key={g.id} style={{ left: `${pct}%`, top: 29, transform: "translateX(-50%)" }}>
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: "50%",
-                  background: accent,
-                  border: "2px solid #fff",
-                  boxShadow: "0 2px 6px rgba(75,51,27,0.20)",
-                }}
-                title={`${g.title} · 剩 ${daysLeft} 天`}
-              />
-              <span
-                className="absolute"
-                style={{
-                  top: above ? -22 : 22,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  fontFamily: "var(--v5-serif)",
-                  fontStyle: "italic",
-                  fontSize: 11.5,
-                  color: "var(--v5-ink2)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {shortLabel}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function V5GoalCard({
-  goal,
-  index,
-  mentorPlan,
-  onOpen,
-}: {
-  goal: UserGoal;
-  index: number;
-  mentorPlan: MentorPlan;
-  onOpen: () => void;
-}) {
-  const [hov, setHov] = useState(false);
-  const progress = useMemo(() => calculateGoalProgress(goal), [goal]);
-  const accent = getGoalAccent(index);
-  const daysLeft = progress.daysLeft;
-
-  // Expected pace: how far along should you be by now (only if deadline given)
-  let expected: number | null = null;
-  if (goal.deadline && daysLeft !== null && daysLeft >= 0) {
-    // Approx total days = elapsed + daysLeft. Use 365 fallback when no obvious start.
-    // We don't know start date — approximate via progress fraction inversely.
-    // Simplification: assume linear path; expected = (1 - daysLeft / (daysLeft + 30 * scale))
-    // Pragmatic: use 180 days as default span when unknown.
-    const totalDays = Math.max(daysLeft + 30, 180);
-    expected = Math.min(100, Math.max(0, Math.round(((totalDays - daysLeft) / totalDays) * 100)));
-  }
-
-  const today = mentorPlan.dailySuggestion?.action;
-
-  const aheadOrBehind = expected !== null
-    ? progress.percentage - expected
-    : null;
-
-  return (
-    <div
-      onClick={onOpen}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        position: "relative",
-        overflow: "hidden",
-        cursor: "pointer",
-        background: "var(--v5-card)",
-        border: "1px solid var(--v5-rule)",
-        borderRadius: 22,
-        padding: 24,
-        boxShadow: hov ? "var(--v5-sh-hover)" : "var(--v5-sh-2)",
-        transform: hov ? "translateY(-3px)" : "translateY(0)",
-        transition: "transform var(--v5-dur) var(--v5-ease-out), box-shadow var(--v5-dur) var(--v5-ease-out)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-      }}
-    >
-      {/* accent corner glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute"
-        style={{
-          top: 0,
-          right: 0,
-          width: 96,
-          height: 96,
-          background: `radial-gradient(circle at top right, ${accent}22 0%, transparent 70%)`,
-          opacity: hov ? 1 : 0.6,
-          transition: "opacity var(--v5-dur) var(--v5-ease)",
-        }}
-      />
-
-      {/* Header */}
-      <div className="relative flex items-start justify-between" style={{ gap: 10 }}>
-        <div className="min-w-0 flex-1">
-          <h3
-            style={{
-              margin: 0,
-              fontFamily: "var(--v5-serif)",
-              fontSize: 18,
-              fontWeight: 500,
-              color: "var(--v5-ink)",
-              letterSpacing: "-0.01em",
-              lineHeight: 1.35,
-            }}
-          >
-            {goal.title}
-          </h3>
-          <p
-            style={{
-              margin: "4px 0 0",
-              fontFamily: "var(--v5-mono)",
-              fontSize: 11,
-              color: "var(--v5-ink3)",
-              letterSpacing: "0.04em",
-            }}
-          >
-            {goal.deadline ?? "未设定截止"}
-            {daysLeft !== null && (
-              <span> · {daysLeft >= 0 ? `剩 ${daysLeft} 天` : "已逾期"}</span>
-            )}
-          </p>
-        </div>
-        <ChevronRight size={16} style={{ color: "var(--v5-ink-mute)", flexShrink: 0 }} />
-      </div>
-
-      {/* Big numeral */}
-      <div className="flex items-baseline" style={{ gap: 8 }}>
-        <span
-          className="v5-numeral"
-          style={{
-            fontSize: 44,
-            fontVariationSettings: '"opsz" 144, "wght" 400',
-            color: "var(--v5-ink)",
-          }}
-        >
-          {progress.percentage}%
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--v5-sans)",
-            fontSize: 12,
-            color: "var(--v5-ink3)",
-          }}
-        >
-          {goal.currentValue.toLocaleString()} / {goal.targetValue.toLocaleString()}
-        </span>
-      </div>
-
-      {/* Progress bar with rhythm marker */}
-      <div className="relative" style={{ height: 6 }}>
-        <div
-          className="absolute inset-0"
-          style={{
-            borderRadius: 999,
-            background: "rgba(75,51,27,0.08)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${progress.percentage}%`,
-              background: `linear-gradient(90deg, ${accent}aa, ${accent})`,
-              transition: "width var(--v5-dur-slow) var(--v5-ease-out)",
-            }}
-          />
-          {/* tick gaps */}
-          {[25, 50, 75].map((pct) => (
-            <div
-              key={pct}
-              className="absolute"
-              style={{
-                left: `${pct}%`,
-                top: 0,
-                bottom: 0,
-                width: 1,
-                background: "var(--v5-card)",
-              }}
-            />
-          ))}
-        </div>
-        {/* expected-pace marker */}
-        {expected !== null && (
-          <div
-            className="absolute"
-            style={{
-              left: `${expected}%`,
-              top: -3,
-              width: 2,
-              height: 12,
-              background: "var(--v5-ink)",
-              borderRadius: 1,
-              transform: "translateX(-50%)",
-            }}
-            title={`节奏参考：${expected}%`}
-          />
-        )}
-      </div>
-
-      {/* Micro stats */}
-      <div
-        className="flex items-center justify-between"
-        style={{
-          fontFamily: "var(--v5-sans)",
-          fontSize: 11,
-          color: "var(--v5-ink3)",
-        }}
-      >
-        <span>
-          {progress.remaining > 0
-            ? `还差 ${progress.remaining.toLocaleString()}`
-            : "已达成 ✓"}
-        </span>
-        {aheadOrBehind !== null && Math.abs(aheadOrBehind) >= 1 && (
-          <span
-            style={{
-              color: aheadOrBehind >= 0 ? "#6a8554" : "var(--v5-rose)",
-              fontWeight: 600,
-            }}
-          >
-            {aheadOrBehind >= 0 ? "↑ 领先" : "↓ 落后"} {Math.abs(aheadOrBehind)}%
-          </span>
-        )}
-      </div>
-
-      {/* Today suggestion */}
-      {today && (
-        <div
-          className="flex items-start"
-          style={{
-            gap: 6,
-            paddingTop: 12,
-            borderTop: "1px dashed var(--v5-rule)",
-          }}
-        >
-          <Sparkles size={13} style={{ color: "var(--v5-accent)", flexShrink: 0, marginTop: 2 }} />
-          <p
-            style={{
-              margin: 0,
-              fontFamily: "var(--v5-serif)",
-              fontStyle: "italic",
-              fontSize: 12.5,
-              lineHeight: 1.5,
-              color: "var(--v5-ink2)",
-              display: "-webkit-box",
-              WebkitLineClamp: 1,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {today}
-          </p>
-        </div>
-      )}
-    </div>
-  );
 }
 
 function V5Section({
@@ -1556,9 +1118,7 @@ export default function LifePathPage() {
       {/* ── Desktop v5 layout ── */}
       <section className="hidden md:block">
         <div className="grid" style={{ gap: 32 }}>
-          <V5LifePathHeader />
-
-          <V5HeroStat completed={completedCount} onAdd={openAdd} total={goals.length} />
+          <LifePathMasthead goals={goals} onAdd={openAdd} />
 
           {enriching && (
             <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--v5-accent)" }}>
@@ -1567,74 +1127,34 @@ export default function LifePathPage() {
             </p>
           )}
 
-          {goals.length > 0 && <V5TimelineStrip goals={goals} />}
-
-          <div>
-            <div className="mb-5 flex flex-wrap items-end justify-between" style={{ gap: 16 }}>
-              <div>
-                <div className="v5-eyebrow">ACTIVE GOALS · 进行中</div>
-                <h2
-                  className="v5-display mt-2"
-                  style={{
-                    margin: 0,
-                    fontSize: 28,
-                    fontVariationSettings: '"opsz" 144',
-                    fontWeight: 400,
-                    color: "var(--v5-ink)",
-                  }}
-                >
-                  持续追的 {goals.length} 个方向
-                </h2>
-              </div>
-              <span
+          {goals.length === 0 ? (
+            <div
+              className="rounded-[22px] border border-dashed px-6 py-14 text-center"
+              style={{ borderColor: "var(--v5-rule-strong)", background: "var(--v5-card)" }}
+            >
+              <Target className="mx-auto mb-3" size={28} style={{ color: "var(--v5-accent)" }} />
+              <p style={{ margin: 0, fontFamily: "var(--v5-serif)", fontSize: 16, fontWeight: 500, color: "var(--v5-ink)" }}>
+                还没有人生目标
+              </p>
+              <p
                 style={{
-                  fontFamily: "var(--v5-sans)",
-                  fontSize: 12,
-                  color: "var(--v5-ink3)",
+                  margin: "8px 0 0",
+                  fontFamily: "var(--v5-serif)",
+                  fontStyle: "italic",
+                  fontSize: 13,
+                  color: "var(--v5-ink2)",
                 }}
               >
-                点击卡片查看 AI 详情
-              </span>
+                例如：存款 100 万 · 读完 50 本书 · 跑完一个马拉松
+              </p>
             </div>
-
-            {goals.length === 0 ? (
-              <div
-                className="rounded-[22px] border border-dashed px-6 py-14 text-center"
-                style={{ borderColor: "var(--v5-rule-strong)", background: "var(--v5-card)" }}
-              >
-                <Target className="mx-auto mb-3" size={28} style={{ color: "var(--v5-accent)" }} />
-                <p style={{ margin: 0, fontFamily: "var(--v5-serif)", fontSize: 16, fontWeight: 500, color: "var(--v5-ink)" }}>
-                  还没有人生目标
-                </p>
-                <p
-                  style={{
-                    margin: "8px 0 0",
-                    fontFamily: "var(--v5-serif)",
-                    fontStyle: "italic",
-                    fontSize: 13,
-                    color: "var(--v5-ink2)",
-                  }}
-                >
-                  例如：存款 100 万 · 读完 50 本书 · 跑完一个马拉松
-                </p>
-              </div>
-            ) : (
-              <div
-                className="grid"
-                style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 18 }}
-              >
-                {goals.map((g, i) => (
-                  <V5GoalCard
-                    goal={g}
-                    index={i}
-                    key={g.id}
-                    mentorPlan={getMentorPlan(g.id)}
-                    onOpen={() => setDrawerGoalId(g.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          ) : (
+            <GoalTracks
+              getSuggestion={(id) => getMentorPlan(id).dailySuggestion?.action}
+              goals={goals}
+              onOpen={setDrawerGoalId}
+            />
+          )}
 
           {/* Four-quadrant todo — merged into Life Path (desktop) per user request */}
           <div className="border-t pt-8" style={{ borderColor: "var(--v5-rule)" }}>
