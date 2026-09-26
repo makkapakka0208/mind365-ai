@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 
 import { getTodayISODate, getWeekRange, parseISODate, toISODate } from "@/lib/date";
-import { currentWeekKey, loadGoals, loadWeekPlan } from "@/lib/life-path-storage";
+import { useBooks } from "@/lib/books";
+import { currentWeekKey, loadGoals, loadWeekPlan, refreshLifePathState } from "@/lib/life-path-storage";
 import { pickOnThisDay } from "@/lib/memory-triggers";
 import { useDailyLogsStore, useTodosStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
@@ -124,6 +125,11 @@ function Line({ children }: { children: React.ReactNode }) {
 export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void }) {
   const logs = useDailyLogsStore();
   const todos = useTodosStore();
+  const books = useBooks();
+  // 书架、目标、本周计划：拉一次云端最新数据
+  useEffect(() => {
+    void refreshLifePathState();
+  }, []);
   // 目标 / 本周计划存在本地账号数据里，只在浏览器读取，避免服务端渲染不一致
   const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
@@ -137,10 +143,19 @@ export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void })
     const lines: React.ReactNode[] = [];
     if (streak >= 2) lines.push(`已连续记录 ${streak} 天`);
 
-    const reading = [...logs]
-      .filter((l) => l.reading.trim() && l.date > daysAgoIso(14))
-      .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
-    if (reading) lines.push(`在读 ${excerpt(reading.reading, 24)}`);
+    // 在读：优先用书架（带进度），书架没有在读的书时退回日记里的阅读记录
+    const readingBooks = books
+      .filter((b) => b.status === "reading")
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, 2);
+    if (readingBooks.length) {
+      for (const b of readingBooks) lines.push(b.progress > 0 ? `《${b.title}》读到 ${b.progress}%` : `在读《${b.title}》`);
+    } else {
+      const reading = [...logs]
+        .filter((l) => l.reading.trim() && l.date > daysAgoIso(14))
+        .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+      if (reading) lines.push(`在读 ${excerpt(reading.reading, 24)}`);
+    }
 
     if (isClient) {
       const focus = loadWeekPlan(currentWeekKey())?.focus?.trim();
@@ -154,7 +169,7 @@ export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void })
     const openTodos = todos.filter((t) => !t.done).length;
     if (openTodos > 0) lines.push(`还有 ${openTodos} 项待办`);
     return lines;
-  }, [logs, todos, streak, isClient]);
+  }, [logs, todos, books, streak, isClient]);
 
   const columns = [
     recent.length > 0 && (

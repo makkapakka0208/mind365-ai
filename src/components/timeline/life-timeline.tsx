@@ -1,9 +1,10 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { BookOpen, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import { ACCOUNT_STORAGE_EVENT } from "@/lib/account-storage";
+import { useBooks } from "@/lib/books";
 import { getTodayISODate, parseISODate } from "@/lib/date";
 import { readMilestonesRaw, saveMilestones } from "@/lib/life-path-storage";
 import { buildAutoMilestones, MILESTONE_ICONS, milestoneIcon, type AutoMilestone } from "@/lib/milestones";
@@ -141,6 +142,12 @@ function MilestoneForm({
 
 export function LifeTimeline({ logs, onOpenLog }: { logs: DailyLog[]; onOpenLog: (id: string) => void }) {
   const milestones = useMilestones();
+  const books = useBooks();
+  // 读完的书：你自己记下的事实，直接显示在对应月份（不受自动里程碑开关影响）
+  const finishedBooks = useMemo(
+    () => books.filter((b) => b.status === "done" && b.finishedAt).map((b) => ({ id: b.id, date: b.finishedAt as string, title: b.title })),
+    [books],
+  );
   const todayIso = getTodayISODate();
   const currentYear = Number(todayIso.slice(0, 4));
 
@@ -148,8 +155,9 @@ export function LifeTimeline({ logs, onOpenLog }: { logs: DailyLog[]; onOpenLog:
     const set = new Set<number>([currentYear]);
     for (const l of logs) set.add(Number(l.date.slice(0, 4)));
     for (const m of milestones) set.add(Number(m.date.slice(0, 4)));
+    for (const b of finishedBooks) set.add(Number(b.date.slice(0, 4)));
     return [...set].sort((a, b) => b - a);
-  }, [logs, milestones, currentYear]);
+  }, [logs, milestones, finishedBooks, currentYear]);
 
   const [year, setYear] = useState(currentYear);
   const [showAuto, setShowAuto] = useState(false);
@@ -249,6 +257,7 @@ export function LifeTimeline({ logs, onOpenLog }: { logs: DailyLog[]; onOpenLog:
       >
         {months.map((m, idx) => {
           const manual = inMonth(milestones, m);
+          const booksDone = inMonth(finishedBooks, m);
           const auto: AutoMilestone[] = showAuto ? inMonth(autoMilestones, m).slice(0, 2) : [];
           const daysInMonth = new Date(year, m, 0).getDate();
           const lastDay = year === currentYear && m === lastMonth ? Number(todayIso.slice(8, 10)) : daysInMonth;
@@ -258,8 +267,9 @@ export function LifeTimeline({ logs, onOpenLog }: { logs: DailyLog[]; onOpenLog:
           return (
             <div
               key={m}
-              className="grid items-start gap-x-6 gap-y-3 px-7 py-4"
-              style={{ gridTemplateColumns: "64px minmax(0,1fr) auto", borderTop: idx === 0 ? "none" : "1px solid var(--v5-rule)" }}
+              // 窄屏：月份 | 里程碑，圆点换到里程碑下方；宽屏：月份 | 里程碑 | 圆点
+              className="grid grid-cols-[56px_minmax(0,1fr)] items-start gap-x-4 gap-y-3 px-4 py-4 sm:grid-cols-[64px_minmax(0,1fr)_auto] sm:gap-x-6 sm:px-7"
+              style={{ borderTop: idx === 0 ? "none" : "1px solid var(--v5-rule)" }}
             >
               {/* 月份 */}
               <div style={{ fontFamily: SERIF, fontFeatureSettings: '"lnum" 1', paddingTop: 2 }}>
@@ -289,6 +299,15 @@ export function LifeTimeline({ logs, onOpenLog }: { logs: DailyLog[]; onOpenLog:
                     </button>
                   );
                 })}
+                {booksDone.map((b) => (
+                  <div key={b.id} className="flex items-baseline gap-2.5">
+                    <BookOpen size={15} className="shrink-0 translate-y-0.5" style={{ color: "var(--v5-accent)" }} />
+                    <span style={{ fontFamily: SERIF, fontSize: 16.5, color: "var(--v5-ink)" }}>读完《{b.title}》</span>
+                    <span style={{ fontFamily: SERIF, fontSize: 12.5, color: "var(--v5-ink3)", fontFeatureSettings: '"lnum" 1' }}>
+                      {parseISODate(b.date).getDate()} 日
+                    </span>
+                  </div>
+                ))}
                 {auto.map((ms) => {
                   const Icon = milestoneIcon(ms.icon);
                   return (
@@ -301,7 +320,7 @@ export function LifeTimeline({ logs, onOpenLog }: { logs: DailyLog[]; onOpenLog:
               </div>
 
               {/* 每一天 */}
-              <div className="grid gap-[5px]" style={{ gridTemplateColumns: "repeat(16, 10px)", paddingTop: 6 }}>
+              <div className="col-start-2 grid gap-[5px] sm:col-start-auto" style={{ gridTemplateColumns: "repeat(16, 10px)", paddingTop: 6 }}>
                 {Array.from({ length: daysInMonth }, (_, i) => {
                   const iso = `${year}-${String(m).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`;
                   const log = logByDate.get(iso);

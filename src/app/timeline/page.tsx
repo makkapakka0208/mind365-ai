@@ -934,6 +934,9 @@ export default function TimelinePage() {
           </span>
         </div>
 
+        {/* ── 生命时间线（与桌面端同一组件）── */}
+        <LifeTimeline logs={logs} onOpenLog={setDiaryModalId} />
+
         {/* ── Year stats + annual review ───────────────────────── */}
         <div className="grid gap-5 md:grid-cols-[1.4fr_1fr] md:gap-6">
           <YearProgressPanel />
