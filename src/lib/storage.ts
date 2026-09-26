@@ -1438,7 +1438,7 @@ export async function downloadGuestBackup() {
     daily_logs: read("daily_logs", []), quotes: read("quotes", []), notes: read("notes", []),
     review_reports: read("review_reports", []), time_entries: read("time_entries", []), todos: read("todos", []),
     settings: { ...DEFAULT_SETTINGS, weeklyStudyTarget: read("settings", {}).weeklyStudyTarget ?? 10, weeklyReadingTarget: read("settings", {}).weeklyReadingTarget ?? 7 },
-    life_path: { directions: read("mind365_life_directions", []), goals: read("mind365_life_goals", []), mentor_plans: read("mind365_mentor_plans", {}), week_plans: read("mind365_week_plans", {}), milestones: read("mind365_life_milestones", []) },
+    life_path: { directions: read("mind365_life_directions", []), goals: read("mind365_life_goals", []), mentor_plans: read("mind365_mentor_plans", {}), week_plans: read("mind365_week_plans", {}), milestones: read("mind365_life_milestones", []), books: read("mind365_books", []) },
     extras: Object.fromEntries(BACKUP_EXTRA_KEYS.map(k => [k, read(k, null)])),
   });
   triggerDownload(JSON.stringify(data, null, 2), "application/json", "mind365-guest-backup.json");
@@ -1540,6 +1540,7 @@ export function importMind365Backup(raw: string): BackupImportResult {
         week_plans: { ...current.week_plans, ...incoming.week_plans },
         // 里程碑由 importLifePathBackupData 按 id 与现有合并并过滤无效项
         milestones: Array.isArray(incoming.milestones) ? incoming.milestones : undefined,
+        books: Array.isArray(incoming.books) ? incoming.books : undefined,
       }, false);
     }
     const importedSettings = normalizeMind365Settings(data.settings);

@@ -401,3 +401,21 @@ export interface Milestone {
   note?: string;
   createdAt: string;
 }
+
+export type BookStatus = "want" | "reading" | "done";
+
+/** 书架上的一本书。 */
+export interface Book {
+  id: string;
+  title: string;
+  author?: string;
+  status: BookStatus;
+  /** 阅读进度 0–100 */
+  progress: number;
+  /** yyyy-MM-dd，开始读的日期（首次标为在读时记录） */
+  startedAt?: string;
+  /** yyyy-MM-dd，读完的日期 */
+  finishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}

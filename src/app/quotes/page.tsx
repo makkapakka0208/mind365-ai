@@ -15,6 +15,7 @@ import {
   FolderOpen,
   Grid3X3,
   LayoutList,
+  Library,
   Lightbulb,
   PencilLine,
   Plus,
@@ -32,6 +33,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Bookshelf } from "@/components/library/bookshelf";
 import { NoteIndex, NoteReader } from "@/components/library/note-reader";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -55,7 +57,7 @@ import { deleteNote, deleteQuote, refreshNotes, refreshQuotes, saveNote, saveQuo
 import { useNotesStore, useQuotesStore } from "@/lib/storage-store";
 import type { Note, Quote } from "@/types";
 
-type Tab = "archive" | "quotes" | "notes";
+type Tab = "shelf" | "archive" | "quotes" | "notes";
 
 function getDailyQuote(quotes: Quote[]): Quote | null {
   if (quotes.length === 0) return null;
@@ -86,6 +88,7 @@ function isInThisWeek(iso: string): boolean {
 // ── Tab segmented control (v5 pill) ────────────────────────────
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   const tabs: { id: Tab; label: string; Icon: LucideIcon }[] = [
+    { id: "shelf", label: "书架", Icon: Library },
     { id: "quotes", label: "书海拾金", Icon: QuoteIcon },
     { id: "notes", label: "阅读笔记", Icon: Feather },
     { id: "archive", label: "收藏归档", Icon: FolderOpen },
@@ -3249,6 +3252,7 @@ export default function LibraryPage() {
         )}
         {activeTab === "quotes" && <QuotesSection onOpenQuote={onOpenQuote} scrollToId={scrollToId} />}
         {activeTab === "notes" && <ReadingNotebookSection />}
+        {activeTab === "shelf" && <Bookshelf quotes={quotes} />}
       </PageTransition>
 
       {/* Quote stack modal — scoped to a theme bucket when opened from archive,
