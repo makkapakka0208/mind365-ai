@@ -121,12 +121,12 @@ const SECTION_ICONS: Record<string, { icon: LucideIcon; color: string; bg: strin
   "三": { icon: BrainCircuit,  color: "#7A6AAE", bg: "rgba(122,106,174,0.08)" },
   "四": { icon: AlertTriangle, color: "#C07A3A", bg: "rgba(192,122,58,0.08)" },
   "五": { icon: Lightbulb,     color: "#3A8BC0", bg: "rgba(58,139,192,0.08)" },
-  "六": { icon: Sparkles,      color: "#9B6A42", bg: "rgba(155,106,66,0.08)" },
+  "六": { icon: Sparkles,      color: "var(--m-accent)", bg: "rgba(var(--v5-accent-rgb),0.08)" },
   "七": { icon: Smile,         color: "#4A9B6F", bg: "rgba(74,155,111,0.08)" },
 };
 
 function getSectionMeta(num: string) {
-  return SECTION_ICONS[num] ?? { icon: Sparkles, color: "var(--m-accent)", bg: "rgba(139,94,60,0.06)" };
+  return SECTION_ICONS[num] ?? { icon: Sparkles, color: "var(--m-accent)", bg: "rgba(var(--v5-accent-rgb), 0.06)" };
 }
 
 // ── Inline markdown renderer (bold + code) ────────────────────────────────────
@@ -301,7 +301,7 @@ function SectionCard({
                           className="rounded-r-lg py-2 pl-4 italic"
                           style={{
                             borderLeft: "3px solid var(--m-accent)",
-                            background: "rgba(139,94,60,0.06)",
+                            background: "rgba(var(--v5-accent-rgb), 0.06)",
                             color: "var(--m-ink2)",
                           }}
                         >
@@ -366,7 +366,7 @@ function MetricCard({
     >
       <span
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: `${color}12`, color }}
+        style={{ background: `color-mix(in srgb, ${color} 7%, transparent)`, color }}
       >
         <Icon size={16} />
       </span>
@@ -565,7 +565,7 @@ export function AiReflectionPanel({
               {isGenerating ? (
                 <span
                   className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium"
-                  style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                  style={{ background: "rgba(var(--v5-accent-rgb), 0.08)", color: "var(--m-accent)" }}
                 >
                   <Loader2 className="animate-spin" size={13} />
                   生成中…
@@ -575,7 +575,7 @@ export function AiReflectionPanel({
                   className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors hover:opacity-80"
                   onClick={onGenerate}
                   type="button"
-                  style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+                  style={{ background: "rgba(var(--v5-accent-rgb), 0.08)", color: "var(--m-accent)" }}
                 >
                   重新加载
                 </button>
@@ -598,7 +598,7 @@ export function AiReflectionPanel({
           {/* Metrics row */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <MetricCard
-              color="#9B6A42"
+              color="var(--m-accent)"
               icon={Smile}
               label="平均情绪"
               unit="/10"

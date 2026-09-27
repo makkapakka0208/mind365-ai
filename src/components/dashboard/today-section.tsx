@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
 import { getTodayISODate, getWeekRange, parseISODate, toISODate } from "@/lib/date";
+import { HabitQuickRow } from "@/components/habits/habit-quick";
 import { useBooks } from "@/lib/books";
-import { currentWeekKey, loadGoals, loadWeekPlan, refreshLifePathState } from "@/lib/life-path-storage";
+import { useGoals } from "@/lib/habits";
+import { currentWeekKey, loadWeekPlan, refreshLifePathState } from "@/lib/life-path-storage";
 import { pickOnThisDay } from "@/lib/memory-triggers";
 import { useDailyLogsStore, useTodosStore } from "@/lib/storage-store";
 import type { DailyLog } from "@/types";
@@ -113,11 +115,26 @@ function Column({ title, children }: { title: string; children: React.ReactNode 
   );
 }
 
-function Line({ children }: { children: React.ReactNode }) {
+function Line({ children, single }: { children: React.ReactNode; single?: boolean }) {
   return (
     <li className="flex gap-2.5" style={{ fontFamily: SERIF, fontSize: 15, lineHeight: 1.75, color: "var(--v5-ink2)" }}>
       <span aria-hidden style={{ color: "var(--v5-accent)", opacity: 0.7 }}>·</span>
-      <span className="min-w-0">{children}</span>
+      <span className={single ? "min-w-0 truncate" : "min-w-0"} title={single && typeof children === "string" ? children : undefined}>
+        {children}
+      </span>
+    </li>
+  );
+}
+
+/** 目标：名称 + 细进度条 + 百分比，一行一个，比文字「进度 67%」更好扫 */
+function GoalRow({ title, pct }: { title: string; pct: number }) {
+  return (
+    <li className="grid items-center gap-3" style={{ gridTemplateColumns: "minmax(0,1fr) 64px 36px", fontFamily: SERIF, fontSize: 14, color: "var(--v5-ink2)" }}>
+      <span className="truncate" title={title}>{title}</span>
+      <span className="h-[3px] overflow-hidden rounded-full" style={{ background: "rgba(var(--v5-ink-rgb),0.12)" }}>
+        <span className="block h-full rounded-full" style={{ width: `${Math.max(2, pct)}%`, background: "var(--v5-accent)" }} />
+      </span>
+      <span className="text-right" style={{ fontSize: 13, color: "var(--v5-ink3)" }}>{pct}%</span>
     </li>
   );
 }
@@ -126,6 +143,7 @@ export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void })
   const logs = useDailyLogsStore();
   const todos = useTodosStore();
   const books = useBooks();
+  const goals = useGoals();
   // 书架、目标、本周计划：拉一次云端最新数据
   useEffect(() => {
     void refreshLifePathState();
@@ -135,13 +153,17 @@ export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void })
 
   const todayIso = getTodayISODate();
   const todayLog = useMemo(() => logs.find((l) => l.date === todayIso) ?? null, [logs, todayIso]);
-  const recent = useMemo(() => recentLines(logs), [logs]);
   const memory = useMemo(() => pickMemory(logs), [logs]);
-  const streak = useMemo(() => streakDays(logs), [logs]);
+  // 连续记录属于「最近的你」：放在本周篇数后面
+  const recent = useMemo(() => {
+    const lines = recentLines(logs);
+    const streak = streakDays(logs);
+    if (streak >= 2) lines.splice(Math.min(1, lines.length), 0, `已连续记录 ${streak} 天`);
+    return lines;
+  }, [logs]);
 
   const happening = useMemo(() => {
     const lines: React.ReactNode[] = [];
-    if (streak >= 2) lines.push(`已连续记录 ${streak} 天`);
 
     // 在读：优先用书架（带进度），书架没有在读的书时退回日记里的阅读记录
     const readingBooks = books
@@ -159,17 +181,22 @@ export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void })
 
     if (isClient) {
       const focus = loadWeekPlan(currentWeekKey())?.focus?.trim();
-      if (focus) lines.push(`本周重点：${excerpt(focus, 28)}`);
-      for (const goal of loadGoals().filter((g) => g.targetValue > 0).slice(0, 2)) {
-        const pct = Math.min(100, Math.round((goal.currentValue / goal.targetValue) * 100));
-        lines.push(`${goal.title} · 进度 ${pct}%`);
-      }
+      if (focus) lines.push(`本周重点：${focus.replace(/\s+/g, " ")}`);
     }
 
     const openTodos = todos.filter((t) => !t.done).length;
     if (openTodos > 0) lines.push(`还有 ${openTodos} 项待办`);
     return lines;
-  }, [logs, todos, books, streak, isClient]);
+  }, [logs, todos, books, isClient]);
+
+  const goalRows = useMemo(
+    () =>
+      goals
+        .filter((g) => g.targetValue > 0)
+        .slice(0, 3)
+        .map((g) => ({ id: g.id, title: g.title, pct: Math.min(100, Math.round((g.currentValue / g.targetValue) * 100)) })),
+    [goals],
+  );
 
   const columns = [
     recent.length > 0 && (
@@ -177,9 +204,14 @@ export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void })
         <ul className="m-0 space-y-1.5 p-0">{recent.map((l) => <Line key={l}>{l}</Line>)}</ul>
       </Column>
     ),
-    happening.length > 0 && (
+    (happening.length > 0 || goalRows.length > 0) && (
       <Column key="happening" title="正在发生">
-        <ul className="m-0 space-y-1.5 p-0">{happening.map((l, i) => <Line key={i}>{l}</Line>)}</ul>
+        <ul className="m-0 space-y-1 p-0">{happening.map((l, i) => <Line key={i} single>{l}</Line>)}</ul>
+        {goalRows.length > 0 && (
+          <ul className="m-0 mt-3 space-y-2 p-0 pt-3" style={{ borderTop: "1px dashed var(--v5-rule)" }}>
+            {goalRows.map((g) => <GoalRow key={g.id} pct={g.pct} title={g.title} />)}
+          </ul>
+        )}
       </Column>
     ),
     memory && (
@@ -220,17 +252,17 @@ export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void })
     >
       {/* 今天：记录状态 */}
       <div
-        className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-4"
-        style={{ borderBottom: columns.length ? "1px solid var(--v5-rule)" : "none", background: "rgba(var(--v5-accent-rgb),0.04)" }}
+        className="flex items-center justify-between gap-6 px-6 py-4"
+        style={{ background: "rgba(var(--v5-accent-rgb),0.04)" }}
       >
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1">
-          <span className="v5-eyebrow">今天</span>
+        <div className="flex min-w-0 items-baseline gap-4">
+          <span className="v5-eyebrow shrink-0">今天</span>
           {todayLog ? (
-            <span style={{ fontFamily: SERIF, fontSize: 15, color: "var(--v5-ink2)" }}>
+            <span className="min-w-0 truncate" style={{ fontFamily: SERIF, fontSize: 15, color: "var(--v5-ink2)" }}>
               写了 {countChars(todayLog.thoughts)} 字
               {todayLog.mood > 0 ? ` · 心情 ${todayLog.mood}/10` : ""}
               {todayLog.thoughts.trim() && (
-                <span style={{ fontStyle: "italic", color: "var(--v5-ink3)" }}>　“{excerpt(todayLog.thoughts, 36)}”</span>
+                <span style={{ fontStyle: "italic", color: "var(--v5-ink3)" }}>　“{excerpt(todayLog.thoughts, 60)}”</span>
               )}
             </span>
           ) : (
@@ -242,10 +274,12 @@ export function TodaySection({ onOpenLog }: { onOpenLog: (id: string) => void })
         </Link>
       </div>
 
+      <HabitQuickRow />
+
       {columns.length > 0 && (
         <div
           className="today-columns grid"
-          style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderTop: "1px solid var(--v5-rule)" }}
         >
           {columns}
         </div>

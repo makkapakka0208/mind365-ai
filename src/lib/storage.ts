@@ -1283,6 +1283,22 @@ export async function saveTimeEntry(entry: Omit<TimeEntry, "id" | "createdAt">):
   } catch { return { entries: updated, synced: false }; }
 }
 
+/**
+ * 按固定 id 新增或更新一条时长记录（习惯打卡用）：改打卡量时更新同一条，
+ * 撤销打卡时把 hours 置 0，避免重复计入阅读 / 学习时长。
+ */
+export async function upsertTimeEntryById(entry: TimeEntry): Promise<void> {
+  const normalized: TimeEntry = { ...entry, hours: Number.isFinite(entry.hours) ? Math.max(0, entry.hours) : 0 };
+  const list = getTimeEntries();
+  const exists = list.some((e) => e.id === normalized.id);
+  setTimeEntries(exists ? list.map((e) => (e.id === normalized.id ? normalized : e)) : [normalized, ...list]);
+  try {
+    await withTimeout(upsertRemoteTimeEntries([normalized], getSettingsForSync()), 8000, false);
+  } catch {
+    // 离线时本地为准，下次同步补上
+  }
+}
+
 export async function saveReviewReport(report: ReviewReport): Promise<ReviewReport[]> {
   const reports = getReviewReports();
   const existsIdx = reports.findIndex((r) => r.rangeStart === report.rangeStart && r.period === report.period);
@@ -1438,7 +1454,7 @@ export async function downloadGuestBackup() {
     daily_logs: read("daily_logs", []), quotes: read("quotes", []), notes: read("notes", []),
     review_reports: read("review_reports", []), time_entries: read("time_entries", []), todos: read("todos", []),
     settings: { ...DEFAULT_SETTINGS, weeklyStudyTarget: read("settings", {}).weeklyStudyTarget ?? 10, weeklyReadingTarget: read("settings", {}).weeklyReadingTarget ?? 7 },
-    life_path: { directions: read("mind365_life_directions", []), goals: read("mind365_life_goals", []), mentor_plans: read("mind365_mentor_plans", {}), week_plans: read("mind365_week_plans", {}), milestones: read("mind365_life_milestones", []), books: read("mind365_books", []) },
+    life_path: { directions: read("mind365_life_directions", []), goals: read("mind365_life_goals", []), mentor_plans: read("mind365_mentor_plans", {}), week_plans: read("mind365_week_plans", {}), milestones: read("mind365_life_milestones", []), books: read("mind365_books", []), habits: read("mind365_habits", []), habit_logs: read("mind365_habit_logs", []) },
     extras: Object.fromEntries(BACKUP_EXTRA_KEYS.map(k => [k, read(k, null)])),
   });
   triggerDownload(JSON.stringify(data, null, 2), "application/json", "mind365-guest-backup.json");
@@ -1541,6 +1557,8 @@ export function importMind365Backup(raw: string): BackupImportResult {
         // 里程碑由 importLifePathBackupData 按 id 与现有合并并过滤无效项
         milestones: Array.isArray(incoming.milestones) ? incoming.milestones : undefined,
         books: Array.isArray(incoming.books) ? incoming.books : undefined,
+        habits: Array.isArray(incoming.habits) ? incoming.habits : undefined,
+        habit_logs: Array.isArray(incoming.habit_logs) ? incoming.habit_logs : undefined,
       }, false);
     }
     const importedSettings = normalizeMind365Settings(data.settings);

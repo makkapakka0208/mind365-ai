@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { ConfirmHost } from "@/components/ui/confirm-host";
 import { AuthProvider } from "@/lib/auth";
 
 // 自托管字体（构建时打包，国内无需访问 Google Fonts）
@@ -12,6 +13,8 @@ import "@fontsource/playfair-display/500.css";
 import "@fontsource/playfair-display/600.css";
 import "@fontsource/playfair-display/700.css";
 import "@fontsource/ma-shan-zheng/400.css";
+import "lxgw-wenkai-webfont/lxgwwenkai-regular.css";
+import "lxgw-wenkai-webfont/lxgwwenkai-bold.css";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
@@ -24,6 +27,7 @@ import "@fontsource/cormorant-garamond/400-italic.css";
 
 import "./globals.css";
 import "./skins.css";
+import "./tints.css";
 
 export const metadata: Metadata = {
   title: "Mind365",
@@ -60,7 +64,7 @@ export default function RootLayout({
         {/* 首屏前同步应用主题，防止暗色模式闪白（与 src/lib/theme.ts 逻辑一致） */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var r=document.documentElement;var p=localStorage.getItem("mind365-theme")||"plaster";var d=p==="dark"||p==="patina"||(p!=="light"&&p!=="plaster"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d){r.setAttribute("data-theme","dark");}if(p==="plaster"||p==="patina"){r.setAttribute("data-skin",p);}}catch(e){}})();`,
+            __html: `(function(){try{var r=document.documentElement;var p=localStorage.getItem("mind365-theme")||"plaster";var d=p==="dark"||p==="patina"||(p==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d){r.setAttribute("data-theme","dark");}if(p==="plaster"||p==="patina"){r.setAttribute("data-skin",p);}if(p==="sky"||p==="sakura"){r.setAttribute("data-tint",p);}}catch(e){}})();`,
           }}
         />
         {/* PWA Icons */}
@@ -76,6 +80,7 @@ export default function RootLayout({
       <body className="antialiased">
         <AuthProvider>
           <AppShell>{children}</AppShell>
+          <ConfirmHost />
         </AuthProvider>
       </body>
     </html>

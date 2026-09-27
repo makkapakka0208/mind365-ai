@@ -35,7 +35,7 @@ import { apiFetch } from "@/lib/api";
 import { getCachedAuthUserId } from "@/lib/auth";
 import { createMind365SupabaseClient, getActiveSyncConfig, normalizeMind365Settings } from "@/lib/supabase";
 import type { Mind365Settings } from "@/types";
-import type { Book, LifeDirection, MentorPlan, Milestone, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
+import type { Book, Habit, HabitLog, LifeDirection, MentorPlan, Milestone, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
 
 const DIRECTIONS_KEY = "mind365_life_directions";
 const GOALS_KEY = "mind365_life_goals";
@@ -45,9 +45,12 @@ const WEEK_PLANS_KEY = "mind365_week_plans";
 const MILESTONES_KEY = "mind365_life_milestones";
 /** 书架：同样按 kind 存进同步表 */
 const BOOKS_KEY = "mind365_books";
+/** 习惯与打卡记录 */
+const HABITS_KEY = "mind365_habits";
+const HABIT_LOGS_KEY = "mind365_habit_logs";
 
 const REMOTE_TABLE = "life_path_state";
-type Kind = "directions" | "goals" | "mentor_plans" | "week_plans" | "milestones" | "books";
+type Kind = "directions" | "goals" | "mentor_plans" | "week_plans" | "milestones" | "books" | "habits" | "habit_logs";
 
 export interface LifePathBackupData {
   directions: LifeDirection[];
@@ -56,6 +59,8 @@ export interface LifePathBackupData {
   week_plans: Record<string, WeekPlan>;
   milestones?: Milestone[];
   books?: Book[];
+  habits?: Habit[];
+  habit_logs?: HabitLog[];
 }
 
 export interface LifePathBackupImportResult {
@@ -65,6 +70,7 @@ export interface LifePathBackupImportResult {
   weekPlans: number;
   milestones: number;
   books: number;
+  habits: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -109,6 +115,8 @@ function localKeyFor(kind: Kind): string {
     case "week_plans": return WEEK_PLANS_KEY;
     case "milestones": return MILESTONES_KEY;
     case "books": return BOOKS_KEY;
+    case "habits": return HABITS_KEY;
+    case "habit_logs": return HABIT_LOGS_KEY;
   }
 }
 
@@ -197,13 +205,15 @@ export async function refreshLifePathState(): Promise<void> {
       row.kind === "mentor_plans" ||
       row.kind === "week_plans" ||
       row.kind === "milestones" ||
-      row.kind === "books"
+      row.kind === "books" ||
+      row.kind === "habits" ||
+      row.kind === "habit_logs"
     ) {
       remoteByKind.set(row.kind as Kind, row);
     }
   }
 
-  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books"];
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs"];
   for (const kind of kinds) {
     if (!active()) return;
     const remote = remoteByKind.get(kind);
@@ -323,6 +333,15 @@ export function saveMilestones(milestones: Milestone[]): void {
   pushAsync("milestones", milestones);
 }
 
+export function readGoalsRaw(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return accountStorage.getItem(GOALS_KEY);
+  } catch {
+    return null;
+  }
+}
+
 // ── Books ─────────────────────────────────────────────────────────────────────
 
 export function readBooksRaw(): string | null {
@@ -342,6 +361,40 @@ export function saveBooks(books: Book[]): void {
   if (typeof window === "undefined") return;
   accountStorage.setItem(BOOKS_KEY, JSON.stringify(books));
   pushAsync("books", books);
+}
+
+// ── Habits ────────────────────────────────────────────────────────────────────
+
+function readRaw(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return accountStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export const readHabitsRaw = () => readRaw(HABITS_KEY);
+export const readHabitLogsRaw = () => readRaw(HABIT_LOGS_KEY);
+
+export function loadHabits(): Habit[] {
+  return tryParse<Habit[]>(HABITS_KEY, []);
+}
+
+export function saveHabits(habits: Habit[]): void {
+  if (typeof window === "undefined") return;
+  accountStorage.setItem(HABITS_KEY, JSON.stringify(habits));
+  pushAsync("habits", habits);
+}
+
+export function loadHabitLogs(): HabitLog[] {
+  return tryParse<HabitLog[]>(HABIT_LOGS_KEY, []);
+}
+
+export function saveHabitLogs(logs: HabitLog[]): void {
+  if (typeof window === "undefined") return;
+  accountStorage.setItem(HABIT_LOGS_KEY, JSON.stringify(logs));
+  pushAsync("habit_logs", logs);
 }
 
 // ── User Goals ────────────────────────────────────────────────────────────────
@@ -562,7 +615,7 @@ export function ensureWeekPlan(weekKey: string): WeekPlan {
  */
 export async function forceUploadAllLifePathData(): Promise<void> {
   const active = captureStorageScope();
-  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books"];
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs"];
   for (const kind of kinds) {
     if (!active()) return;
     const localRaw = typeof window !== "undefined" ? accountStorage.getItem(localKeyFor(kind)) : null;
@@ -580,12 +633,14 @@ export function getLifePathBackupData(): LifePathBackupData {
     week_plans: loadWeekPlans(),
     milestones: loadMilestones(),
     books: loadBooks(),
+    habits: loadHabits(),
+    habit_logs: loadHabitLogs(),
   };
 }
 
 export function importLifePathBackupData(value: unknown, sync = true): LifePathBackupImportResult {
   if (typeof window === "undefined") {
-    return { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0, milestones: 0, books: 0 };
+    return { directions: 0, goals: 0, mentorPlans: 0, weekPlans: 0, milestones: 0, books: 0, habits: 0 };
   }
 
   const data = value && typeof value === "object" ? value as Partial<LifePathBackupData> : {};
@@ -648,6 +703,33 @@ export function importLifePathBackupData(value: unknown, sync = true): LifePathB
     bookCount = data.books.length;
   }
 
+  // 习惯与打卡：按 id 合并，同一条取更新时间较新的
+  const mergeNewer = <T extends { id: string; updatedAt?: string; createdAt?: string }>(current: T[], incoming: unknown[]): T[] => {
+    const byId = new Map(current.map((x) => [x.id, x]));
+    for (const raw of incoming) {
+      const x = raw as T;
+      if (!x || typeof x.id !== "string") continue;
+      const cur = byId.get(x.id);
+      const stamp = (v: T | undefined) => v?.updatedAt ?? v?.createdAt ?? "";
+      if (!cur || stamp(x) >= stamp(cur)) byId.set(x.id, x);
+    }
+    return [...byId.values()];
+  };
+  let habitCount = 0;
+  if (Array.isArray(data.habits)) {
+    const merged = mergeNewer(loadHabits(), data.habits);
+    accountStorage.setItem(HABITS_KEY, JSON.stringify(merged));
+    setMeta("habits", now);
+    if (sync) pushAsync("habits", merged);
+    habitCount = data.habits.length;
+  }
+  if (Array.isArray(data.habit_logs)) {
+    const merged = mergeNewer(loadHabitLogs(), data.habit_logs);
+    accountStorage.setItem(HABIT_LOGS_KEY, JSON.stringify(merged));
+    setMeta("habit_logs", now);
+    if (sync) pushAsync("habit_logs", merged);
+  }
+
   return {
     directions: directions.length,
     goals: goals.length,
@@ -655,5 +737,6 @@ export function importLifePathBackupData(value: unknown, sync = true): LifePathB
     weekPlans: Object.keys(weekPlans).length,
     milestones: milestoneCount,
     books: bookCount,
+    habits: habitCount,
   };
 }
