@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { chatCompletion, resolveAiProvider } from "@/lib/server/ai-provider";
 import { authorizeApiRequest } from "@/lib/server/api-guard";
 
 export const runtime = "nodejs";
@@ -142,18 +143,9 @@ export async function POST(request: NextRequest) {
     body = { ...body, journalSamples: [], keywordStats: [] };
   }
 
-  const provider = process.env.AI_PROVIDER?.trim().toLowerCase();
-  const siliconflowKey = process.env.SILICONFLOW_API_KEY?.trim();
-  const openaiKey = process.env.OPENAI_API_KEY?.trim();
-  const useOpenAI = provider === "openai";
-
-  const effectiveSiliconflowKey = siliconflowKey || (!useOpenAI ? openaiKey : undefined);
-
-  if ((useOpenAI && !openaiKey) || (!useOpenAI && !effectiveSiliconflowKey)) {
-    return NextResponse.json(
-      { available: false, message: "AI 未配置，前端将使用本地摘要。" },
-      { status: 200 },
-    );
+  const provider = resolveAiProvider();
+  if (!provider) {
+    return NextResponse.json({ available: false, message: "AI 未配置，前端将使用本地摘要。" }, { status: 200 });
   }
 
   const userPrompt = [
@@ -170,38 +162,12 @@ export async function POST(request: NextRequest) {
   ].join("\n");
 
   try {
-    const response = await (useOpenAI
-      ? fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${openaiKey}`,
-          },
-          body: JSON.stringify({
-            model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: userPrompt },
-            ],
-            temperature: 0.7,
-            response_format: { type: "json_object" },
-          }),
-        })
-      : fetch("https://api.siliconflow.cn/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${effectiveSiliconflowKey}`,
-          },
-          body: JSON.stringify({
-            model: process.env.SILICONFLOW_MODEL?.trim() || "deepseek-ai/DeepSeek-V3",
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: userPrompt },
-            ],
-            temperature: 0.7,
-          }),
-        }));
+    const response = await chatCompletion(provider, {
+      system: SYSTEM_PROMPT,
+      user: userPrompt,
+      temperature: 0.7,
+      json: true,
+    });
 
     const json = (await response.json()) as unknown;
     if (!response.ok) {

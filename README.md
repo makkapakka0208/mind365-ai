@@ -39,9 +39,14 @@ Open [http://localhost:3000](http://localhost:3000).
 Create `.env.local` in the project root:
 
 ```env
-# AI review (SiliconFlow preferred, OPENAI_API_KEY kept for backward compatibility)
-SILICONFLOW_API_KEY=your_siliconflow_key
-OPENAI_API_KEY=your_backup_key
+# AI features: DeepSeek official API (see src/lib/server/ai-provider.ts)
+DEEPSEEK_API_KEY=your_deepseek_key
+# Optional: defaults to deepseek-v4-pro; deepseek-flash is faster and cheaper
+# DEEPSEEK_MODEL=deepseek-v4-pro
+
+# Legacy fallbacks, used only when DEEPSEEK_API_KEY is not set
+# SILICONFLOW_API_KEY=your_siliconflow_key
+# OPENAI_API_KEY=your_backup_key
 
 # Optional: Supabase can also be configured from the Settings page
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { chatCompletion, resolveAiProvider } from "@/lib/server/ai-provider";
 import { guardApiRequest } from "@/lib/server/api-guard";
 
 import type { LifeDirection } from "@/types/life-path";
@@ -68,13 +69,8 @@ export async function POST(request: NextRequest) {
 
   const { directions } = rawBody as unknown as EnrichRequest;
 
-  const provider = process.env.AI_PROVIDER?.trim().toLowerCase();
-  const siliconflowKey = process.env.SILICONFLOW_API_KEY?.trim();
-  const openaiKey = process.env.OPENAI_API_KEY?.trim();
-  const legacyKey = !siliconflowKey && provider !== "openai" ? openaiKey : undefined;
-  const effectiveSiliconflowKey = siliconflowKey || legacyKey;
-
-  if (!effectiveSiliconflowKey && !openaiKey) {
+  const provider = resolveAiProvider();
+  if (!provider) {
     return NextResponse.json({ available: false, enriched: [] });
   }
 
@@ -82,28 +78,7 @@ export async function POST(request: NextRequest) {
   const system = "你是一个行为模式分析助手，擅长将抽象的人生方向转化为日记中的自然语言信号。输出严格为合法 JSON，不添加任何 markdown、代码块或其他文字。";
 
   try {
-    const useOpenAI = provider === "openai";
-    const resp = await (useOpenAI
-      ? fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
-          body: JSON.stringify({
-            model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
-            messages: [{ role: "system", content: system }, { role: "user", content: userPrompt }],
-            temperature: 0.6,
-            response_format: { type: "json_object" },
-          }),
-        })
-      : fetch("https://api.siliconflow.cn/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${effectiveSiliconflowKey}` },
-          body: JSON.stringify({
-            model: process.env.SILICONFLOW_MODEL?.trim() || "deepseek-ai/DeepSeek-V3",
-            messages: [{ role: "system", content: system }, { role: "user", content: userPrompt }],
-            temperature: 0.6,
-          }),
-        })
-    );
+    const resp = await chatCompletion(provider, { system, user: userPrompt, temperature: 0.6, json: true });
 
     if (!resp.ok) {
       console.error("[life-path-enrich] API error", resp.status);
