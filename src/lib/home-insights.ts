@@ -176,9 +176,13 @@ export function isMonthlyReviewDue(reference: Date = new Date()): boolean {
 }
 
 /** Returns the badge label or null when there's nothing to nudge. */
-export function getReviewBadge(reference: Date = new Date()): string | null {
-  if (isWeeklyReviewDue(reference)) return "本周待复盘";
-  if (isMonthlyReviewDue(reference)) return "本月待复盘";
+/** 复盘提示：到了复盘的日子、且这个周期还没复盘过才提示 */
+export function getReviewBadge(
+  reference: Date = new Date(),
+  done: { week?: boolean; month?: boolean } = {},
+): string | null {
+  if (isWeeklyReviewDue(reference) && !done.week) return "本周待复盘";
+  if (isMonthlyReviewDue(reference) && !done.month) return "本月待复盘";
   return null;
 }
 
@@ -212,7 +216,16 @@ export interface NextAction {
  *   4. Reading target far behind      → 进入书库
  *   5. Default                        → 写一条新记录
  */
-export function getNextAction(logs: DailyLog[], quotes: Quote[], timeEntries: TimeEntry[] = [], reference: Date = new Date(), studyTarget = STUDY_WEEKLY_TARGET, readingTarget = READING_WEEKLY_TARGET): NextAction {
+export function getNextAction(
+  logs: DailyLog[],
+  quotes: Quote[],
+  timeEntries: TimeEntry[] = [],
+  reference: Date = new Date(),
+  studyTarget = STUDY_WEEKLY_TARGET,
+  readingTarget = READING_WEEKLY_TARGET,
+  /** 这个周期是否已经复盘过；做过就不再提示复盘 */
+  reviewDone: { week?: boolean; month?: boolean } = {},
+): NextAction {
   const todayIso = getTodayISODate();
   const todayLog = logs.find((l) => l.date === todayIso);
   const gap = daysSinceLastLog(logs);
@@ -245,8 +258,8 @@ export function getNextAction(logs: DailyLog[], quotes: Quote[], timeEntries: Ti
     }
   }
 
-  // 2. Review window
-  if (isWeeklyReviewDue(reference)) {
+  // 2. Review window（已复盘过的周期跳过）
+  if (isWeeklyReviewDue(reference) && !reviewDone.week) {
     return {
       message: "本周到了复盘时间",
       ctaLabel: "进入周复盘 →",
@@ -254,7 +267,7 @@ export function getNextAction(logs: DailyLog[], quotes: Quote[], timeEntries: Ti
       tone: "info",
     };
   }
-  if (isMonthlyReviewDue(reference)) {
+  if (isMonthlyReviewDue(reference) && !reviewDone.month) {
     return {
       message: "本月接近尾声，回顾一下",
       ctaLabel: "进入月复盘 →",
