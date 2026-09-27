@@ -11,7 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { CombinedTrendChart } from "@/components/charts/combined-trend-chart";
 import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboard/featured-book-preview";
@@ -44,7 +44,8 @@ import {
   getStreakInsight,
 } from "@/lib/home-insights";
 import { getSettings, saveTimeEntry } from "@/lib/storage";
-import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/storage-store";
+import { isReviewDone } from "@/lib/review-reflection";
+import { useDailyLogsStore, useQuotesStore, useReviewReportsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog, Quote, TimeEntry } from "@/types";
 import type { LucideIcon } from "lucide-react";
 
@@ -897,6 +898,8 @@ function V5HeroPanel({ now, greeting, reviewBadge, dailyQuote }: V5HeroPanelProp
   );
 }
 
+const noopSubscribe = () => () => {};
+
 export default function HomePage() {
   const logs = useDailyLogsStore();
   const quotes = useQuotesStore();
@@ -937,7 +940,16 @@ export default function HomePage() {
   const moodInsight = useMemo(() => getMoodInsight(logs), [logs]);
   const focusInsight = useMemo(() => getFocusInsight(logs, timeEntries, weeklyStudyTarget), [logs, timeEntries, weeklyStudyTarget]);
   const readingInsight = useMemo(() => getReadingInsight(logs, quotes, timeEntries, weeklyReadingTarget), [logs, quotes, timeEntries, weeklyReadingTarget]);
-  const reviewBadge = useMemo(() => getReviewBadge(now), [now]);
+  // 复盘提示：做过本周 / 本月复盘就不再提示；复盘记录存在本地，只在浏览器里判断
+  const reviewReports = useReviewReportsStore();
+  const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const reviewBadge = useMemo(
+    () =>
+      isClient
+        ? getReviewBadge(now, { week: isReviewDone("week", now, reviewReports), month: isReviewDone("month", now, reviewReports) })
+        : null,
+    [now, reviewReports, isClient],
+  );
   const monthEndPrompt = useMemo(() => getMonthEndPrompt(logs, 20, now), [logs, now]);
   const safeIndex = recentLogs.length === 0 ? 0 : Math.min(activeIndex, recentLogs.length - 1);
   const activeEntry = recentLogs[safeIndex] ?? null;

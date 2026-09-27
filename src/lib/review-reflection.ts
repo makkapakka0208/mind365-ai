@@ -3,7 +3,7 @@ import { hasDiaryConsent } from "@/lib/ai-consent";
 ﻿import { apiFetch } from "@/lib/api";
 import { parseReadingHours } from "@/lib/analytics";
 import { toISODate } from "@/lib/date";
-import type { DailyLog } from "@/types";
+import type { DailyLog, ReviewReport } from "@/types";
 
 export type ReviewPeriod = "week" | "month" | "year";
 
@@ -135,6 +135,36 @@ export function getSavedReview(period: ReviewPeriod, reference: Date = new Date(
   const reviews = readStoredReviews();
 
   return reviews[bucket][key] ?? "";
+}
+
+/**
+ * 这一周 / 这个月是否已经复盘过：生成过 AI 复盘，或保存过对应周期的复盘报告，都算。
+ * 周一时提示的是刚过去的那一周，所以周一也把上一周算进来。
+ */
+export function isReviewDone(period: "week" | "month", reference: Date, reports: ReviewReport[]): boolean {
+  const reviews = readStoredReviews();
+  const bucket = getReviewBucket(period);
+
+  if (period === "month") {
+    const key = getCurrentMonthKey(reference);
+    if (reviews[bucket][key]) return true;
+    return reports.some((r) => r.period === "month" && r.rangeStart.slice(0, 7) === key);
+  }
+
+  const refs = [reference];
+  if (reference.getDay() === 1) {
+    const lastWeek = new Date(reference);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    refs.push(lastWeek);
+  }
+  return refs.some((ref) => {
+    if (reviews[bucket][getCurrentWeekKey(ref)]) return true;
+    // 该周周一（本地日期）落在报告的起止日期内
+    const monday = new Date(ref);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    const iso = toISODate(monday);
+    return reports.some((r) => r.period === "week" && r.rangeStart <= iso && iso <= r.rangeEnd);
+  });
 }
 
 export function saveReview(period: ReviewPeriod, reflection: string, reference: Date = new Date()): string {

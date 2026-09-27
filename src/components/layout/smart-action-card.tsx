@@ -5,7 +5,8 @@ import { useMemo } from "react";
 
 import { getNextAction } from "@/lib/home-insights";
 import { getSettings } from "@/lib/storage";
-import { useDailyLogsStore, useQuotesStore, useTimeEntriesStore } from "@/lib/storage-store";
+import { isReviewDone } from "@/lib/review-reflection";
+import { useDailyLogsStore, useQuotesStore, useReviewReportsStore, useTimeEntriesStore } from "@/lib/storage-store";
 
 // Tone variants — each maps to a pill background + eyebrow label + CTA color
 // so the card changes look based on getNextAction's `tone` field (warm / alert / info).
@@ -39,7 +40,14 @@ export function SmartActionCard() {
   const quotes = useQuotesStore();
   const timeEntries = useTimeEntriesStore();
   const { weeklyStudyTarget, weeklyReadingTarget } = useMemo(() => getSettings(), []);
-  const action = useMemo(() => getNextAction(logs, quotes, timeEntries, new Date(), weeklyStudyTarget, weeklyReadingTarget), [logs, quotes, timeEntries, weeklyStudyTarget, weeklyReadingTarget]);
+  const reviewReports = useReviewReportsStore();
+  const action = useMemo(() => {
+    const now = new Date();
+    return getNextAction(logs, quotes, timeEntries, now, weeklyStudyTarget, weeklyReadingTarget, {
+      week: isReviewDone("week", now, reviewReports),
+      month: isReviewDone("month", now, reviewReports),
+    });
+  }, [logs, quotes, timeEntries, weeklyStudyTarget, weeklyReadingTarget, reviewReports]);
   const variant = TONE_VARIANTS[action.tone];
 
   return (
