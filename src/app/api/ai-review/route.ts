@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 
+import { AI_NOT_CONFIGURED_MESSAGE, chatCompletion, resolveAiProvider } from "@/lib/server/ai-provider";
 import { authorizeApiRequest } from "@/lib/server/api-guard";
 
 export const runtime = "nodejs";
@@ -435,43 +436,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "复盘数据格式无效。" }, { status: 400 });
   }
 
-  const provider = process.env.AI_PROVIDER?.trim().toLowerCase();
-  const siliconflowApiKey = process.env.SILICONFLOW_API_KEY?.trim();
-  const openaiApiKey = process.env.OPENAI_API_KEY?.trim();
-  const legacySiliconflowKey = !siliconflowApiKey && provider !== "openai" ? openaiApiKey : undefined;
-  const effectiveSiliconflowKey = siliconflowApiKey || legacySiliconflowKey;
-
-  if (!effectiveSiliconflowKey && !openaiApiKey) {
-    return NextResponse.json(
-      {
-        available: false,
-        message: "AI 复盘是可选功能。请在 .env.local 中配置 SILICONFLOW_API_KEY 或 OPENAI_API_KEY。",
-        reflection: null,
-      },
-      { status: 200 },
-    );
-  }
-
-  if (provider === "openai" && !openaiApiKey) {
-    return NextResponse.json(
-      {
-        available: false,
-        message: "已设置 AI_PROVIDER=openai，但未配置 OPENAI_API_KEY。",
-        reflection: null,
-      },
-      { status: 200 },
-    );
-  }
-
-  if (provider !== "openai" && !effectiveSiliconflowKey) {
-    return NextResponse.json(
-      {
-        available: false,
-        message: "已使用 SiliconFlow 模式，但未配置可用的 API Key。",
-        reflection: null,
-      },
-      { status: 200 },
-    );
+  const provider = resolveAiProvider();
+  if (!provider) {
+    return NextResponse.json({ available: false, message: AI_NOT_CONFIGURED_MESSAGE, reflection: null }, { status: 200 });
   }
 
   const systemPrompt = getSystemPrompt(payload.period);
@@ -485,40 +452,12 @@ export async function POST(request: NextRequest) {
       ].join("\n");
 
   try {
-    const useOpenAI = provider === "openai";
-    const response = await (useOpenAI
-      ? fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${openaiApiKey}`,
-          },
-          body: JSON.stringify({
-            model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            temperature: 0.6,
-            stream: true,
-          }),
-        })
-      : fetch("https://api.siliconflow.cn/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${effectiveSiliconflowKey}`,
-          },
-          body: JSON.stringify({
-            model: "deepseek-ai/DeepSeek-V3",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt },
-            ],
-            temperature: 0.6,
-            stream: true,
-          }),
-        }));
+    const response = await chatCompletion(provider, {
+      system: systemPrompt,
+      user: userPrompt,
+      temperature: 0.6,
+      stream: true,
+    });
 
     if (!response.ok) {
       // 出错时上游返回的是 JSON，照旧解析并透传错误信息
