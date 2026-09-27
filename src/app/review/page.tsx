@@ -212,36 +212,40 @@ function getSummaryLine(mode: ReviewMode, logs: DailyLog[]) {
   }).format(end)}，你的记录慢慢连成了一条线。`;
 }
 
+/** 热力格：主题强调色的深浅 + 同色系渐变（左上浅、右下深），自动跟随当前主题 */
+function heatFill(alpha: number) {
+  return `linear-gradient(135deg, rgba(var(--v5-accent-rgb), ${(alpha * 0.55).toFixed(2)}), rgba(var(--v5-accent-rgb), ${alpha}))`;
+}
+
 function getHeatTone(log: DailyLog | null) {
   if (!log) {
     return {
-      background: "rgba(139, 94, 60, 0.08)",
-      border: "1px solid rgba(139, 94, 60, 0.08)",
+      background: "rgba(var(--v5-ink-rgb), 0.05)",
+      border: "1px solid rgba(var(--v5-ink-rgb), 0.07)",
       color: "var(--m-ink3)",
     };
   }
 
   if (log.mood >= 8) {
     return {
-      background: "#9b6a42",
-      border: "1px solid #9b6a42",
-      color: "#fff7ee",
+      background: heatFill(0.92),
+      border: "1px solid rgba(var(--v5-accent-rgb), 0.5)",
+      color: "var(--m-on-accent)",
     };
   }
 
   if (log.mood >= 6) {
     return {
-      background: "#b48c69",
-      border: "1px solid #b48c69",
-      color: "#fff7ee",
+      background: heatFill(0.66),
+      border: "1px solid rgba(var(--v5-accent-rgb), 0.35)",
+      color: "var(--m-on-accent)",
     };
   }
 
   return {
-    background: "#d8c0a5",
-    // 热力格是固定色阶，文字也固定用深墨色（深色主题下 var(--m-ink) 是奶油色，会看不清）
-    border: "1px solid #d8c0a5",
-    color: "#2c1a0e",
+    background: heatFill(0.38),
+    border: "1px solid rgba(var(--v5-accent-rgb), 0.22)",
+    color: "var(--m-ink)",
   };
 }
 
@@ -326,10 +330,10 @@ export default function ReviewHubPage() {
           <div className="flex items-center justify-between text-sm" style={{ color: "var(--m-ink3)" }}>
             <span>{new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date())}</span>
             <div className="inline-flex items-center gap-2">
-              <Link className="rounded-full p-2" href="/record" style={{ background: "rgba(139,94,60,0.08)" }}>
+              <Link className="rounded-full p-2" href="/record" style={{ background: "rgba(var(--v5-accent-rgb), 0.08)" }}>
                 <ChevronLeft size={16} />
               </Link>
-              <Link className="rounded-full p-2" href="/review-history" style={{ background: "rgba(139,94,60,0.08)" }}>
+              <Link className="rounded-full p-2" href="/review-history" style={{ background: "rgba(var(--v5-accent-rgb), 0.08)" }}>
                 <ChevronRight size={16} />
               </Link>
             </div>
@@ -346,7 +350,7 @@ export default function ReviewHubPage() {
             </div>
             <span
               className="rounded-full px-3 py-1 text-sm"
-              style={{ background: "rgba(139,94,60,0.08)", color: "var(--m-accent)" }}
+              style={{ background: "rgba(var(--v5-accent-rgb), 0.08)", color: "var(--m-accent)" }}
             >
               {reviewData.logs.length ? `${uniqueDays}天 · 进行中` : "等待记录"}
             </span>
@@ -354,7 +358,7 @@ export default function ReviewHubPage() {
 
           <div
             className="mt-5 inline-flex rounded-full p-1"
-            style={{ background: "rgba(139,94,60,0.08)", border: "1px solid rgba(139,94,60,0.08)" }}
+            style={{ background: "rgba(var(--v5-accent-rgb), 0.08)", border: "1px solid rgba(var(--v5-accent-rgb), 0.08)" }}
           >
             {([
               { key: "week", label: "周复盘" },
@@ -402,7 +406,7 @@ export default function ReviewHubPage() {
                     key={card.label}
                     style={{
                       background: "var(--m-paper-soft)",
-                      border: "1px solid rgba(139,94,60,0.08)",
+                      border: "1px solid rgba(var(--v5-accent-rgb), 0.08)",
                       boxShadow: "var(--m-shadow-out)",
                     }}
                   >
@@ -468,7 +472,7 @@ export default function ReviewHubPage() {
                 <MoodCurve logs={reviewData.logs} mode={mode} range={reviewData.range} />
               </div>
 
-              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
+              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(var(--v5-accent-rgb), 0.12)" }}>
                 <p className="text-sm tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
                   TAGS · 本期思维标签
                 </p>
@@ -479,9 +483,9 @@ export default function ReviewHubPage() {
                         className="rounded-full px-4 py-2 text-sm"
                         key={item.tag}
                         style={{
-                          background: "rgba(139,94,60,0.08)",
+                          background: "rgba(var(--v5-accent-rgb), 0.08)",
                           color: "var(--m-ink2)",
-                          border: "1px solid rgba(139,94,60,0.08)",
+                          border: "1px solid rgba(var(--v5-accent-rgb), 0.08)",
                         }}
                       >
                         {item.tag}
@@ -495,7 +499,7 @@ export default function ReviewHubPage() {
                 </div>
               </div>
 
-              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
+              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(var(--v5-accent-rgb), 0.12)" }}>
                 <p className="text-sm tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
                   READING · 本期读书合集
                 </p>
@@ -503,7 +507,7 @@ export default function ReviewHubPage() {
                   className="mt-4 rounded-[22px] px-4 py-5 text-[15px] leading-8"
                   style={{
                     background: "var(--m-paper-soft)",
-                    border: "1px solid rgba(139,94,60,0.08)",
+                    border: "1px solid rgba(var(--v5-accent-rgb), 0.08)",
                     color: "var(--m-ink)",
                   }}
                 >
@@ -515,7 +519,7 @@ export default function ReviewHubPage() {
                 </div>
               </div>
 
-              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
+              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(var(--v5-accent-rgb), 0.12)" }}>
                 <div className="flex items-center gap-2">
                   <ListTodo size={15} style={{ color: "var(--m-accent)" }} />
                   <p className="text-sm tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
@@ -539,7 +543,7 @@ export default function ReviewHubPage() {
                       key={card.label}
                       style={{
                         background: "var(--m-paper-soft)",
-                        border: "1px solid rgba(139,94,60,0.08)",
+                        border: "1px solid rgba(var(--v5-accent-rgb), 0.08)",
                         boxShadow: "var(--m-shadow-out)",
                       }}
                     >
@@ -561,7 +565,7 @@ export default function ReviewHubPage() {
                     className="mt-4 rounded-[22px] px-4 py-4 text-[15px] leading-8"
                     style={{
                       background: "var(--m-paper-soft)",
-                      border: "1px solid rgba(139,94,60,0.08)",
+                      border: "1px solid rgba(var(--v5-accent-rgb), 0.08)",
                       color: "var(--m-ink)",
                     }}
                   >
@@ -589,7 +593,7 @@ export default function ReviewHubPage() {
                 )}
               </div>
 
-              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(139,94,60,0.12)" }}>
+              <div className="mt-6 border-t pt-6" style={{ borderColor: "rgba(var(--v5-accent-rgb), 0.12)" }}>
                 <p className="text-sm tracking-[0.18em]" style={{ color: "var(--m-ink3)" }}>
                   NOTES · 复盘备注
                 </p>

@@ -15,6 +15,7 @@ import { Chart, Doughnut } from "react-chartjs-2";
 import "@/components/charts/chart-registry";
 import { parseReadingHours } from "@/lib/analytics";
 import { parseISODate, toISODate } from "@/lib/date";
+import { useThemeColors } from "@/lib/theme-colors";
 import type { DailyLog, Quote, TimeEntry } from "@/types";
 
 type Range = "7d" | "30d" | "90d" | "all";
@@ -207,7 +208,6 @@ function moodDistribution(series: DayPoint[]) {
     labels: ["积极 (7-10)", "平稳 (4-6)", "低落 (0-3)"],
     values: [high, mid, low],
     pcts: [Math.round(high / total * 100), Math.round(mid / total * 100), Math.round(low / total * 100)],
-    colors: ["rgba(139,94,60,0.7)", "rgba(139,94,60,0.35)", "rgba(139,94,60,0.15)"],
   };
 }
 
@@ -221,7 +221,6 @@ function studyDistribution(series: DayPoint[]) {
     labels: ["高效 (≥3h)", "专注 (1-3h)", "较少 (<1h)"],
     values: [high, mid, low],
     pcts: [Math.round(high / total * 100), Math.round(mid / total * 100), Math.round(low / total * 100)],
-    colors: ["rgba(179,98,58,0.72)", "rgba(179,98,58,0.42)", "rgba(179,98,58,0.18)"],
   };
 }
 
@@ -235,7 +234,6 @@ function readingDistribution(series: DayPoint[]) {
     labels: ["≥2h", "1-2h", "<1h"],
     values: [high, mid, low],
     pcts: [Math.round(high / total * 100), Math.round(mid / total * 100), Math.round(low / total * 100)],
-    colors: ["rgba(212,160,124,0.72)", "rgba(212,160,124,0.42)", "rgba(212,160,124,0.18)"],
   };
 }
 
@@ -373,53 +371,60 @@ function StatCard({ icon: Icon, label, value, unit, delta, deltaUnit, accent }: 
 }
 
 /* ── Mini donut ── */
-function MiniDonut({ title, dist, rangeName }: {
+function MiniDonut({ title, dist, colors, emptyColor, rangeName }: {
   title: string;
-  dist: { labels: string[]; values: number[]; pcts: number[]; colors: string[] };
+  dist: { labels: string[]; values: number[]; pcts: number[] };
+  colors: string[];
+  emptyColor: string;
   rangeName: string;
 }) {
+  const empty = dist.values.every((v) => v === 0);
   const data: ChartData<"doughnut"> = {
     labels: dist.labels,
     datasets: [{
-      data: dist.values.every((v) => v === 0) ? [1] : dist.values,
-      backgroundColor: dist.values.every((v) => v === 0) ? ["rgba(139,94,60,0.08)"] : dist.colors,
+      data: empty ? [1] : dist.values,
+      backgroundColor: empty ? [emptyColor] : colors,
       borderWidth: 0,
-      borderRadius: 3,
+      spacing: empty ? 0 : 2,
+      borderRadius: 4,
     }],
   };
   const opts: ChartOptions<"doughnut"> = {
     responsive: true,
     maintainAspectRatio: true,
-    cutout: "62%",
+    cutout: "72%",
     plugins: { legend: { display: false }, tooltip: { enabled: false } },
   };
+  // 占比最大的一项放在环中间
+  const top = empty ? -1 : dist.values.indexOf(Math.max(...dist.values));
 
   return (
     <div
-      className="rounded-[20px] p-5"
-      style={{
-        background: "var(--m-base-light)",
-        border: "1px solid var(--m-rule)",
-        boxShadow: "0 2px 8px rgba(139,94,60,0.04)",
-      }}
+      className="flex flex-col rounded-[20px] p-5"
+      style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", boxShadow: "var(--v5-sh-1)" }}
     >
-      <p className="mb-4 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-        {title}（{rangeName}）
-      </p>
-      <div className="flex items-center gap-5">
-        <div className="w-20 shrink-0">
-          <Doughnut data={data} options={opts} />
-        </div>
-        <div className="space-y-2 text-xs">
-          {dist.labels.map((label, i) => (
-            <div className="flex items-center gap-2" key={label}>
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: dist.colors[i] }} />
-              <span style={{ color: "var(--m-ink2)" }}>{label}</span>
-              <span className="font-semibold" style={{ color: "var(--m-ink)" }}>{dist.pcts[i]}%</span>
-            </div>
-          ))}
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-sm font-medium" style={{ color: "var(--v5-ink)" }}>{title}</p>
+        <span className="shrink-0 text-[11px]" style={{ color: "var(--v5-ink3)" }}>{rangeName}</span>
+      </div>
+      <div className="relative mx-auto my-4 w-[112px]">
+        <Doughnut data={data} options={opts} />
+        <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
+          <div>
+            <div className="text-lg font-semibold tabular-nums" style={{ color: "var(--v5-ink)" }}>{top >= 0 ? `${dist.pcts[top]}%` : "—"}</div>
+            <div className="text-[10.5px]" style={{ color: "var(--v5-ink3)" }}>{top >= 0 ? dist.labels[top].split(" ")[0] : "暂无"}</div>
+          </div>
         </div>
       </div>
+      <ul className="mt-auto space-y-1.5 text-xs">
+        {dist.labels.map((label, i) => (
+          <li className="flex items-center gap-2" key={label}>
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colors[i] }} />
+            <span className="min-w-0 flex-1 truncate" style={{ color: "var(--v5-ink2)" }}>{label}</span>
+            <span className="tabular-nums" style={{ color: "var(--v5-ink)" }}>{empty ? "—" : `${dist.pcts[i]}%`}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -427,6 +432,9 @@ function MiniDonut({ title, dist, rangeName }: {
 /* ── Main component ── */
 export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedTrendChartProps) {
   const [range, setRange] = useState<Range>("30d");
+  const c = useThemeColors();
+  // 全部用主题强调色的深浅，不再混用写死的棕色
+  const shades = [c.accent(0.85), c.accent(0.5), c.accent(0.22)];
 
   const series = useMemo(() => buildSeries(logs, quotes, timeEntries, range), [logs, quotes, timeEntries, range]);
   const prevSeries = useMemo(() => buildPrevSeries(logs, quotes, timeEntries, range), [logs, quotes, timeEntries, range]);
@@ -448,8 +456,8 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         type: "bar" as const,
         label: "学习时长 (h)",
         data: series.map((p) => p.study),
-        backgroundColor: "rgba(179,98,58,0.42)",
-        hoverBackgroundColor: "rgba(179,98,58,0.75)",
+        backgroundColor: c.accent(0.5),
+        hoverBackgroundColor: c.accent(0.75),
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.7,
@@ -460,8 +468,8 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         type: "bar" as const,
         label: "阅读时长 (h)",
         data: series.map((p) => p.reading),
-        backgroundColor: "rgba(212,160,124,0.42)",
-        hoverBackgroundColor: "rgba(212,160,124,0.78)",
+        backgroundColor: c.accent(0.2),
+        hoverBackgroundColor: c.accent(0.38),
         borderRadius: 4,
         barPercentage: 0.6,
         categoryPercentage: 0.7,
@@ -472,26 +480,26 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         type: "line" as const,
         label: "情绪 (0-10)",
         data: series.map((p) => p.mood),
-        borderColor: "rgba(139, 94, 60, 0.92)",
+        borderColor: c.ink2,
         backgroundColor: (ctx: ScriptableContext<"line">) => {
-          const chart = ctx.chart;
-          const { ctx: c, chartArea } = chart;
-          if (!chartArea) return "rgba(139,94,60,0.12)";
-          const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, "rgba(139,94,60,0.14)");
-          g.addColorStop(1, "rgba(139,94,60,0.0)");
+          const { ctx: canvas, chartArea } = ctx.chart;
+          if (!chartArea) return c.accent(0.08);
+          const g = canvas.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          g.addColorStop(0, c.accent(0.16));
+          g.addColorStop(1, c.accent(0));
           return g;
         },
-        borderWidth: 2.5,
+        borderWidth: 2,
         tension: 0.38,
         cubicInterpolationMode: "monotone" as const,
         fill: true,
-        pointBackgroundColor: "#fff",
-        pointBorderColor: "rgba(139,94,60,0.9)",
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        pointHoverBackgroundColor: "#8b5e3c",
+        // 平时不画点，悬停时才出现
+        pointRadius: 0,
+        pointHitRadius: 12,
+        pointHoverRadius: 5,
+        pointHoverBorderWidth: 2,
+        pointHoverBackgroundColor: c.surface,
+        pointHoverBorderColor: c.ink2,
         spanGaps: true,
         yAxisID: "yMood",
         order: 1,
@@ -510,23 +518,23 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         position: "top",
         align: "end",
         labels: {
-          color: "#a07850",
-          boxWidth: 10,
-          boxHeight: 10,
-          font: { size: 11 },
-          padding: 16,
+          color: c.ink3,
+          boxWidth: 7,
+          boxHeight: 7,
+          font: { size: 12 },
+          padding: 18,
           usePointStyle: true,
           pointStyle: "circle",
         },
       },
       tooltip: {
-        backgroundColor: "rgba(255,252,246,0.97)",
-        titleColor: "#5a3a1e",
-        bodyColor: "#7a5a3a",
-        borderColor: "rgba(139,94,60,0.18)",
+        backgroundColor: c.surface,
+        titleColor: c.ink,
+        bodyColor: c.ink2,
+        borderColor: c.rule,
         borderWidth: 1,
-        padding: { top: 12, bottom: 12, left: 16, right: 16 },
-        cornerRadius: 14,
+        padding: { top: 10, bottom: 10, left: 14, right: 14 },
+        cornerRadius: 12,
         titleFont: { size: 13, weight: "bold" as const },
         bodyFont: { size: 12 },
         bodySpacing: 6,
@@ -551,8 +559,9 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
     scales: {
       x: {
         grid: { display: false },
+        border: { display: false },
         ticks: {
-          color: "#b0956e",
+          color: c.ink3,
           font: { size: 11 },
           autoSkip: true,
           maxTicksLimit: maxTicks,
@@ -565,19 +574,19 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         position: "left",
         beginAtZero: true,
         max: 10,
-        title: { display: true, text: "情绪 (0–10)", color: "#b0956e", font: { size: 10 } },
+        title: { display: false },
         border: { display: false },
-        grid: { color: "rgba(221,208,188,0.40)" },
-        ticks: { color: "#b0956e", font: { size: 11 }, stepSize: 2 },
+        grid: { color: c.inkA(0.07) },
+        ticks: { color: c.ink3, font: { size: 11 }, stepSize: 2, padding: 8 },
       },
       yHours: {
         type: "linear",
         position: "right",
         beginAtZero: true,
-        title: { display: true, text: "时长 (h)", color: "#b0956e", font: { size: 10 } },
+        title: { display: false },
         border: { display: false },
         grid: { display: false },
-        ticks: { color: "#b0956e", font: { size: 11 } },
+        ticks: { color: c.ink3, font: { size: 11 }, padding: 8, callback: (v) => `${v}h` },
       },
     },
   };
@@ -587,7 +596,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
       {/* ── Summary stat cards ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          accent="rgba(139,94,60,0.85)"
+          accent={c.accent(0.9)}
           delta={stats.deltaMood}
           icon={Smile}
           label="平均情绪"
@@ -595,7 +604,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
           value={stats.avgMood ? stats.avgMood.toFixed(1) : "--"}
         />
         <StatCard
-          accent="rgba(179,98,58,0.85)"
+          accent={c.accent(0.9)}
           delta={stats.deltaStudy}
           deltaUnit="h"
           icon={GraduationCap}
@@ -604,7 +613,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
           value={stats.totalStudy.toFixed(1)}
         />
         <StatCard
-          accent="rgba(212,160,124,0.85)"
+          accent={c.accent(0.9)}
           delta={stats.deltaReading}
           deltaUnit="h"
           icon={BookOpen}
@@ -613,7 +622,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
           value={stats.totalReading.toFixed(1)}
         />
         <StatCard
-          accent="rgba(196,165,117,0.85)"
+          accent={c.accent(0.9)}
           delta={stats.deltaRecordDays}
           icon={CalendarCheck}
           label="记录天数"
@@ -625,45 +634,34 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
       {/* ── Main chart panel ── */}
       <div
         className="rounded-[22px] p-5 lg:p-6"
-        style={{
-          background: "var(--m-base-light)",
-          border: "1px solid var(--m-rule)",
-          boxShadow: "0 2px 8px rgba(139,94,60,0.04)",
-        }}
+        style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", boxShadow: "var(--v5-sh-1)" }}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <h4 className="text-base font-semibold" style={{ color: "var(--m-ink)" }}>
+          <div>
+            <h4 className="text-base font-semibold" style={{ color: "var(--v5-ink)" }}>
               情绪 · 学习 · 阅读趋势
             </h4>
-            <span
-              className="cursor-help rounded-full text-xs"
-              style={{ color: "var(--m-ink3)" }}
-              title="点击图例可隐藏曲线"
-            >
-              ⓘ
-            </span>
+            <p className="mt-0.5 text-xs" style={{ color: "var(--v5-ink3)" }}>
+              折线为情绪（左轴 0–10），柱为时长（右轴）
+            </p>
           </div>
-          <p className="text-xs" style={{ color: "var(--m-ink3)" }}>
-            点击图例可隐藏曲线
-          </p>
 
           <div
-            className="inline-flex items-center gap-1 rounded-full p-1"
-            style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}
+            className="inline-flex items-center gap-0.5 rounded-full p-1"
+            style={{ background: c.inkA(0.05) }}
           >
             {RANGE_OPTIONS.map((opt) => {
               const active = opt.value === range;
               return (
                 <button
-                  className="rounded-full px-3.5 py-1.5 text-xs font-medium transition-all"
+                  className="rounded-full px-3 py-1 text-xs font-medium transition-all"
                   key={opt.value}
                   onClick={() => setRange(opt.value)}
                   type="button"
                   style={{
-                    background: active ? "var(--v5-accent-fill)" : "transparent",
-                    color: active ? "var(--v5-accent-fill-ink)" : "var(--m-ink2)",
-                    boxShadow: active ? "0 2px 8px rgba(var(--v5-accent-rgb),0.25)" : "none",
+                    background: active ? "var(--v5-surface)" : "transparent",
+                    color: active ? "var(--v5-ink)" : "var(--v5-ink3)",
+                    boxShadow: active ? "0 1px 3px rgba(var(--v5-shadow-rgb),0.12)" : "none",
                   }}
                 >
                   {opt.label}
@@ -674,7 +672,7 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
         </div>
 
         {series.length === 0 ? (
-          <div className="mt-6 rounded-[18px] border border-dashed px-6 py-10 text-center text-sm" style={{ borderColor: "rgba(139,94,60,0.16)", color: "var(--m-ink3)" }}>
+          <div className="mt-6 rounded-[18px] border border-dashed px-6 py-10 text-center text-sm" style={{ borderColor: "var(--v5-rule-strong)", color: "var(--v5-ink3)" }}>
             所选区间内还没有记录，先去写一条吧。
           </div>
         ) : (
@@ -686,18 +684,14 @@ export function CombinedTrendChart({ logs, quotes, timeEntries = [] }: CombinedT
 
       {/* ── Bottom row: donut distributions + insight ── */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MiniDonut dist={moodDist} rangeName={rangeName} title="情绪分布" />
-        <MiniDonut dist={studyDist} rangeName={rangeName} title="学习时长分布" />
-        <MiniDonut dist={readingDist} rangeName={rangeName} title="阅读时长分布" />
+        <MiniDonut colors={shades} dist={moodDist} emptyColor={c.inkA(0.06)} rangeName={rangeName} title="情绪分布" />
+        <MiniDonut colors={shades} dist={studyDist} emptyColor={c.inkA(0.06)} rangeName={rangeName} title="学习时长" />
+        <MiniDonut colors={shades} dist={readingDist} emptyColor={c.inkA(0.06)} rangeName={rangeName} title="阅读时长" />
 
         {/* Insight card */}
         <div
           className="flex flex-col justify-between rounded-[20px] p-5"
-          style={{
-            background: "linear-gradient(145deg, var(--m-paper-hi), var(--m-paper-lo))",
-            border: "1px solid var(--m-rule)",
-            boxShadow: "var(--m-shadow-out)",
-          }}
+          style={{ background: "var(--v5-card)", border: "1px solid var(--v5-rule)", boxShadow: "var(--v5-sh-1)" }}
         >
           <div>
             <p className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--m-ink)" }}>

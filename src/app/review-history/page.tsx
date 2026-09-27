@@ -51,8 +51,11 @@ export default function ReviewHistoryPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // 两步确认：第一次点击只显示「确认删除」，再点才删（不用 window.confirm，内嵌浏览器会直接当作取消）
+  const [armedId, setArmedId] = useState<string | null>(null);
+
   const onDelete = async (id: string) => {
-    if (!window.confirm("确认删除这条复盘记录？")) return;
+    setArmedId(null);
     setDeletingId(id);
     await deleteReviewReport(id);
     setExpandedId((current) => (current === id ? null : current));
@@ -159,11 +162,14 @@ export default function ReviewHistoryPage() {
 
                               <Button
                                 disabled={deletingId === report.id}
-                                onClick={() => onDelete(report.id)}
+                                onBlur={() => setArmedId(null)}
+                                onClick={() => (armedId === report.id ? void onDelete(report.id) : setArmedId(report.id))}
                                 size="sm"
+                                title="删除这条复盘"
                                 variant="ghost"
                               >
                                 <Trash2 style={{ color: "var(--m-danger)" }} size={15} />
+                                {armedId === report.id && <span className="ml-1 text-xs" style={{ color: "var(--m-danger)" }}>确认删除</span>}
                               </Button>
                             </div>
                           </div>

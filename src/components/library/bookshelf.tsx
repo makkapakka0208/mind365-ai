@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { addBook, quoteCountFor, removeBook, suggestTitlesFromQuotes, updateBook, useBooks } from "@/lib/books";
 import { getTodayISODate, parseISODate } from "@/lib/date";
 import { refreshLifePathState } from "@/lib/life-path-storage";
@@ -92,16 +93,14 @@ function BookEditor({ book, onClose }: { book: Book; onClose: () => void }) {
               {s === "done" ? "读完了" : s === "reading" ? "开始读 / 在读" : "移回想读"}
             </button>
           ))}
-        <button
-          type="button"
-          onClick={() => {
-            if (window.confirm(`把《${book.title}》从书架移除？`)) removeBook(book.id);
-          }}
+        <ConfirmButton
+          confirmLabel={<><Trash2 size={13} /> 确认移除</>}
+          onConfirm={() => removeBook(book.id)}
           className="ml-auto inline-flex items-center gap-1 transition-opacity hover:opacity-80"
           style={{ color: "var(--v5-ink3)" }}
         >
           <Trash2 size={13} /> 移除
-        </button>
+        </ConfirmButton>
         <button type="button" onClick={onClose} style={{ color: "var(--v5-ink3)" }}>
           收起
         </button>

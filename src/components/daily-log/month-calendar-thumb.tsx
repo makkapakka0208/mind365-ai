@@ -12,17 +12,18 @@ function mondayFirstIndex(jsDay: number): number {
   return (jsDay + 6) % 7;
 }
 
-function moodColor(mood: number): string {
-  const stops = [
-    "#d8d1c1",
-    "#c8ad92",
-    "#b99171",
-    "#a77851",
-    "#8e5932",
-  ];
-  const index = Math.max(0, Math.min(stops.length - 1, Math.round((mood - 2) / 2)));
-  return stops[index];
+/** 心情色阶：取当前主题强调色的深浅（原来写死的棕色和粉 / 蓝主题不搭） */
+const MOOD_ALPHAS = [0.22, 0.38, 0.55, 0.72, 0.9];
+function moodAlpha(mood: number): number {
+  return MOOD_ALPHAS[Math.max(0, Math.min(MOOD_ALPHAS.length - 1, Math.round((mood - 2) / 2)))];
 }
+function moodColor(mood: number): string {
+  const a = moodAlpha(mood);
+  // 同色系渐变：左上浅、右下深
+  return `linear-gradient(135deg, rgba(var(--v5-accent-rgb), ${(a * 0.55).toFixed(2)}), rgba(var(--v5-accent-rgb), ${a}))`;
+}
+
+const MONTH_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 type Cell =
   | { kind: "blank" }
@@ -166,7 +167,7 @@ export function MonthCalendarThumb({
             {cursor.year} 年 {cursor.month} 月
           </div>
           <div className="mt-1 text-xs italic" style={{ color: "var(--v5-ink3)" }}>
-            May, in passing
+            {MONTH_EN[cursor.month - 1]}, in passing
           </div>
         </div>
 
@@ -235,15 +236,14 @@ function CalendarCell({
       disabled={isFuture}
       onClick={() => onPick(date)}
       style={{
-        background: hasMood ? moodColor(mood) : "rgba(255, 253, 248, 0.28)",
+        background: hasMood ? moodColor(mood) : "rgba(255, 255, 255, 0.28)",
         borderColor: isViewing
-          ? "var(--v5-ink)"
-          : hasMood
-            ? "rgba(90,60,35,0.10)"
-            : "rgba(139,94,60,0.10)",
-        color: hasMood ? "#fffaf3" : "var(--v5-ink2)",
+          ? "var(--v5-accent)"
+          : "rgba(var(--v5-ink-rgb), 0.10)",
+        // 浅色格子用正文色，深色格子用白字
+        color: hasMood ? (moodAlpha(mood) >= 0.55 ? "var(--m-on-accent)" : "var(--v5-ink)") : "var(--v5-ink2)",
         opacity: isFuture ? 0.28 : 1,
-        boxShadow: isViewing ? "inset 0 0 0 2px #d59b72" : undefined,
+        boxShadow: isViewing ? "inset 0 0 0 2px var(--v5-accent)" : undefined,
       }}
       type="button"
     >

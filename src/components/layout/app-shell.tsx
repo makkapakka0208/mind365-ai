@@ -12,6 +12,7 @@ import { OnlineStatus } from "@/components/pwa/online-status";
 import { PWAInstallPrompt } from "@/components/pwa/install-prompt";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 import { useAuth } from "@/lib/auth";
+import { useThemeTint } from "@/lib/theme-colors";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -34,6 +35,7 @@ const PATH_GROUPS: Record<string, string[]> = {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const { loading, authConfigured, user } = useAuth();
+  const cute = useThemeTint() === "sakura";
 
   // Login page should render without the shell
   if (pathname === "/login") {
@@ -112,7 +114,7 @@ export function AppShell({ children }: AppShellProps) {
           {/* Nav list */}
           <nav className="grid" style={{ gap: 2 }}>
             {desktopNavItems.map((item, index) => {
-              const Icon = item.icon;
+              const Icon = cute ? item.cuteIcon : item.icon;
               const active = isActive(item.href);
               return (
                 <Link

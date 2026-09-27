@@ -577,14 +577,14 @@ button {
   height: 30px;
   width: 30px;
   place-items: center;
-  border: 1px solid rgba(139, 94, 60, 0.10);
+  border: 1px solid rgba(var(--v5-ink-rgb), 0.10);
   border-radius: 9px;
   color: var(--v5-ink3);
   transition: background var(--v5-dur-fast) var(--v5-ease), transform var(--v5-dur-fast) var(--v5-ease);
 }
 
 .daily-log-calendar-arrow:hover {
-  background: rgba(139, 94, 60, 0.08);
+  background: rgba(var(--v5-accent-rgb), 0.08);
   transform: translateY(-1px);
 }
 
@@ -601,7 +601,7 @@ button {
 
 .daily-log-calendar-cell:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 18px rgba(75, 51, 27, 0.12);
+  box-shadow: 0 10px 18px rgba(var(--v5-shadow-rgb), 0.14);
 }
 
 .daily-log-archive {

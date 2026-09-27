@@ -6,9 +6,11 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { GoalTracks, LifePathMasthead } from "@/components/life-path/goal-tracks";
+import { HabitBoard } from "@/components/habits/habit-board";
 import { QuadrantTodos } from "@/components/todo/quadrant-todos";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PageTitle } from "@/components/ui/page-title";
@@ -403,12 +405,17 @@ function GoalCard({
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button className="rounded-lg p-1 hover:opacity-60 transition-opacity" onClick={onEdit} title="更新进度" type="button">
+          <button className="rounded-lg p-1 hover:opacity-60 transition-opacity" onClick={onEdit} title="编辑目标" type="button">
             <Pencil size={13} style={{ color: "var(--m-ink3)" }} />
           </button>
-          <button className="rounded-lg p-1 hover:opacity-60 transition-opacity" onClick={onDelete} title="删除目标" type="button">
+          <ConfirmButton
+            className="rounded-lg p-1 text-xs hover:opacity-60 transition-opacity"
+            confirmLabel="确认删除"
+            onConfirm={onDelete}
+            title="删除目标"
+          >
             <Trash2 size={13} style={{ color: "var(--m-ink3)" }} />
-          </button>
+          </ConfirmButton>
         </div>
       </div>
 
@@ -900,9 +907,9 @@ function V5GoalDrawer({
 
         {/* Footer actions */}
         <div className="mt-7 flex items-center justify-end" style={{ gap: 10 }}>
-          <button
-            onClick={onDelete}
-            type="button"
+          <ConfirmButton
+            confirmLabel="确认删除？"
+            onConfirm={onDelete}
             style={{
               padding: "10px 18px",
               borderRadius: 999,
@@ -915,8 +922,8 @@ function V5GoalDrawer({
               cursor: "pointer",
             }}
           >
-            归档
-          </button>
+            删除目标
+          </ConfirmButton>
           <button
             className="inline-flex items-center"
             onClick={onEdit}
@@ -976,6 +983,9 @@ export default function LifePathPage() {
 
   // ── Update progress dialog ───────────────────────────────────────────────────
   const [editGoal, setEditGoal] = useState<UserGoal | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editTarget, setEditTarget] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
   const [editCurrent, setEditCurrent] = useState("");
   const [editPositive, setEditPositive] = useState("");
   const [editNegative, setEditNegative] = useState("");
@@ -1029,6 +1039,9 @@ export default function LifePathPage() {
   // ── Edit goal ─────────────────────────────────────────────────────────────────
   const openEdit = (goal: UserGoal) => {
     setEditGoal(goal);
+    setEditTitle(goal.title);
+    setEditTarget(String(goal.targetValue));
+    setEditDeadline(goal.deadline ?? "");
     setEditCurrent(String(goal.currentValue));
     setEditPositive((goal.positiveActions ?? []).join(", "));
     setEditNegative((goal.negativeActions ?? []).join(", "));
@@ -1037,8 +1050,15 @@ export default function LifePathPage() {
   const submitEdit = (e: FormEvent) => {
     e.preventDefault();
     if (!editGoal) return;
+    const target = Number(editTarget);
+    if (!editTitle.trim() || !(target > 0)) return;
+    const { deadline: _oldDeadline, ...rest } = editGoal;
+    void _oldDeadline;
     const updated: UserGoal = {
-      ...editGoal,
+      ...rest,
+      title: editTitle.trim(),
+      targetValue: target,
+      ...(editDeadline ? { deadline: editDeadline } : {}),
       currentValue: Math.max(0, Number(editCurrent) || 0),
       positiveActions: editPositive.trim() ? parseTags(editPositive) : [],
       negativeActions: editNegative.trim() ? parseTags(editNegative) : [],
@@ -1059,7 +1079,6 @@ export default function LifePathPage() {
 
   // ── Delete goal ───────────────────────────────────────────────────────────────
   const deleteGoal = (id: string) => {
-    if (!window.confirm("确认删除该目标？")) return;
     const next = goals.filter((g) => g.id !== id);
     setGoals(next); saveGoals(next);
     deleteMentorPlan(id);
@@ -1156,6 +1175,10 @@ export default function LifePathPage() {
             />
           )}
 
+          <div className="border-t pt-8" style={{ borderColor: "var(--v5-rule)" }}>
+            <HabitBoard onLogged={() => setGoals(loadGoals())} />
+          </div>
+
           {/* Four-quadrant todo — merged into Life Path (desktop) per user request */}
           <div className="border-t pt-8" style={{ borderColor: "var(--v5-rule)" }}>
             <QuadrantTodos />
@@ -1213,6 +1236,10 @@ export default function LifePathPage() {
           ))}
         </div>
       )}
+
+      <div className="border-t pt-6" style={{ borderColor: "var(--m-rule)" }}>
+        <HabitBoard onLogged={() => setGoals(loadGoals())} />
+      </div>
 
       {/* ── Four-quadrant todo (merged in; no standalone page) ── */}
       <div className="border-t pt-6" style={{ borderColor: "var(--m-rule)" }}>
@@ -1301,13 +1328,30 @@ export default function LifePathPage() {
       <Dialog onClose={() => setEditGoal(null)} open={editGoal !== null} title={editGoal ? `编辑目标 — ${editGoal.title}` : "编辑目标"}>
         {editGoal && (
           <form className="space-y-4" onSubmit={submitEdit}>
-            <div className="rounded-xl p-3 text-sm" style={{ background: "var(--m-base)", border: "1px solid var(--m-rule)" }}>
-              <span style={{ color: "var(--m-ink3)" }}>目标值：</span>
-              <span className="font-semibold" style={{ color: "var(--m-ink)" }}>{editGoal.targetValue.toLocaleString()}</span>
+            <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+              目标名称 *
+              <Input autoFocus onChange={(e) => setEditTitle(e.target.value)} required value={editTitle} />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                目标值 *
+                <Input min="0" onChange={(e) => setEditTarget(e.target.value)} required step="any" type="number" value={editTarget} />
+              </label>
+              <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
+                当前进度
+                <Input min="0" onChange={(e) => setEditCurrent(e.target.value)} placeholder={String(editGoal.currentValue)} step="any" type="number" value={editCurrent} />
+              </label>
             </div>
             <label className="grid gap-1.5 text-sm font-medium" style={{ color: "var(--m-ink)" }}>
-              当前进度（绝对值）
-              <Input autoFocus min="0" onChange={(e) => setEditCurrent(e.target.value)} placeholder={String(editGoal.currentValue)} type="number" value={editCurrent} />
+              <span className="flex items-center justify-between">
+                截止日期（选填）
+                {editDeadline && (
+                  <button className="text-xs font-normal" onClick={() => setEditDeadline("")} style={{ color: "var(--m-ink3)" }} type="button">
+                    清除
+                  </button>
+                )}
+              </span>
+              <Input onChange={(e) => setEditDeadline(e.target.value)} type="date" value={editDeadline} />
             </label>
             <div className="border-t pt-3" style={{ borderColor: "var(--m-rule)" }}>
               <p className="mb-3 text-xs font-medium" style={{ color: "var(--m-ink2)" }}>日记对齐行为</p>
@@ -1334,9 +1378,20 @@ export default function LifePathPage() {
                 )}
               </label>
             </div>
-            <div className="flex justify-end gap-3 pt-1">
+            <div className="flex items-center justify-end gap-3 pt-1">
+              <ConfirmButton
+                className="mr-auto text-sm"
+                confirmLabel="再点一次删除"
+                onConfirm={() => {
+                  deleteGoal(editGoal.id);
+                  setEditGoal(null);
+                }}
+                style={{ color: "var(--m-ink3)" }}
+              >
+                删除目标
+              </ConfirmButton>
               <Button onClick={() => setEditGoal(null)} type="button" variant="ghost">取消</Button>
-              <Button type="submit" variant="primary">保存</Button>
+              <Button disabled={!editTitle.trim() || !(Number(editTarget) > 0)} type="submit" variant="primary">保存</Button>
             </div>
           </form>
         )}

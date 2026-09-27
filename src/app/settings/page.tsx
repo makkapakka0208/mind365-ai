@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { askConfirm } from "@/components/ui/confirm-host";
 import { Input } from "@/components/ui/input";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -173,7 +174,11 @@ export default function SettingsPage() {
     }
 
     const active = captureStorageScope();
-    const confirmed = window.confirm("确认备份属于你，并导入当前账号？将合并日记、待办、草稿等数据；相同记录采用备份内容，其他记录保留。建议先导出当前备份。");
+    const confirmed = await askConfirm({
+      title: "导入备份",
+      message: "确认备份属于你，并导入当前账号？将合并日记、待办、草稿等数据；相同记录采用备份内容，其他记录保留。建议先导出当前备份。",
+      confirmLabel: "确认导入",
+    });
 
     if (!confirmed) {
       event.target.value = "";
@@ -431,6 +436,8 @@ export default function SettingsPage() {
                 { value: "system", label: "跟随系统", Icon: MonitorSmartphone },
                 { value: "plaster", label: "灰泥", Icon: Swatch("#ece8df", "#8a6630") },
                 { value: "patina", label: "铜绿", Icon: Swatch("#3d5b5c", "#d0a867") },
+                { value: "sky", label: "天蓝", Icon: Swatch("#9cc6ec", "#ffffff") },
+                { value: "sakura", label: "卡通", Icon: Swatch("#f3cfd8", "#c0587a") },
               ] as const).map(({ value, label, Icon }) => {
                 const active = themePref === value;
                 return (

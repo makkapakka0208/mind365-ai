@@ -419,3 +419,42 @@ export interface Book {
   createdAt: string;
   updatedAt: string;
 }
+
+export type HabitUnit = "分钟" | "小时" | "页" | "次";
+
+/** 一个想养成的习惯。 */
+export interface Habit {
+  id: string;
+  name: string;
+  unit: HabitUnit;
+  /** 每天的目标量，如 30（分钟） */
+  dailyTarget: number;
+  /** 每周目标天数，默认 5 */
+  weeklyDays: number;
+  /** 关联的人生主线目标：打卡量 × goalFactor 计入目标进度 */
+  goalId?: string;
+  goalFactor?: number;
+  /** 计入阅读 / 学习时长（仅单位为分钟或小时时有效） */
+  trackAs?: "reading" | "study";
+  createdAt: string;
+  /** 归档后不再显示在打卡列表里，历史保留 */
+  archivedAt?: string;
+}
+
+/** 某一天的一次打卡。 */
+export interface HabitLog {
+  id: string;
+  habitId: string;
+  /** yyyy-MM-dd */
+  date: string;
+  /** 实际完成量；休息日为 0 */
+  amount: number;
+  /** 计划内休息：不算错过 */
+  rest?: boolean;
+  /** 事后补记（不是当天打的卡） */
+  backfilled?: boolean;
+  /** 对应的阅读 / 学习时长记录，改量或撤销时同步更新 */
+  timeEntryId?: string;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1,0 +1,454 @@
+/* ══ 清新主题（Tints）══════════════════════════════════════════════
+   天蓝 / 卡通（sakura）：浅色，通过 html[data-tint] 生效（src/lib/theme.ts）。
+   和质感主题（data-skin，灰泥 / 铜绿）的区别：只换配色和花纹背景，
+   不换字体、不用罗马数字 / 小型大写等复古排版；卡片是白色半透明 + 轻模糊。
+   纹理由 scripts/generate_theme_textures.py 生成。本文件在 skins.css 之后引入。 */
+
+/* 天蓝（sky）：参考 Apple 系 App（iOS / macOS）的磨砂玻璃。浅色主题。
+   - 背景：晴空云海 + 几团缓慢流动的彩色弥散光（像 Apple 的壁纸）；
+   - 材质：强模糊 + 高饱和，白色染色约 40%，0.5px 亮边，大而淡的投影；卡片是均匀的材质，不加花哨渐变；
+   - 字体：霞鹜文楷（同卡通主题），标题加粗；
+   - 颜色：浅天蓝 #4AA8FF（比 iOS 系统蓝更浅）；文字用 Apple 的三级灰；分隔线是半透明细线；
+   - 控件：主按钮实心蓝胶囊，次按钮半透明灰胶囊，分段控件灰轨道 + 白滑块。
+   减少动态效果时背景动画全部关闭。 */
+html[data-tint="sky"] {
+  --tint-texture: url("/textures/sky-light.jpg");
+  --tint-base: #b9d9f5;
+
+  /* 字体：霞鹜文楷（和卡通主题同一款，自托管，layout.tsx 引入） */
+  --apple-font: "LXGW WenKai", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --v5-serif: var(--apple-font);
+  --v5-sans: var(--apple-font);
+  --m-font-display: var(--apple-font);
+  --m-font-serif: var(--apple-font);
+
+  --v5-bg:           #d9e9f7;
+  --v5-bg-warm:      #d2e4f5;
+  /* 材质：regular material */
+  --v5-card:         rgba(255, 255, 255, 0.42);
+  --v5-card-soft:    rgba(255, 255, 255, 0.34);
+  --v5-card-grad:    rgba(255, 255, 255, 0.42);
+  --v5-pill-bg:      #4aa8ff;
+  --v5-pill-ink:     #ffffff;
+  --v5-pill-hover:   #3d9cf5;
+  /* 分段控件选中的白色滑块 */
+  --v5-accent-fill:      rgba(255, 255, 255, 0.92);
+  --v5-accent-fill-ink:  #1c1c1e;
+  --v5-accent-fill-ring: rgba(0, 0, 0, 0.04);
+  /* 次按钮：半透明灰胶囊 + 蓝字 */
+  --v5-secondary-fill:     rgba(120, 120, 128, 0.14);
+  --v5-secondary-fill-ink: #2f8fe8;
+  --v5-rule:         rgba(60, 60, 67, 0.13);
+  --v5-rule-strong:  rgba(60, 60, 67, 0.24);
+
+  /* Apple 标签色：primary / secondary / tertiary */
+  --v5-ink:          #1c1c1e;
+  --v5-ink2:         #3a3a3f;
+  --v5-ink3:         #6e6e73;
+  --v5-ink-mute:     #aeaeb2;
+
+  --v5-accent:       #4aa8ff;
+  --v5-accent-soft:  #8ccdff;
+  --v5-accent-bg:    rgba(74, 168, 255, 0.12);
+  --v5-rose:         #ff375f;
+  --v5-amber:        #ff9f0a;
+
+  --v5-accent-rgb:   74, 168, 255;
+  --v5-ink-rgb:      60, 60, 67;
+  --v5-shadow-rgb:   0, 0, 0;
+  --m-on-accent-rgb: 255, 255, 255;
+  --v5-surface:      #ffffff;
+  --v5-accent-deep:  #2f8fe8;
+
+  /* 0.5px 顶部亮边 + 细白描边 + 大而淡的投影 */
+  --v5-sh-1:     inset 0 0.5px 0 rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(255,255,255,0.55), 0 4px 16px rgba(0,0,0,0.06);
+  --v5-sh-2:     inset 0 0.5px 0 rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(255,255,255,0.55), 0 8px 32px rgba(0,0,0,0.08);
+  --v5-sh-3:     inset 0 0.5px 0 #ffffff, inset 0 0 0 0.5px rgba(255,255,255,0.6), 0 16px 48px rgba(0,0,0,0.12);
+  --v5-sh-hover: inset 0 0.5px 0 #ffffff, inset 0 0 0 0.5px rgba(255,255,255,0.7), 0 18px 54px rgba(0,0,0,0.14);
+
+  --m-base:       rgba(255, 255, 255, 0.30);
+  --m-base-light: rgba(255, 255, 255, 0.42);
+  --m-ink:  #1c1c1e;
+  --m-ink2: #3a3a3f;
+  --m-ink3: #6e6e73;
+  --m-accent: #3a9cf5;
+  --m-rule: rgba(60, 60, 67, 0.13);
+  --m-shadow-out: inset 0 0.5px 0 rgba(255,255,255,0.95), inset 0 0 0 0.5px rgba(255,255,255,0.55), 0 8px 32px rgba(0,0,0,0.08);
+  --m-shadow-in:  inset 0 0 0 0.5px rgba(60,60,67,0.12);
+  --m-success: #34c759;
+  --m-danger:  #ff3b30;
+  --m-paper-hi:   rgba(255, 255, 255, 0.44);
+  --m-paper-lo:   rgba(255, 255, 255, 0.36);
+  --m-paper-soft: rgba(255, 255, 255, 0.34);
+  --m-on-accent:  #ffffff;
+
+  --v5-nav-active-bg: rgba(255, 255, 255, 0.55);
+  --v5-nav-active-shadow: inset 0 0.5px 0 #ffffff, 0 2px 10px rgba(0,0,0,0.06);
+  --v5-nav-hover-bg: rgba(255, 255, 255, 0.28);
+
+  --glass-bg:        rgba(255, 255, 255, 0.42);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-border:    rgba(255, 255, 255, 0.6);
+  --glass-edge:      rgba(255, 255, 255, 0.6);
+  --glass-highlight: #ffffff;
+  --glass-shadow:    0 20px 60px rgba(0, 0, 0, 0.16);
+}
+
+/* 系统字体：所有文字（代码 / 等宽除外） */
+html[data-tint="sky"] body,
+html[data-tint="sky"] body *:not(code):not(pre):not(kbd):not(.font-mono) {
+  font-family: var(--apple-font) !important;
+  font-variation-settings: normal !important;
+}
+
+html[data-tint="sky"] body {
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 标题 / 大数字：加粗 */
+html[data-tint="sky"] :is(h1, h2, h3, h4, .v5-display) {
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
+
+html[data-tint="sky"] .v5-numeral {
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 分组标题：小号灰色（iOS 列表分组头） */
+html[data-tint="sky"] .v5-eyebrow {
+  color: var(--v5-ink3);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* 材质：强模糊 + 高饱和；0.5px 亮边 */
+html[data-tint="sky"] :is(
+  [style*="--v5-card"],
+  [style*="--m-base-light"],
+  [style*="--m-paper-hi"],
+  [style*="--glass-bg"],
+  .daily-log-paper,
+  .daily-log-side-card,
+  .daily-log-calendar,
+  .diary-modal-card
+):not(:has(.fixed)) {
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* 悬停：轻微浮起（iOS 卡片的回弹感） */
+html[data-tint="sky"] :is([style*="--v5-sh-2"], [style*="--m-shadow-out"]) {
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease;
+}
+
+html[data-tint="sky"] :is([style*="--v5-sh-2"], [style*="--m-shadow-out"]):not(:has(.fixed)):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--v5-sh-hover) !important;
+}
+
+/* 按钮：主按钮实心蓝胶囊；分段控件白滑块；次按钮灰胶囊。都不再加光晕描边 */
+html[data-tint="sky"] :is(
+  [style*="--v5-pill-bg"],
+  [style*="--v5-pill-hover"],
+  [style*="background: var(--v5-accent-fill)"],
+  [style*="background: var(--v5-secondary-fill)"]
+) {
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: none !important;
+}
+
+html[data-tint="sky"] [style*="--v5-pill-bg"] {
+  font-weight: 600 !important;
+  box-shadow: 0 4px 14px rgba(74, 168, 255, 0.32) !important;
+}
+
+html[data-tint="sky"] [style*="background: var(--v5-accent-fill)"] {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10), 0 0 0 0.5px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 侧栏选中项：白色材质块 */
+html[data-tint="sky"] .shell-nav-link[aria-current="page"] {
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  font-weight: 600 !important;
+}
+
+/* 背景：云漂移（按图片 1.6 的比例算出同时盖满宽高的尺寸，留 35% 余量，约 40 秒飘一趟，肉眼可见） */
+html[data-tint="sky"] body,
+html[data-tint="sky"] .v5-page-bg {
+  background-size: max(135vw, 216vh) auto, auto !important;
+  animation: sky-drift 40s ease-in-out infinite alternate;
+}
+
+/* 彩色弥散光：天蓝 / 淡紫 / 青绿 / 一点粉，在内容下面缓慢流动，透过磨砂玻璃染出色彩 */
+html[data-tint="sky"] .v5-page-bg {
+  isolation: isolate;
+}
+
+html[data-tint="sky"] .v5-page-bg::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 18% 22%, rgba(140, 200, 255, 0.50), transparent 70%),
+    radial-gradient(34% 38% at 82% 18%, rgba(175, 150, 255, 0.45), transparent 70%),
+    radial-gradient(40% 40% at 72% 82%, rgba(90, 225, 220, 0.38), transparent 70%),
+    radial-gradient(30% 32% at 28% 88%, rgba(255, 165, 205, 0.30), transparent 70%);
+  filter: blur(30px) saturate(130%);
+  animation: sky-aurora 28s ease-in-out infinite alternate;
+}
+
+@keyframes sky-drift {
+  0%   { background-position: 0% 60%, 0 0; }
+  50%  { background-position: 50% 40%, 0 0; }
+  100% { background-position: 100% 55%, 0 0; }
+}
+
+@keyframes sky-aurora {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(3%, -2%, 0) scale(1.06); }
+  100% { transform: translate3d(-3%, 2%, 0) scale(1.02); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-tint="sky"] body,
+  html[data-tint="sky"] .v5-page-bg,
+  html[data-tint="sky"] .v5-page-bg::before {
+    animation: none;
+  }
+}
+
+/* 卡通（sakura）：参考柔和单色粉的界面——纯灰粉底（不要图案）、近乎不透明的粉白卡片、
+   极淡的边和粉色柔影、唯一的玫瑰粉点缀、暖灰紫文字；标题用衬线。 */
+html[data-tint="sakura"] {
+  --tint-texture: url("/textures/sakura.jpg");
+  --tint-base: #eed6de;
+  --tint-blur: none;
+
+  /* 霞鹜文楷：手写感楷体（@fontsource 自托管，layout.tsx 引入） */
+  --v5-serif: "LXGW WenKai", "Noto Serif SC", sans-serif;
+  --v5-sans: "LXGW WenKai", -apple-system, sans-serif;
+  --m-font-display: "LXGW WenKai", sans-serif;
+  --m-font-serif: "LXGW WenKai", sans-serif;
+
+  --v5-bg:           #eed6de;
+  --v5-bg-warm:      #ebd1da;
+  --v5-card:         rgba(255, 246, 249, 0.52);
+  --v5-card-soft:    rgba(255, 244, 247, 0.44);
+  --v5-card-grad:    rgba(255, 246, 249, 0.52);
+  /* 按钮：和铜绿一样是着色毛玻璃，不是实心色块 */
+  --v5-pill-bg:      rgba(212, 102, 140, 0.20);
+  --v5-pill-ink:     #9b3a60;
+  --v5-pill-hover:   rgba(212, 102, 140, 0.30);
+  --v5-accent-fill:      rgba(212, 102, 140, 0.16);
+  --v5-accent-fill-ink:  #9b3a60;
+  --v5-accent-fill-ring: rgba(212, 102, 140, 0.38);
+  --v5-secondary-fill:     rgba(212, 102, 140, 0.08);
+  --v5-secondary-fill-ink: #b24d72;
+  --v5-rule:         rgba(196, 128, 152, 0.18);
+  --v5-rule-strong:  rgba(196, 128, 152, 0.32);
+
+  --v5-ink:          #4b2f3a;
+  --v5-ink2:         #7b5c68;
+  --v5-ink3:         #ae8c99;
+  --v5-ink-mute:     #d3b6c1;
+
+  --v5-accent:       #d4668c;
+  --v5-accent-soft:  #eaa6be;
+  --v5-accent-bg:    rgba(212, 102, 140, 0.08);
+  --v5-rose:         #d4668c;
+  --v5-amber:        #d9a07a;
+
+  --v5-accent-rgb:   212, 102, 140;
+  --v5-ink-rgb:      120, 70, 90;
+  --v5-shadow-rgb:   190, 110, 140;
+  --m-on-accent-rgb: 255, 255, 255;
+  --v5-surface:      #ffffff;
+  --v5-accent-deep:  #b24d72;
+
+  /* 粉色柔影 + 顶部一道白高光，像微微鼓起的软质卡片 */
+  --v5-sh-1:     inset 0 1px 0 rgba(255,255,255,0.85), 0 4px 16px rgba(170,80,115,0.10);
+  --v5-sh-2:     inset 0 1px 0 rgba(255,255,255,0.85), 0 10px 30px rgba(170,80,115,0.14);
+  --v5-sh-3:     inset 0 1px 0 #ffffff, 0 12px 34px rgba(190,110,140,0.14);
+  --v5-sh-hover: inset 0 1px 0 #ffffff, 0 16px 40px rgba(190,110,140,0.18);
+
+  --m-base:       rgba(255, 240, 245, 0.46);
+  --m-base-light: rgba(255, 246, 249, 0.54);
+  --m-ink:  #4b2f3a;
+  --m-ink2: #7b5c68;
+  --m-ink3: #ae8c99;
+  --m-accent: #d4668c;
+  --m-rule: rgba(196, 128, 152, 0.18);
+  --m-shadow-out: inset 0 1px 0 rgba(255,255,255,0.85), 0 10px 30px rgba(170,80,115,0.14);
+  --m-shadow-in:  inset 0 1px 3px rgba(190,110,140,0.10), inset 0 0 0 1px rgba(196,128,152,0.10);
+  --m-success: #8fae8a;
+  --m-danger:  #c9506f;
+  --m-paper-hi:   rgba(255, 247, 250, 0.58);
+  --m-paper-lo:   #f8edf1;
+  --m-paper-soft: #fdf8f9;
+  --m-on-accent:  #ffffff;
+
+  --v5-nav-active-bg: rgba(255, 255, 255, 0.72);
+  --v5-nav-active-shadow: 0 6px 18px rgba(190,110,140,0.16);
+  --v5-nav-hover-bg: rgba(255, 255, 255, 0.70);
+
+  --glass-bg:        rgba(255, 246, 249, 0.50);
+  --glass-bg-strong: rgba(255, 248, 250, 0.78);
+  --glass-border:    rgba(255, 255, 255, 0.9);
+  --glass-edge:      rgba(196, 128, 152, 0.18);
+  --glass-highlight: #ffffff;
+  --glass-shadow:    0 20px 50px rgba(190, 110, 140, 0.18);
+}
+
+/* 樱粉的底：用户提供的花丛插画（public/textures/sakura.jpg），
+   上面罩一层浅粉薄纱，让花不抢文字 */
+html[data-tint="sakura"] body,
+html[data-tint="sakura"] .v5-page-bg {
+  background:
+    /* 左侧（侧栏下方）薄纱更浓，往右渐渐变淡——侧栏融在背景里，但文字仍然清楚 */
+    linear-gradient(90deg, rgba(248, 230, 236, 0.62) 0, rgba(248, 230, 236, 0.5) 220px, rgba(246, 226, 232, 0.38) 420px),
+    url("/textures/sakura.jpg") center / cover no-repeat,
+    #eed6de !important;
+  background-attachment: fixed !important;
+}
+
+/* 卡片：毛玻璃——粉白半透明 + 强模糊 + 白色细边与顶部高光，花丛透出来 */
+html[data-tint="sakura"] :is(
+  [style*="--v5-card"],
+  [style*="--m-base-light"],
+  [style*="--m-paper-hi"],
+  [style*="--glass-bg"],
+  .daily-log-paper,
+  .daily-log-side-card,
+  .daily-log-calendar,
+  .diary-modal-card
+):not(:has(.fixed)) {
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  border-color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* 全部文字用霞鹜文楷（代码 / 等宽除外） */
+html[data-tint="sakura"] body,
+html[data-tint="sakura"] body *:not(code):not(pre):not(kbd):not(.font-mono) {
+  font-family: "LXGW WenKai", "PingFang SC", "Microsoft YaHei", sans-serif !important;
+  font-variation-settings: normal !important;
+}
+
+html[data-tint="sakura"] :is(h1, h2, h3, h4, .v5-display, .v5-numeral) {
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+/* 图标：放进一枚白色小圆片里，像参考图里的圆形按钮 */
+html[data-tint="sakura"] .shell-nav-icon {
+  box-sizing: content-box;
+  padding: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: inset 0 1px 0 #ffffff, 0 3px 10px rgba(170, 80, 115, 0.14);
+}
+
+html[data-tint="sakura"] .shell-nav-link[aria-current="page"] .shell-nav-icon {
+  background: #ffffff;
+}
+
+/* 按钮：着色毛玻璃 + 玫瑰粉细环 + 顶部高光（同铜绿的做法） */
+html[data-tint="sakura"] :is(
+  [style*="--v5-pill-bg"],
+  [style*="--v5-pill-hover"],
+  [style*="background: var(--v5-accent-fill)"],
+  [style*="background: var(--v5-secondary-fill)"]
+) {
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    inset 0 0 0 1px var(--v5-accent-fill-ring),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 6px 18px rgba(170, 80, 115, 0.14) !important;
+}
+
+html[data-tint="sakura"] .v5-eyebrow {
+  color: var(--v5-accent);
+  letter-spacing: 0.18em;
+}
+
+/* 花纹背景：body 兜底，AppShell 根节点（.v5-page-bg）承载 */
+html[data-tint] body,
+html[data-tint] .v5-page-bg {
+  background: var(--tint-texture) center / cover no-repeat, var(--tint-base);
+}
+
+html[data-tint] body {
+  background-attachment: fixed;
+}
+
+html[data-tint] ::selection { background: rgba(var(--v5-accent-rgb), 0.22); }
+
+/* 卡片：通透毛玻璃——白色半透明 + 强模糊 + 白色细边，背景的云隐约透出来 */
+html[data-tint] :is(
+  [style*="--v5-card"],
+  [style*="--m-base-light"],
+  [style*="--m-paper-hi"],
+  [style*="--glass-bg"],
+  .daily-log-paper,
+  .daily-log-side-card,
+  .daily-log-calendar,
+  .diary-modal-card
+):not(:has(.fixed)) {
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+  border-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* 浅色主题里写死的暖米色 → 跟随主题的白色半透明 */
+html[data-tint] .daily-log-paper,
+html[data-tint] .daily-log-side-card {
+  border-color: var(--v5-rule);
+  background: var(--m-paper-hi);
+  box-shadow: var(--v5-sh-2);
+}
+
+html[data-tint] .daily-log-calendar,
+html[data-tint] .daily-log-soft-panel {
+  background: var(--m-base-light);
+  border-color: var(--v5-rule);
+  box-shadow: inset 0 0 0 1px var(--v5-rule), var(--v5-sh-1);
+}
+
+html[data-tint] .daily-log-calendar-arrow {
+  border-color: var(--v5-rule);
+}
+
+html[data-tint] .daily-log-calendar-arrow:hover {
+  background: var(--v5-accent-bg);
+}
+
+html[data-tint] .daily-log-textarea {
+  border-color: var(--v5-rule);
+  background:
+    repeating-linear-gradient(180deg, transparent, transparent 43px, var(--v5-rule) 44px),
+    var(--m-paper-hi);
+}
+
+html[data-tint] .daily-log-textarea::placeholder {
+  color: var(--v5-ink-mute);
+}
+
+html[data-tint] .diary-modal-card {
+  background: var(--glass-bg-strong);
+  border-color: var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+}
+
+html[data-tint] .memory-featured {
+  --m-on-accent-rgb: var(--v5-ink-rgb);
+  background: rgba(var(--v5-accent-rgb), 0.10) !important;
+  box-shadow: inset 0 0 0 1px var(--v5-accent-fill-ring), var(--v5-sh-2) !important;
+}

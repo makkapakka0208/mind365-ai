@@ -192,8 +192,9 @@ function DailyLogInner() {
   const setTags = (value: string) => change("tags", value);
   const [tagDraft, setTagDraft] = useState("");
   const setImages = (value: string[]) => change("images", value);
-  const pickDate = (date: string) => {
-    if (date === viewingDate || (isSaving || !canSwitch())) return;
+  const pickDate = async (date: string) => {
+    if (date === viewingDate || isSaving) return;
+    if (!(await canSwitch())) return;
     setViewingDate(date);
   };
   const isFuture = viewingDate > todayIso;

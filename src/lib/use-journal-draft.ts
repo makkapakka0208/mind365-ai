@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { DailyLog } from "@/types";
+import { askConfirm } from "@/components/ui/confirm-host";
 import { captureStorageScope } from "@/lib/account-storage";
 import { readJournalDraft, writeJournalDraft, removeJournalDraft, type JournalDraft } from "@/lib/journal-draft";
 
@@ -34,13 +35,25 @@ export function useJournalDraft(date: string, log: DailyLog | null) {
       event.preventDefault();
       event.returnValue = "";
     };
+    // 页面内确认框是异步的：先拦下这次点击，确认后再重新点一次链接（带放行标记）
+    let bypass = false;
     const onLink = (event: MouseEvent) => {
-      const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (!link || !current.current.dirty || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey) return;
-      if (!window.confirm("日记尚未正式保存，是否离开？已保存的草稿会保留。")) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
+      const link = event.target instanceof Element ? event.target.closest<HTMLElement>("a[href]") : null;
+      if (bypass || !link || !current.current.dirty || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      event.preventDefault();
+      event.stopPropagation();
+      void askConfirm({
+        title: "离开写日记",
+        message: current.current.persisted
+          ? "日记尚未正式保存，是否离开？草稿已保存在本机，回来时会自动恢复。"
+          : "草稿保存失败，离开后当前输入会丢失。仍要离开吗？",
+        confirmLabel: "离开",
+        cancelLabel: "继续写",
+      }).then((ok) => {
+        if (!ok) return;
+        bypass = true;
+        try { link.click(); } finally { bypass = false; }
+      });
     };
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", onLink, true);
@@ -69,5 +82,13 @@ export function useJournalDraft(date: string, log: DailyLog | null) {
     setStatus("");
   }
 
-  return { draft, status, change, markSaved, canSwitch: () => !current.current.dirty || window.confirm(current.current.persisted ? "切换日期？已保存的草稿会保留。" : "草稿保存失败，切换日期将丢失当前输入。仍要切换吗？") };
+  const canSwitch = async () =>
+    !current.current.dirty ||
+    askConfirm({
+      title: "切换日期",
+      message: current.current.persisted ? "切换日期？这一天的草稿已保存在本机，回来时会自动恢复。" : "草稿保存失败，切换日期将丢失当前输入。仍要切换吗？",
+      confirmLabel: "切换",
+    });
+
+  return { draft, status, change, markSaved, canSwitch };
 }
