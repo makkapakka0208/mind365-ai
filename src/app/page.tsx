@@ -2,7 +2,6 @@
 
 import {
   BookOpen,
-  Check,
   ChevronLeft,
   ChevronRight,
   Compass,
@@ -917,7 +916,6 @@ export default function HomePage() {
 
   const allLogsSorted = useMemo(() => sortLogsByDate(logs, "desc"), [logs]);
   const recentLogs = useMemo(() => allLogsSorted.slice(0, 6), [allLogsSorted]);
-  const todayLog = useMemo(() => recentLogs.find((log) => log.date === getTodayISODate()) ?? null, [recentLogs]);
   const weeklyLogs = useMemo(() => getCurrentWeekLogs(logs), [logs]);
   const weeklyQuotes = useMemo(() => getCurrentWeekQuotes(quotes), [quotes]);
   const weeklyTimeEntries = useMemo(() => getCurrentWeekTimeEntries(timeEntries), [timeEntries]);
@@ -1035,50 +1033,8 @@ export default function HomePage() {
               {getGreeting(now)}
             </div>
 
-            {/* ─ CTA ─ */}
-            <Link
-              href={todayLog ? "/daily-log" : "/record"}
-              className="block rounded-[20px]"
-              style={{
-                padding: 18,
-                background: todayLog ? "var(--m-paper-lo)" : "var(--m-base-light)",
-                border: `1px solid rgba(139,94,60,${todayLog ? "0.14" : "0.13"})`,
-                boxShadow: "var(--m-shadow-out)",
-              }}
-            >
-              <div className="flex items-center gap-3.5">
-                <span
-                  className="flex shrink-0 items-center justify-center"
-                  style={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: 14,
-                    background: todayLog ? "rgba(139,94,60,0.10)" : "rgba(139,94,60,0.09)",
-                    color: "var(--m-accent)",
-                    boxShadow: "var(--m-shadow-in)",
-                  }}
-                >
-                  {todayLog ? <Check size={20} /> : <NotebookPen size={20} />}
-                </span>
-                <div className="flex-1">
-                  <div style={{ fontSize: 17, fontWeight: 600, color: "var(--m-ink)" }}>
-                    {todayLog ? "今天已落笔" : "今日还未记录"}
-                  </div>
-                  {todayLog && (
-                    <div className="mt-0.5" style={{ fontSize: 12.5, color: "var(--m-ink2)" }}>
-                      {`写于 ${formatClock(new Date(todayLog.createdAt))} · 情绪 ${todayLog.mood}/10 · ${todayLog.thoughts.trim().length} 字`}
-                    </div>
-                  )}
-                </div>
-                {todayLog ? <span style={{ fontSize: 12, color: "var(--m-accent)" }}>翻阅 →</span> : null}
-              </div>
-            </Link>
-
-            {/* ─ Streak ─ */}
-            <div className="flex items-center gap-1.5 px-1">
-              <Flame size={15} style={{ color: "var(--m-accent)" }} />
-              <span style={{ fontSize: 13.5, color: "var(--m-ink2)", fontFamily: SERIF }}>已连续记录 {streak} 天</span>
-            </div>
+            {/* ─ 今天：记录状态 / 习惯打卡 / 最近的你 / 正在发生 / 那年今日（与桌面端同一个板块） ─ */}
+            <TodaySection onOpenLog={setDiaryModalId} />
 
             {/* ─ Time card ─ */}
             <HomePendulumCard />
