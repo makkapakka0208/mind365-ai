@@ -348,6 +348,18 @@ button {
   border-left: 1px solid var(--v5-rule);
 }
 
+/* 手机：三栏改成上下排列，分隔线从左边挪到上边 */
+@media (max-width: 767px) {
+  .today-columns {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .today-columns > * + * {
+    border-left: 0;
+    border-top: 1px solid var(--v5-rule);
+  }
+}
+
 /* 精选记录：翻页时淡入上浮 */
 @keyframes featured-excerpt-in {
   from { opacity: 0; transform: translateY(8px); }
