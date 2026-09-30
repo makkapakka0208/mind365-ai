@@ -341,7 +341,7 @@ function DailyLogInner() {
                     {activeMood.label} · mood {mood}/10
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <div className="grid grid-cols-5 gap-2 sm:gap-3">
                   {MOODS.map((item) => {
                     const selected = item.value === activeMood.value;
                     return (
@@ -351,15 +351,15 @@ function DailyLogInner() {
                         onClick={() => setMood(item.value)}
                         style={{
                           background: selected ? "var(--m-paper-hi)" : "var(--m-paper-soft)",
-                          borderColor: selected ? "rgba(214, 154, 84, 0.58)" : "rgba(139, 94, 60, 0.10)",
+                          borderColor: selected ? "rgba(var(--v5-accent-rgb), 0.55)" : "var(--v5-rule)",
                           boxShadow: selected
-                            ? "0 18px 38px rgba(196, 133, 70, 0.18)"
-                            : "0 10px 24px rgba(122, 79, 43, 0.05)",
+                            ? "0 10px 24px rgba(var(--v5-accent-rgb), 0.18)"
+                            : "0 6px 16px rgba(var(--v5-shadow-rgb), 0.05)",
                         }}
                         type="button"
                       >
-                        <span className="block text-2xl">{item.emoji}</span>
-                        <span className="mt-2 block text-sm" style={{ color: selected ? "var(--v5-accent)" : "var(--v5-ink3)" }}>
+                        <span className="block text-lg leading-tight sm:text-2xl">{item.emoji}</span>
+                        <span className="mt-0.5 block whitespace-nowrap text-[11.5px] sm:mt-1.5 sm:text-sm" style={{ color: selected ? "var(--v5-accent)" : "var(--v5-ink3)" }}>
                           {item.label}
                         </span>
                       </button>

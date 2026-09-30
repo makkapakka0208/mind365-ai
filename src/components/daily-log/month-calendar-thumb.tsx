@@ -167,7 +167,7 @@ export function MonthCalendarThumb({
             {cursor.year} 年 {cursor.month} 月
           </div>
           <div className="mt-1 text-xs italic" style={{ color: "var(--v5-ink3)" }}>
-            {MONTH_EN[cursor.month - 1]}, in passing
+            {MONTH_EN[cursor.month - 1]}, {canGoNextMonth ? "remembered" : "in passing"}
           </div>
         </div>
 
