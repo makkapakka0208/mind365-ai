@@ -206,42 +206,56 @@ function ItemRow({ plan, date, item, current, compact }: {
         />
         <button type="submit" className="text-sm" style={{ color: "var(--v5-accent)" }}>保存</button>
         <button type="button" onClick={() => setEditing(false)} className="text-sm" style={{ color: "var(--v5-ink3)" }}>取消</button>
+        <button type="button" onClick={() => removeRestItem(plan.id, date, item.id)} className="ml-auto text-sm" style={{ color: "var(--v5-ink3)" }}>删除</button>
       </form>
     );
   }
 
+  const time = `${item.start}${item.end ? `–${item.end}` : ""}`;
+  const timeColor = current ? "var(--v5-accent)" : "var(--v5-ink3)";
+
+  // 手机：时间在上、名称在下（可换行，不截断），类型只用圆点表示，点名称进入编辑；
+  // 桌面：时间 | 名称 + 类型 | 操作（修改 / 删除悬停出现）
   return (
     <div
-      className="group grid items-center gap-x-3 rounded-[12px] px-3 py-2 transition-colors"
+      className={`group grid items-center gap-x-3 rounded-[12px] px-3 py-2 transition-colors grid-cols-[minmax(0,1fr)_auto] ${
+        compact ? "sm:grid-cols-[88px_minmax(0,1fr)_auto]" : "sm:grid-cols-[104px_minmax(0,1fr)_auto]"
+      }`}
       style={{
-        gridTemplateColumns: compact ? "88px minmax(0,1fr) auto" : "104px minmax(0,1fr) auto",
         background: current ? "rgba(var(--v5-accent-rgb), 0.10)" : undefined,
         boxShadow: current ? "inset 2px 0 0 var(--v5-accent)" : undefined,
       }}
     >
-      <span className="tabular-nums" style={{ fontSize: 13.5, color: current ? "var(--v5-accent)" : "var(--v5-ink3)" }}>
-        {item.start}{item.end ? `–${item.end}` : ""}
+      <span className="hidden tabular-nums sm:inline" style={{ fontSize: 13.5, color: timeColor }}>
+        {time}
       </span>
-      <span className="flex min-w-0 items-center gap-2" style={{ fontFamily: SERIF }}>
-        <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: KIND_COLOR[item.kind] }} title={KIND_LABEL[item.kind]} />
-        <span
-          className="truncate"
-          style={{ fontSize: 15, color: item.done ? "var(--v5-ink-mute)" : "var(--v5-ink)", textDecoration: item.done ? "line-through" : undefined }}
-          title={item.title}
-        >
-          {item.title}
-        </span>
-        {!compact && (
-          <span className="shrink-0 text-[11.5px]" style={{ color: "var(--v5-ink3)" }}>{KIND_LABEL[item.kind]}</span>
-        )}
-      </span>
+      <div className="min-w-0" style={{ fontFamily: SERIF }}>
+        <div className="tabular-nums sm:hidden" style={{ fontSize: 12.5, color: timeColor }}>
+          {time}
+        </div>
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span aria-hidden className="h-1.5 w-1.5 shrink-0 translate-y-[-2px] rounded-full" style={{ background: KIND_COLOR[item.kind] }} title={KIND_LABEL[item.kind]} />
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="min-w-0 break-words text-left sm:truncate"
+            style={{ fontSize: 15, lineHeight: 1.45, color: item.done ? "var(--v5-ink-mute)" : "var(--v5-ink)", textDecoration: item.done ? "line-through" : undefined }}
+            title={`${item.title}（点击修改 / 删除）`}
+          >
+            {item.title}
+          </button>
+          {!compact && (
+            <span className="hidden shrink-0 text-[11.5px] sm:inline" style={{ color: "var(--v5-ink3)" }}>{KIND_LABEL[item.kind]}</span>
+          )}
+        </div>
+      </div>
       <span className="flex items-center gap-1">
         {!compact && (
           <>
-            <button type="button" title="修改" onClick={() => setEditing(true)} className="rounded-full p-1.5 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--v5-ink3)" }}>
+            <button type="button" title="修改" onClick={() => setEditing(true)} className="hidden rounded-full p-1.5 opacity-0 transition-opacity group-hover:opacity-100 sm:block" style={{ color: "var(--v5-ink3)" }}>
               <Pencil size={13} />
             </button>
-            <button type="button" title="删除" onClick={() => removeRestItem(plan.id, date, item.id)} className="rounded-full p-1.5 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--v5-ink3)" }}>
+            <button type="button" title="删除" onClick={() => removeRestItem(plan.id, date, item.id)} className="hidden rounded-full p-1.5 opacity-0 transition-opacity group-hover:opacity-100 sm:block" style={{ color: "var(--v5-ink3)" }}>
               <X size={14} />
             </button>
           </>
@@ -368,7 +382,7 @@ export function RestPlanBoard() {
             )}
 
             {plan.days.length > 1 && (
-              <div className="mb-4 flex flex-wrap gap-2">
+              <div className="m-scroll-hidden -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
                 {plan.days.map((d) => {
                   const active = d.date === date;
                   const doneCount = d.items.filter((i) => i.done).length;
@@ -377,7 +391,7 @@ export function RestPlanBoard() {
                       key={d.date}
                       type="button"
                       onClick={() => setPickedDate(d.date)}
-                      className="rounded-full px-3.5 py-1.5 text-sm transition-all"
+                      className="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm transition-all"
                       style={
                         active
                           ? { background: "var(--v5-pill-bg)", color: "var(--v5-pill-ink)" }
