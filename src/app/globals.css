@@ -533,16 +533,24 @@ button {
 }
 
 .daily-log-mood {
-  min-height: 92px;
+  min-height: 0;
   border: 1px solid;
-  border-radius: 22px;
-  padding: 18px 12px;
+  border-radius: 14px;
+  padding: 8px 0;
   text-align: center;
   transition: transform var(--v5-dur-fast) var(--v5-ease), box-shadow var(--v5-dur-fast) var(--v5-ease);
 }
 
 .daily-log-mood:hover {
   transform: translateY(-3px);
+}
+
+@media (min-width: 640px) {
+  .daily-log-mood {
+    min-height: 78px;
+    border-radius: 20px;
+    padding: 14px 10px;
+  }
 }
 
 .daily-log-textarea {
