@@ -1454,7 +1454,7 @@ export async function downloadGuestBackup() {
     daily_logs: read("daily_logs", []), quotes: read("quotes", []), notes: read("notes", []),
     review_reports: read("review_reports", []), time_entries: read("time_entries", []), todos: read("todos", []),
     settings: { ...DEFAULT_SETTINGS, weeklyStudyTarget: read("settings", {}).weeklyStudyTarget ?? 10, weeklyReadingTarget: read("settings", {}).weeklyReadingTarget ?? 7 },
-    life_path: { directions: read("mind365_life_directions", []), goals: read("mind365_life_goals", []), mentor_plans: read("mind365_mentor_plans", {}), week_plans: read("mind365_week_plans", {}), milestones: read("mind365_life_milestones", []), books: read("mind365_books", []), habits: read("mind365_habits", []), habit_logs: read("mind365_habit_logs", []) },
+    life_path: { directions: read("mind365_life_directions", []), goals: read("mind365_life_goals", []), mentor_plans: read("mind365_mentor_plans", {}), week_plans: read("mind365_week_plans", {}), milestones: read("mind365_life_milestones", []), books: read("mind365_books", []), habits: read("mind365_habits", []), habit_logs: read("mind365_habit_logs", []), rest_plans: read("mind365_rest_plans", []) },
     extras: Object.fromEntries(BACKUP_EXTRA_KEYS.map(k => [k, read(k, null)])),
   });
   triggerDownload(JSON.stringify(data, null, 2), "application/json", "mind365-guest-backup.json");
@@ -1559,6 +1559,7 @@ export function importMind365Backup(raw: string): BackupImportResult {
         books: Array.isArray(incoming.books) ? incoming.books : undefined,
         habits: Array.isArray(incoming.habits) ? incoming.habits : undefined,
         habit_logs: Array.isArray(incoming.habit_logs) ? incoming.habit_logs : undefined,
+        rest_plans: Array.isArray(incoming.rest_plans) ? incoming.rest_plans : undefined,
       }, false);
     }
     const importedSettings = normalizeMind365Settings(data.settings);

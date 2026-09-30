@@ -458,3 +458,49 @@ export interface HabitLog {
   createdAt: string;
   updatedAt: string;
 }
+
+// ── 周末 / 假期计划 ──────────────────────────────────────────────────────────
+
+/** 这段休息日想过得：轻松 / 平衡 / 充实 */
+export type RestPlanPace = "relaxed" | "balanced" | "full";
+
+/** 计划项类型：已定安排 / 本周任务 / 待办 / 习惯 / 目标 / 阅读 / 休息 / 生活（吃饭、采购、出门…） */
+export type RestItemKind = "fixed" | "task" | "todo" | "habit" | "goal" | "reading" | "rest" | "life";
+
+export interface RestPlanItem {
+  id: string;
+  /** 开始时间 HH:mm */
+  start: string;
+  /** 结束时间 HH:mm；开放式（如「自由时间」）可省略 */
+  end?: string;
+  title: string;
+  kind: RestItemKind;
+  /** 关联的待办 / 本周任务 / 习惯 / 目标 id */
+  refId?: string;
+  done?: boolean;
+}
+
+export interface RestPlanDay {
+  /** yyyy-MM-dd */
+  date: string;
+  items: RestPlanItem[];
+}
+
+/** 一段连续休息日（周末或法定假期）的计划；id = 第一天的日期 */
+export interface RestPlan {
+  id: string;
+  /** 「周末」或节日名，如「国庆节」 */
+  name: string;
+  start: string;
+  end: string;
+  pace: RestPlanPace;
+  /** 生成时填写的「已经定好的安排」 */
+  fixed: string;
+  /** 一句话概括 */
+  summary?: string;
+  days: RestPlanDay[];
+  /** ai = 大模型生成；local = 本地规则生成（AI 不可用时） */
+  source: "ai" | "local";
+  createdAt: string;
+  updatedAt: string;
+}

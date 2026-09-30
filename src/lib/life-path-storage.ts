@@ -35,7 +35,7 @@ import { apiFetch } from "@/lib/api";
 import { getCachedAuthUserId } from "@/lib/auth";
 import { createMind365SupabaseClient, getActiveSyncConfig, normalizeMind365Settings } from "@/lib/supabase";
 import type { Mind365Settings } from "@/types";
-import type { Book, Habit, HabitLog, LifeDirection, MentorPlan, Milestone, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
+import type { Book, Habit, HabitLog, LifeDirection, MentorPlan, Milestone, RestPlan, UserGoal, WeekPlan, WeekTask } from "@/types/life-path";
 
 const DIRECTIONS_KEY = "mind365_life_directions";
 const GOALS_KEY = "mind365_life_goals";
@@ -48,9 +48,10 @@ const BOOKS_KEY = "mind365_books";
 /** 习惯与打卡记录 */
 const HABITS_KEY = "mind365_habits";
 const HABIT_LOGS_KEY = "mind365_habit_logs";
+const REST_PLANS_KEY = "mind365_rest_plans";
 
 const REMOTE_TABLE = "life_path_state";
-type Kind = "directions" | "goals" | "mentor_plans" | "week_plans" | "milestones" | "books" | "habits" | "habit_logs";
+type Kind = "directions" | "goals" | "mentor_plans" | "week_plans" | "milestones" | "books" | "habits" | "habit_logs" | "rest_plans";
 
 export interface LifePathBackupData {
   directions: LifeDirection[];
@@ -61,6 +62,7 @@ export interface LifePathBackupData {
   books?: Book[];
   habits?: Habit[];
   habit_logs?: HabitLog[];
+  rest_plans?: RestPlan[];
 }
 
 export interface LifePathBackupImportResult {
@@ -117,6 +119,7 @@ function localKeyFor(kind: Kind): string {
     case "books": return BOOKS_KEY;
     case "habits": return HABITS_KEY;
     case "habit_logs": return HABIT_LOGS_KEY;
+    case "rest_plans": return REST_PLANS_KEY;
   }
 }
 
@@ -207,13 +210,14 @@ export async function refreshLifePathState(): Promise<void> {
       row.kind === "milestones" ||
       row.kind === "books" ||
       row.kind === "habits" ||
-      row.kind === "habit_logs"
+      row.kind === "habit_logs" ||
+      row.kind === "rest_plans"
     ) {
       remoteByKind.set(row.kind as Kind, row);
     }
   }
 
-  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs"];
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs", "rest_plans"];
   for (const kind of kinds) {
     if (!active()) return;
     const remote = remoteByKind.get(kind);
@@ -389,6 +393,18 @@ export function saveHabits(habits: Habit[]): void {
 
 export function loadHabitLogs(): HabitLog[] {
   return tryParse<HabitLog[]>(HABIT_LOGS_KEY, []);
+}
+
+export const readRestPlansRaw = () => readRaw(REST_PLANS_KEY);
+
+export function loadRestPlans(): RestPlan[] {
+  return tryParse<RestPlan[]>(REST_PLANS_KEY, []);
+}
+
+export function saveRestPlans(plans: RestPlan[]): void {
+  if (typeof window === "undefined") return;
+  accountStorage.setItem(REST_PLANS_KEY, JSON.stringify(plans));
+  pushAsync("rest_plans", plans);
 }
 
 export function saveHabitLogs(logs: HabitLog[]): void {
@@ -615,7 +631,7 @@ export function ensureWeekPlan(weekKey: string): WeekPlan {
  */
 export async function forceUploadAllLifePathData(): Promise<void> {
   const active = captureStorageScope();
-  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs"];
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs", "rest_plans"];
   for (const kind of kinds) {
     if (!active()) return;
     const localRaw = typeof window !== "undefined" ? accountStorage.getItem(localKeyFor(kind)) : null;
@@ -635,6 +651,7 @@ export function getLifePathBackupData(): LifePathBackupData {
     books: loadBooks(),
     habits: loadHabits(),
     habit_logs: loadHabitLogs(),
+    rest_plans: loadRestPlans(),
   };
 }
 
@@ -728,6 +745,12 @@ export function importLifePathBackupData(value: unknown, sync = true): LifePathB
     accountStorage.setItem(HABIT_LOGS_KEY, JSON.stringify(merged));
     setMeta("habit_logs", now);
     if (sync) pushAsync("habit_logs", merged);
+  }
+  if (Array.isArray(data.rest_plans)) {
+    const merged = mergeNewer(loadRestPlans(), data.rest_plans);
+    accountStorage.setItem(REST_PLANS_KEY, JSON.stringify(merged));
+    setMeta("rest_plans", now);
+    if (sync) pushAsync("rest_plans", merged);
   }
 
   return {

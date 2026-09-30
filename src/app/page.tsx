@@ -17,6 +17,7 @@ import { DiaryBookModalPortal, FeaturedBookPreview } from "@/components/dashboar
 import { HomeTodoCard } from "@/components/dashboard/home-todo-card";
 import { getYearStats, TimeHero, YearDial } from "@/components/dashboard/time-hero";
 import { TodaySection } from "@/components/dashboard/today-section";
+import { RestPlanHomeCard } from "@/components/rest-plan/rest-plan-board";
 import { Button } from "@/components/ui/button";
 import { CountUp } from "@/components/ui/count-up";
 import { Dialog } from "@/components/ui/dialog";
@@ -1035,6 +1036,7 @@ export default function HomePage() {
 
             {/* ─ 今天：记录状态 / 习惯打卡 / 最近的你 / 正在发生 / 那年今日（与桌面端同一个板块） ─ */}
             <TodaySection onOpenLog={setDiaryModalId} />
+            <RestPlanHomeCard />
 
             {/* ─ Time card ─ */}
             <HomePendulumCard />
@@ -1133,6 +1135,7 @@ export default function HomePage() {
 
             {/* 今天：记录状态 · 最近的你 · 正在发生 · 那年今日 */}
             <TodaySection onOpenLog={setDiaryModalId} />
+            <RestPlanHomeCard />
 
             {monthEndPrompt && (
               <div

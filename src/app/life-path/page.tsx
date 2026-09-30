@@ -7,6 +7,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { GoalTracks, LifePathMasthead } from "@/components/life-path/goal-tracks";
 import { HabitBoard } from "@/components/habits/habit-board";
+import { RestPlanBoard } from "@/components/rest-plan/rest-plan-board";
 import { QuadrantTodos } from "@/components/todo/quadrant-todos";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -1179,6 +1180,10 @@ export default function LifePathPage() {
             <HabitBoard onLogged={() => setGoals(loadGoals())} />
           </div>
 
+          <div className="border-t pt-8" style={{ borderColor: "var(--v5-rule)" }}>
+            <RestPlanBoard />
+          </div>
+
           {/* Four-quadrant todo — merged into Life Path (desktop) per user request */}
           <div className="border-t pt-8" style={{ borderColor: "var(--v5-rule)" }}>
             <QuadrantTodos />
@@ -1239,6 +1244,10 @@ export default function LifePathPage() {
 
       <div className="border-t pt-6" style={{ borderColor: "var(--m-rule)" }}>
         <HabitBoard onLogged={() => setGoals(loadGoals())} />
+      </div>
+
+      <div className="border-t pt-6" style={{ borderColor: "var(--m-rule)" }}>
+        <RestPlanBoard />
       </div>
 
       {/* ── Four-quadrant todo (merged in; no standalone page) ── */}
