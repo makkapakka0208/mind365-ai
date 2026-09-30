@@ -27,7 +27,7 @@ function subscribe(cb: () => void) {
   };
 }
 
-function useParsedList<T>(read: () => string | null): T[] {
+export function useParsedList<T>(read: () => string | null): T[] {
   const raw = useSyncExternalStore(subscribe, read, () => null);
   return useMemo(() => {
     if (!raw) return [];
