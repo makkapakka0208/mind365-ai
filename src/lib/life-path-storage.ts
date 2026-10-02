@@ -49,9 +49,11 @@ const BOOKS_KEY = "mind365_books";
 const HABITS_KEY = "mind365_habits";
 const HABIT_LOGS_KEY = "mind365_habit_logs";
 const REST_PLANS_KEY = "mind365_rest_plans";
+/** 需要跨设备同步的偏好（目前是每周学习 / 阅读目标）。设置里的其余内容（含 Supabase 连接配置）只留在本机 */
+const PREFS_KEY = "mind365_prefs";
 
 const REMOTE_TABLE = "life_path_state";
-type Kind = "directions" | "goals" | "mentor_plans" | "week_plans" | "milestones" | "books" | "habits" | "habit_logs" | "rest_plans";
+type Kind = "directions" | "goals" | "mentor_plans" | "week_plans" | "milestones" | "books" | "habits" | "habit_logs" | "rest_plans" | "prefs";
 
 export interface LifePathBackupData {
   directions: LifeDirection[];
@@ -120,6 +122,7 @@ function localKeyFor(kind: Kind): string {
     case "habits": return HABITS_KEY;
     case "habit_logs": return HABIT_LOGS_KEY;
     case "rest_plans": return REST_PLANS_KEY;
+    case "prefs": return PREFS_KEY;
   }
 }
 
@@ -211,13 +214,16 @@ export async function refreshLifePathState(): Promise<void> {
       row.kind === "books" ||
       row.kind === "habits" ||
       row.kind === "habit_logs" ||
-      row.kind === "rest_plans"
+      row.kind === "rest_plans" ||
+      row.kind === "prefs"
     ) {
       remoteByKind.set(row.kind as Kind, row);
     }
   }
 
-  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs", "rest_plans"];
+  seedPrefsFromSettings();
+
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs", "rest_plans", "prefs"];
   for (const kind of kinds) {
     if (!active()) return;
     const remote = remoteByKind.get(kind);
@@ -249,6 +255,56 @@ export async function refreshLifePathState(): Promise<void> {
       }
     }
   }
+
+  if (active()) applyPrefsToSettings();
+}
+
+// ── 跨设备偏好（每周学习 / 阅读目标） ─────────────────────────────────────────
+
+export interface SyncedPrefs {
+  weeklyStudyTarget: number;
+  weeklyReadingTarget: number;
+}
+
+function readPrefs(): SyncedPrefs | null {
+  const raw = accountStorage.getItem(PREFS_KEY);
+  if (!raw) return null;
+  try {
+    const p = JSON.parse(raw) as Partial<SyncedPrefs>;
+    if (typeof p.weeklyStudyTarget !== "number" || typeof p.weeklyReadingTarget !== "number") return null;
+    return { weeklyStudyTarget: p.weeklyStudyTarget, weeklyReadingTarget: p.weeklyReadingTarget };
+  } catch {
+    return null;
+  }
+}
+
+/** 设置页保存周目标时调用：本机记一份并推到云端 */
+export function saveSyncedPrefs(prefs: SyncedPrefs): void {
+  if (typeof window === "undefined") return;
+  accountStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  pushAsync("prefs", prefs);
+}
+
+/** 把同步来的偏好写回本机设置（其余设置项保持不变） */
+function applyPrefsToSettings(): void {
+  const prefs = readPrefs();
+  if (!prefs) return;
+  const settings = getSettingsSafe();
+  if (settings.weeklyStudyTarget === prefs.weeklyStudyTarget && settings.weeklyReadingTarget === prefs.weeklyReadingTarget) return;
+  accountStorage.setItem("settings", JSON.stringify({ ...settings, ...prefs }));
+}
+
+/**
+ * 旧数据迁移：周目标以前只存在本机设置里。本机改过（不是默认值）而还没有同步副本时，
+ * 先记一份但不写时间戳——云端已有的话以云端为准，没有的话这份会被推上去。
+ * 新设备上是默认值，不会生成副本，也就不会用默认值覆盖云端。
+ */
+function seedPrefsFromSettings(): void {
+  if (accountStorage.getItem(PREFS_KEY)) return;
+  const s = getSettingsSafe();
+  const defaults = normalizeMind365Settings({});
+  if (s.weeklyStudyTarget === defaults.weeklyStudyTarget && s.weeklyReadingTarget === defaults.weeklyReadingTarget) return;
+  accountStorage.setItem(PREFS_KEY, JSON.stringify({ weeklyStudyTarget: s.weeklyStudyTarget, weeklyReadingTarget: s.weeklyReadingTarget }));
 }
 
 // ── Life Directions ───────────────────────────────────────────────────────────
@@ -631,7 +687,7 @@ export function ensureWeekPlan(weekKey: string): WeekPlan {
  */
 export async function forceUploadAllLifePathData(): Promise<void> {
   const active = captureStorageScope();
-  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs", "rest_plans"];
+  const kinds: Kind[] = ["directions", "goals", "mentor_plans", "week_plans", "milestones", "books", "habits", "habit_logs", "rest_plans", "prefs"];
   for (const kind of kinds) {
     if (!active()) return;
     const localRaw = typeof window !== "undefined" ? accountStorage.getItem(localKeyFor(kind)) : null;

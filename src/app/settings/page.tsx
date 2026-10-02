@@ -6,6 +6,7 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { askConfirm } from "@/components/ui/confirm-host";
+import { refreshLifePathState, saveSyncedPrefs } from "@/lib/life-path-storage";
 import { Input } from "@/components/ui/input";
 import { PageTransition, StaggerItem } from "@/components/ui/page-transition";
 import { Panel } from "@/components/ui/panel";
@@ -125,6 +126,12 @@ export default function SettingsPage() {
     setStatus(getCloudSyncStatus());
     setStudyTarget(settings.weeklyStudyTarget);
     setReadingTarget(settings.weeklyReadingTarget);
+    // 周目标跨设备同步：拉一次云端，有更新就刷新显示
+    void refreshLifePathState().then(() => {
+      const latest = getSettings();
+      setStudyTarget(latest.weeklyStudyTarget);
+      setReadingTarget(latest.weeklyReadingTarget);
+    });
   }, []);
 
   const onSaveTargets = () => {
@@ -132,6 +139,7 @@ export default function SettingsPage() {
     const r = readingTarget > 0 ? readingTarget : 7;
     const settings = getSettings();
     saveSettings({ ...settings, weeklyStudyTarget: s, weeklyReadingTarget: r });
+    saveSyncedPrefs({ weeklyStudyTarget: s, weeklyReadingTarget: r });
     setStudyTarget(s);
     setReadingTarget(r);
     setTargetSaved(true);

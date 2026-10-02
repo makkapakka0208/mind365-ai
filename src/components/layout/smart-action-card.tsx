@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { useWeeklyTargets } from "@/lib/weekly-targets";
 import { getNextAction } from "@/lib/home-insights";
-import { getSettings } from "@/lib/storage";
 import { isReviewDone } from "@/lib/review-reflection";
 import { useDailyLogsStore, useQuotesStore, useReviewReportsStore, useTimeEntriesStore } from "@/lib/storage-store";
 
@@ -39,7 +39,7 @@ export function SmartActionCard() {
   const logs = useDailyLogsStore();
   const quotes = useQuotesStore();
   const timeEntries = useTimeEntriesStore();
-  const { weeklyStudyTarget, weeklyReadingTarget } = useMemo(() => getSettings(), []);
+  const { weeklyStudyTarget, weeklyReadingTarget } = useWeeklyTargets();
   const reviewReports = useReviewReportsStore();
   const action = useMemo(() => {
     const now = new Date();
