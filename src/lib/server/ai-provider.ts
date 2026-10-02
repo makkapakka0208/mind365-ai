@@ -79,6 +79,15 @@ export interface ChatOptions {
    * 由各接口从回答文本里提取 JSON（兼容所有模型）。
    */
   json?: boolean;
+  /** 随用户消息一起发送的图片（data URL）。需要模型支持看图，见 supportsVision */
+  images?: string[];
+}
+
+/** 当前服务商 + 模型能否看图：DeepSeek 只有 deepseek-flash 支持图片（deepseek-v4-pro 不支持），OpenAI 的 gpt-4o 系列支持 */
+export function visionModelFor(provider: AiProvider): AiProvider | null {
+  if (provider.name === "deepseek") return { ...provider, model: process.env.DEEPSEEK_VISION_MODEL?.trim() || "deepseek-flash" };
+  if (provider.name === "openai") return provider;
+  return null;
 }
 
 /** 发一次 OpenAI 兼容的 chat/completions 请求，返回原始 Response */
@@ -87,7 +96,12 @@ export function chatCompletion(provider: AiProvider, opts: ChatOptions): Promise
     model: provider.model,
     messages: [
       { role: "system", content: opts.system },
-      { role: "user", content: opts.user },
+      {
+        role: "user",
+        content: opts.images?.length
+          ? [{ type: "text", text: opts.user }, ...opts.images.map((url) => ({ type: "image_url", image_url: { url } }))]
+          : opts.user,
+      },
     ],
     temperature: opts.temperature,
   };

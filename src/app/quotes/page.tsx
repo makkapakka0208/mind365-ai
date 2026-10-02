@@ -33,6 +33,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { QuoteImageImport, RecognizedPicker, type RecognizedQuote } from "@/components/quotes/quote-image-import";
+
 import { Bookshelf } from "@/components/library/bookshelf";
 import { NoteIndex, NoteReader } from "@/components/library/note-reader";
 import { Button } from "@/components/ui/button";
@@ -2499,10 +2501,15 @@ function V5AddQuoteModal({
   const [book, setBook] = useState("");
   const [tags, setTags] = useState("");
   const [saving, setSaving] = useState(false);
+  // 识图结果（一图多句时逐句确认保存）
+  const [candidates, setCandidates] = useState<RecognizedQuote[]>([]);
+  const [active, setActive] = useState(0);
+  const fill = (q: RecognizedQuote) => { setText(q.text); setAuthor(q.author); setBook(q.book); };
 
   useEffect(() => {
     if (!open) {
       setText(""); setAuthor(""); setBook(""); setTags("");
+      setCandidates([]); setActive(0);
     }
   }, [open]);
 
@@ -2527,6 +2534,14 @@ function V5AddQuoteModal({
     setSaving(true);
     try {
       await onSave({ text: text.trim(), author: author.trim(), book: book.trim(), tags: tagList });
+      // 一图多句：还有没保存的就填入下一句，不关弹窗
+      const rest = candidates.filter((_, i) => i !== active);
+      if (rest.length) {
+        setCandidates(rest);
+        setActive(0);
+        fill(rest[0]);
+        return;
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -2588,6 +2603,22 @@ function V5AddQuoteModal({
         >
           写下那句打动你的话
         </h2>
+
+        <div className="mt-4">
+          <QuoteImageImport
+            listenPaste
+            onResult={(quotes) => {
+              setCandidates(quotes);
+              setActive(0);
+              fill(quotes[0]);
+            }}
+          />
+          <RecognizedPicker
+            active={active}
+            onPick={(i) => { setActive(i); fill(candidates[i]); }}
+            quotes={candidates}
+          />
+        </div>
 
         <textarea
           autoFocus
@@ -2735,6 +2766,9 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
   const [book, setBook] = useState("");
   const [tags, setTags] = useState("");
   const [message, setMessage] = useState("");
+  const [candidates, setCandidates] = useState<RecognizedQuote[]>([]);
+  const [activeCandidate, setActiveCandidate] = useState(0);
+  const fillCandidate = (q: RecognizedQuote) => { setText(q.text); setAuthor(q.author); setBook(q.book); };
 
   const quotes = useQuotesStore();
   const dailyQuote = getDailyQuote(quotes);
@@ -2764,6 +2798,14 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
     await saveQuote(quote);
     setText(""); setAuthor(""); setBook(""); setTags("");
     setMessage("已保存到你的灵感书库。");
+    // 一图多句：自动填入下一句
+    const rest = candidates.filter((_, i) => i !== activeCandidate);
+    setCandidates(rest);
+    setActiveCandidate(0);
+    if (rest.length) {
+      fillCandidate(rest[0]);
+      setMessage(`已保存。下一句已填好，还剩 ${rest.length} 句。`);
+    }
   };
 
   // v5 desktop state — modal + filters
@@ -2899,6 +2941,20 @@ function QuotesSection({ scrollToId, onOpenQuote }: { scrollToId: string | null;
               <p className="mt-1 text-sm leading-6" style={{ color: "var(--m-ink2)" }}>
                 写下那些触动你的智慧、观点或力量。
               </p>
+              <div className="mt-3">
+                <QuoteImageImport
+                  onResult={(quotes) => {
+                    setCandidates(quotes);
+                    setActiveCandidate(0);
+                    fillCandidate(quotes[0]);
+                  }}
+                />
+                <RecognizedPicker
+                  active={activeCandidate}
+                  onPick={(i) => { setActiveCandidate(i); fillCandidate(candidates[i]); }}
+                  quotes={candidates}
+                />
+              </div>
             </div>
             <Button disabled={!text.trim()} size="lg" type="submit" variant="primary">
               <Save className="mr-1.5" size={15} />
