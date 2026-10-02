@@ -228,3 +228,46 @@ test('drafts survive date changes/reload and remain account-isolated', () => {
   assert.equal(d.drafts.readJournalDraft('2026-09-05'), null);
   assert.equal(d.drafts.readJournalDraft('2026-09-04').thoughts, 'yesterday');
 });
+
+test('weekly targets sync across devices without letting a fresh device overwrite them with defaults', async () => {
+  const db = new Map(); const a = device(db); const b = device(db);
+  for (const d of [a, b]) { d.account.setStorageUser('A'); d.control.configured = true; }
+  const targets = d => { const s = d.storage.getSettings(); return [s.weeklyStudyTarget, s.weeklyReadingTarget]; };
+
+  // 新设备 B 先刷新：只有默认值，不应上传
+  await b.life.refreshLifePathState();
+  const prefsRows = () => [...(db.get('life_path_state')?.values() ?? [])].filter(r => r.kind === 'prefs');
+  assert.equal(prefsRows().length, 0);
+
+  // A 在设置页保存 3h / 2h → 推到云端；B 刷新后拿到
+  a.storage.saveSettings({ ...a.storage.getSettings(), weeklyStudyTarget: 3, weeklyReadingTarget: 2 });
+  a.life.saveSyncedPrefs({ weeklyStudyTarget: 3, weeklyReadingTarget: 2 });
+  await settle(); await settle();
+  await b.life.refreshLifePathState();
+  assert.deepEqual(targets(b), [3, 2]);
+
+  // B 再改成 5h / 4h，A 刷新后跟上
+  await new Promise(r => setTimeout(r, 5));
+  b.storage.saveSettings({ ...b.storage.getSettings(), weeklyStudyTarget: 5, weeklyReadingTarget: 4 });
+  b.life.saveSyncedPrefs({ weeklyStudyTarget: 5, weeklyReadingTarget: 4 });
+  await settle(); await settle();
+  await a.life.refreshLifePathState();
+  assert.deepEqual(targets(a), [5, 4]);
+});
+
+test('weekly targets set before sync existed are migrated once, and the cloud copy wins over another old device', async () => {
+  const db = new Map(); const a = device(db); const c = device(db);
+  for (const d of [a, c]) { d.account.setStorageUser('A'); d.control.configured = true; }
+  const targets = d => { const s = d.storage.getSettings(); return [s.weeklyStudyTarget, s.weeklyReadingTarget]; };
+
+  // 旧版本里 A 只在本机设置里改过目标（没有同步副本）
+  a.storage.saveSettings({ ...a.storage.getSettings(), weeklyStudyTarget: 3, weeklyReadingTarget: 2 });
+  await a.life.refreshLifePathState();
+  const row = [...db.get('life_path_state').values()].find(r => r.kind === 'prefs');
+  assert.deepEqual(JSON.parse(row.content), { weeklyStudyTarget: 3, weeklyReadingTarget: 2 });
+
+  // 另一台旧设备 C 本机是别的值、也没有同步副本：以云端为准
+  c.storage.saveSettings({ ...c.storage.getSettings(), weeklyStudyTarget: 8, weeklyReadingTarget: 6 });
+  await c.life.refreshLifePathState();
+  assert.deepEqual(targets(c), [3, 2]);
+});

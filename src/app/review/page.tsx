@@ -22,8 +22,9 @@ import {
   getQuoteReadingHours,
   sortLogsByDate,
 } from "@/lib/analytics";
+import { useWeeklyTargets } from "@/lib/weekly-targets";
 import { getMonthRange, getTodayISODate, getWeekRange, parseISODate, toISODate } from "@/lib/date";
-import { getSettings, saveReviewReport } from "@/lib/storage";
+import { saveReviewReport } from "@/lib/storage";
 import { useQuotesStore, useSyncedDailyLogs, useTimeEntriesStore, useTodosStore } from "@/lib/storage-store";
 import type { DailyLog, Quote, ReviewReport, TodoItem } from "@/types";
 
@@ -259,10 +260,7 @@ export default function ReviewHubPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedMode, setSavedMode] = useState<ReviewMode | null>(null);
 
-  const goals = useMemo(() => {
-    const s = getSettings();
-    return { weeklyStudyTarget: s.weeklyStudyTarget, weeklyReadingTarget: s.weeklyReadingTarget };
-  }, []);
+  const goals = useWeeklyTargets();
   const reviewData = useMemo(() => getReviewData(allLogs, mode), [allLogs, mode]);
   const reviewQuotes = useMemo(
     () => (mode === "week" ? getCurrentWeekQuotes(allQuotes) : getCurrentMonthQuotes(allQuotes)),

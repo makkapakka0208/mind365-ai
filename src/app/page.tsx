@@ -33,6 +33,7 @@ import {
   parseReadingHours,
   sortLogsByDate,
 } from "@/lib/analytics";
+import { useWeeklyTargets } from "@/lib/weekly-targets";
 import { getTodayISODate, parseISODate, toISODate } from "@/lib/date";
 import {
   getAllTimeBestStreak,
@@ -43,7 +44,7 @@ import {
   getReviewBadge,
   getStreakInsight,
 } from "@/lib/home-insights";
-import { getSettings, saveTimeEntry } from "@/lib/storage";
+import { saveTimeEntry } from "@/lib/storage";
 import { isReviewDone } from "@/lib/review-reflection";
 import { useDailyLogsStore, useQuotesStore, useReviewReportsStore, useTimeEntriesStore } from "@/lib/storage-store";
 import type { DailyLog, Quote, TimeEntry } from "@/types";
@@ -908,7 +909,7 @@ export default function HomePage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [timeDialogType, setTimeDialogType] = useState<TimeEntry["type"] | null>(null);
   const [diaryModalId, setDiaryModalId] = useState<string | null>(null);
-  const { weeklyStudyTarget, weeklyReadingTarget } = useMemo(() => getSettings(), []);
+  const { weeklyStudyTarget, weeklyReadingTarget } = useWeeklyTargets();
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60000);
